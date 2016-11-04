@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace HandConverted.Library
 {
-  public class standard_metadata_t
+  public sealed class standard_metadata_t
   {
     // Specified on p45 of the v1.1 spec
 
