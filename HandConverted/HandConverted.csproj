@@ -22,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -31,6 +32,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -44,12 +46,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DataEntryPoint.cs" />
+    <Compile Include="Library\BitHelper.cs" />
     <Compile Include="Library\PacketInstanceType.cs" />
     <Compile Include="Library\standard_metadata_t.cs" />
     <Compile Include="P4lang\P4-spec\Mtag-example\ethernet_t.cs" />
     <Compile Include="P4lang\P4-spec\Mtag-example\ipv4_t.cs" />
     <Compile Include="P4lang\P4-spec\Mtag-example\local_metadata_t.cs" />
     <Compile Include="P4lang\P4-spec\Mtag-example\mtag_t.cs" />
+    <Compile Include="P4lang\P4-spec\Mtag-example\ParsedRepresentation.cs" />
     <Compile Include="P4lang\P4-spec\Mtag-example\vlan_t.cs" />
     <Compile Include="P4lang\Switch\Mirror\Control.cs" />
     <Compile Include="P4lang\Switch\Mirror\ipv4_metadata_t.cs" />
