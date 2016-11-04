@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HandConverted.P4lang.P4_spec.Mtag_example.Parser;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,7 +21,7 @@ namespace HandConverted.P4lang.P4_spec.Mtag_example.Actions
       pr.local_metadata.copy_to_cpu = do_copy;
       pr.local_metadata.cpu_code = cpu_code;
       pr.local_metadata.bad_packet = bad_packet;
-      pr.drop(); // FIXME - what is this? Or rather, how do we deal with it behaving differently in ingress and egress?
+      //pr.drop(); // FIXME - how do we deal with it behaving differently in ingress and egress?
     }
     public static void common_set_port_type(ParsedRepresentation pr, byte port_type, bool ingress_error)
     {
