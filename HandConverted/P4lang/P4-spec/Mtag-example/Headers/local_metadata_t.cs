@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace HandConverted.P4lang.P4_spec.Mtag_example
 {
-  class local_metadata_t
+  sealed class local_metadata_t
   {
     // FIXME: will you be able to copy comments over from P4 using their front-end?
     public ushort cpu_code;     // width 16 // Code for packet going to CPU

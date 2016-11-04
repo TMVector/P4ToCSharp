@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 
 namespace HandConverted.P4lang.P4_spec.Mtag_example
 {
-  class ethernet_t
+  sealed class ethernet_t
   {
     public readonly uint length = 12;
     public uint offset;
 
-    public ulong dstAddr;     // 48
-    public ulong srcAddr;     // 48
-    public ushort etherType;  // 16
+    public ulong dstAddr;     // width 48
+    public ulong srcAddr;     // width 48
+    public ushort etherType;  // width 16
 
     public ethernet_t(uint offset)
     {
@@ -27,6 +27,7 @@ namespace HandConverted.P4lang.P4_spec.Mtag_example
       srcAddr = BitHelper.Extract48(data, offset + 5);
       etherType = BitHelper.Extract16(data, offset + 10);
     }
+
     public void Write(byte[] data)
     {
       BitHelper.Write48(data, offset, dstAddr);

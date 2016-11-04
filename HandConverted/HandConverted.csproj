@@ -47,14 +47,21 @@
   <ItemGroup>
     <Compile Include="DataEntryPoint.cs" />
     <Compile Include="Library\BitHelper.cs" />
+    <Compile Include="Library\ControlBase.cs" />
+    <Compile Include="Library\IParser.cs" />
     <Compile Include="Library\PacketInstanceType.cs" />
+    <Compile Include="Library\ParsedRepresentationBase.cs" />
     <Compile Include="Library\standard_metadata_t.cs" />
-    <Compile Include="P4lang\P4-spec\Mtag-example\ethernet_t.cs" />
-    <Compile Include="P4lang\P4-spec\Mtag-example\ipv4_t.cs" />
-    <Compile Include="P4lang\P4-spec\Mtag-example\local_metadata_t.cs" />
-    <Compile Include="P4lang\P4-spec\Mtag-example\mtag_t.cs" />
-    <Compile Include="P4lang\P4-spec\Mtag-example\ParsedRepresentation.cs" />
-    <Compile Include="P4lang\P4-spec\Mtag-example\vlan_t.cs" />
+    <Compile Include="P4lang\P4-spec\Mtag-example\Actions\Action.cs" />
+    <Compile Include="P4lang\P4-spec\Mtag-example\Mtag-aggregation\Action.cs" />
+    <Compile Include="P4lang\P4-spec\Mtag-example\Mtag-aggregation\Control.cs" />
+    <Compile Include="P4lang\P4-spec\Mtag-example\Headers\ethernet_t.cs" />
+    <Compile Include="P4lang\P4-spec\Mtag-example\Headers\ipv4_t.cs" />
+    <Compile Include="P4lang\P4-spec\Mtag-example\Headers\local_metadata_t.cs" />
+    <Compile Include="P4lang\P4-spec\Mtag-example\Headers\mtag_t.cs" />
+    <Compile Include="P4lang\P4-spec\Mtag-example\Parser\ParsedRepresentation.cs" />
+    <Compile Include="P4lang\P4-spec\Mtag-example\Parser\Parser.cs" />
+    <Compile Include="P4lang\P4-spec\Mtag-example\Headers\vlan_t.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

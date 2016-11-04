@@ -7,23 +7,23 @@ using System.Threading.Tasks;
 
 namespace HandConverted.P4lang.P4_spec.Mtag_example
 {
-  class ipv4_t
+  sealed class ipv4_t
   {
     public uint offset;
 
-    public byte version; // 4
-    public byte ihl; // 4
-    public byte diffserv; // 8
-    public ushort totalLen; // 16
-    public ushort identification; // 16
-    public byte flags; // 3
-    public ushort fragOffset; // 13
-    public byte ttl; // 8
-    public byte protocol; // 8
-    public ushort hdrChecksum; // 16
-    public uint srcAddr; // 32
-    public uint dstAddr; // 32
-    public byte[] options; // * (variable length options)
+    public byte version;          // width 4
+    public byte ihl;              // width 4
+    public byte diffserv;         // width 8
+    public ushort totalLen;       // width 16
+    public ushort identification; // width 16
+    public byte flags;            // width 3
+    public ushort fragOffset;     // width 13
+    public byte ttl;              // width 8
+    public byte protocol;         // width 8
+    public ushort hdrChecksum;    // width 16
+    public uint srcAddr;          // width 32
+    public uint dstAddr;          // width 32
+    public byte[] options;        // variable width
 
     public uint length { get { return ((uint)ihl & 0xF) * 4; } }
     public const uint max_length = 60;
@@ -49,6 +49,7 @@ namespace HandConverted.P4lang.P4_spec.Mtag_example
       dstAddr = BitHelper.Extract32(arr, offset + 16);
       options = BitHelper.ExtractBytes(arr, offset + 20, length - 20);
     }
+
     public void Write(byte[] arr)
     {
       // TODO

@@ -7,15 +7,15 @@ using System.Threading.Tasks;
 
 namespace HandConverted.P4lang.P4_spec.Mtag_example
 {
-  class vlan_t
+  sealed class vlan_t
   {
     public readonly uint length = 4;
     public uint offset;
 
-    public byte pcp; // 3;
-    public bool cfi; // 1;
-    public ushort vid; // 12;
-    public ushort ethertype; // 16;
+    public byte pcp;          // width 3
+    public bool cfi;          // width 1
+    public ushort vid;        // width 12
+    public ushort ethertype;  // width 16
 
     public vlan_t(uint offset)
     {
@@ -29,6 +29,7 @@ namespace HandConverted.P4lang.P4_spec.Mtag_example
       vid = BitHelper.ExtractBits(arr, offset * 8 + 4, 12);
       ethertype = BitHelper.Extract16(arr, offset + 2);
     }
+
     public void Write(byte[] arr)
     {
       // TODO

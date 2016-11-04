@@ -7,16 +7,16 @@ using System.Threading.Tasks;
 
 namespace HandConverted.P4lang.P4_spec.Mtag_example
 {
-  class mtag_t
+  sealed class mtag_t
   {
     public readonly uint length = 6;
     public uint offset;
 
-    public byte up1; // 8
-    public byte up2; // 8
-    public byte down1; // 8
-    public byte down2; // 8
-    public ushort ethertype; // 16
+    public byte up1;          // width 8
+    public byte up2;          // width 8
+    public byte down1;        // width 8
+    public byte down2;        // width 8
+    public ushort ethertype;  // width 16
 
     public mtag_t(uint offset)
     {
@@ -31,6 +31,7 @@ namespace HandConverted.P4lang.P4_spec.Mtag_example
       down2 = BitHelper.Extract8(arr, offset + 3);
       ethertype = BitHelper.Extract16(arr, offset + 4);
     }
+
     public void Write(byte[] arr)
     {
       BitHelper.Write8(arr, offset, up1);
