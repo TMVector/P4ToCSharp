@@ -52,7 +52,19 @@ namespace HandConverted.P4lang.P4_spec.Mtag_example
 
     public void Write(byte[] arr)
     {
-      // TODO
+      BitHelper.WriteBits(arr, offset * 8, 4, version);
+      BitHelper.WriteBits(arr, offset * 8 + 4, 4, ihl);
+      BitHelper.Write8(arr, offset + 1, diffserv);
+      BitHelper.Write16(arr, offset + 2, totalLen);
+      BitHelper.Write16(arr, offset + 4, identification);
+      BitHelper.WriteBits(arr, offset + 48, 3, flags);
+      BitHelper.WriteBits(arr, offset + 51, 13, fragOffset);
+      BitHelper.Write8(arr, offset + 8, ttl);
+      BitHelper.Write8(arr, offset + 9, protocol);
+      BitHelper.Write16(arr, offset + 10, hdrChecksum);
+      BitHelper.Write32(arr, offset + 12, srcAddr);
+      BitHelper.Write32(arr, offset + 16, dstAddr);
+      BitHelper.WriteBytes(arr, offset + 20, length - 20, options);
     }
   }
 }
