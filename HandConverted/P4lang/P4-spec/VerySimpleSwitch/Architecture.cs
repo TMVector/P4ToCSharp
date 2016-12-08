@@ -2,32 +2,8 @@
 
 namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
 {
-  // Architecture definition file for the "Simple" switch
   public static class Architecture
   {
-    public sealed class Checksum16
-    {
-      // prepare unit
-      public void clear()
-      { }
-
-      // add data to be checksummed
-      public void update(HeaderBase dt)
-      { }
-      public void update(Bitstring dt)
-      { }
-
-      // conditionally add data to be checksummed
-      public void update(bool condition, HeaderBase dt)
-      { }
-      public void update(bool condition, Bitstring dt)
-      { }
-
-      // get the checksum of all data added since the last clear
-      public ushort get()
-      { }
-    }
-
     /* ports are represented using 4-bit values */
     public struct PortId_t
     {
@@ -65,34 +41,81 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
     public static readonly PortId_t CPU_OUT_PORT = new PortId_t(0xE);
     public static readonly PortId_t RECIRCULATE_OUT_PORT = new PortId_t(0xD);
 
-    /* List of blocks that must be implemented */
+    /**
+     * Programmable parser.
+     * @param <H> type of headers; defined by user
+     * @param b input packet
+     * @param parsedHeaders headers constructed by parser
+     */
     public interface Parser<H> : Parser
     {
       void Apply(Core.paket_in b,
                  out H parsedHeaders);
     }
-    public interface MAP<H> : Control
+
+    /**
+     * Match-action pipeline
+     * @param <H> type of input and output headers
+     * @param headers headers received from the parser and sent to the deparser
+     * @param parseError error that may have surfaced during parsing
+     * @param inCtrl information from architecture, accompanying input packet
+     * @param outCtrl information for architecture, accompanying output packet
+     */
+    public interface Pipe<H> : Control
     {
       void Apply(ref H headers,
                  Error parseError, // parser error
                  InControl inCtrl, // input port
                  out OutControl outCtrl);  // output port
     }
+
+    /**
+     * Switch deparser.
+     * @param <H> type of headers; defined by user
+     * @param b output packet
+     * @param outputHeaders headers for output packet
+     */
     public interface Deparser<H> : Control
     {
       void Apply(ref H outputHeaders,
                  Core.packet_out b);
     }
 
-    /** 
-     * Simple switch declaration.
-     * H is the user-defined type of the headers processed
+    /**
+     * Top-level package declaration - must be instantiated by user.
+     * The arguments to the package indicate blocks that
+     * must be instantiated by the user.
+     * @param <H> user-defined type of the headers processed.
      */
-    interface Simple<H> : Package
+    interface VSS<H> : Package
     {
       Parser<H> p { get; }
-      MAP<H> map { get; }
+      Pipe<H> map { get; }
       Deparser<H> d { get; }
+    }
+
+    // Checksum unit
+    public sealed class Checksum16
+    {
+      // prepare unit for computation
+      public void clear()
+      { }
+
+      // add data to checksum
+      public void update(HeaderBase dt)
+      { }
+      public void update(Bitstring dt)
+      { }
+
+      // remove data from existing checksum
+      public void remove(bool condition, HeaderBase dt)
+      { }
+      public void remove(bool condition, Bitstring dt)
+      { }
+
+      // get the checksum for the data added since last clear
+      public ushort get()
+      { }
     }
   }
 }
