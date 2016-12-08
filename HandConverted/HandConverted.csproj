@@ -43,6 +43,15 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
+    <Reference Include="Pax">
+      <HintPath>..\..\pax\Bin\Pax.exe</HintPath>
+    </Reference>
+    <Reference Include="SharpPcap">
+      <HintPath>..\..\pax\Bin\SharpPcap.dll</HintPath>
+    </Reference>
+    <Reference Include="PacketDotNet">
+      <HintPath>..\..\pax\Bin\PacketDotNet.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DataEntryPoint.cs" />
@@ -69,6 +78,8 @@
     <Compile Include="P4lang\P4-spec\Mtag-example\Parser\check_mtag.cs" />
     <Compile Include="Library\MatchActionUnitBase.cs" />
     <Compile Include="Library\Action.cs" />
+    <Compile Include="P4lang\P4-spec\Mtag-example\Parser\identify_port.cs" />
+    <Compile Include="P4lang\P4-spec\Mtag-example\Parser\select_output_port.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
