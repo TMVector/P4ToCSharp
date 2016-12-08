@@ -50,7 +50,12 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
+    <None Include="IR\Frontend.fs" />
+    <None Include="IR\JsonReader.fsx" />
     <None Include="paket.references" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="IR\" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>

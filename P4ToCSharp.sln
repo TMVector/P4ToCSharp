@@ -45,10 +45,9 @@ Global
 		$1.FileWidth = 120
 		$1.TabWidth = 2
 		$1.IndentWidth = 2
-		$1.NoTabsAfterNonTabs = True
 		$1.inheritsSet = VisualStudio
 		$1.inheritsScope = text/plain
-		$1.scope = text/x-fsharp
+		$1.scope = text/x-csharp
 		$0.FSharpFormattingPolicy = $2
 		$2.DefaultFormat = $3
 		$3.IndentOnTryWith = False
@@ -59,5 +58,26 @@ Global
 		$3.SpaceBeforeArgument = True
 		$3.SpaceBeforeColon = True
 		$2.scope = text/x-fsharp
+		$0.CSharpFormattingPolicy = $4
+		$4.IndentSwitchSection = True
+		$4.NewLinesForBracesInProperties = True
+		$4.NewLinesForBracesInAccessors = True
+		$4.NewLinesForBracesInAnonymousMethods = True
+		$4.NewLinesForBracesInControlBlocks = True
+		$4.NewLinesForBracesInAnonymousTypes = True
+		$4.NewLinesForBracesInObjectCollectionArrayInitializers = True
+		$4.NewLinesForBracesInLambdaExpressionBody = True
+		$4.NewLineForElse = True
+		$4.NewLineForCatch = True
+		$4.NewLineForFinally = True
+		$4.NewLineForMembersInObjectInit = True
+		$4.NewLineForMembersInAnonymousTypes = True
+		$4.NewLineForClausesInQuery = True
+		$4.SpacingAfterMethodDeclarationName = False
+		$4.SpaceAfterMethodCallName = False
+		$4.SpaceBeforeOpenSquareBracket = False
+		$4.inheritsSet = Mono
+		$4.inheritsScope = text/x-csharp
+		$4.scope = text/x-csharp
 	EndGlobalSection
 EndGlobal
