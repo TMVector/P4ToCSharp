@@ -71,6 +71,15 @@
     <Compile Include="P4lang\P4-spec\Mtag-example\Parser\ParsedRepresentation.cs" />
     <Compile Include="P4lang\P4-spec\Mtag-example\Parser\Parser.cs" />
     <Compile Include="P4lang\P4-spec\Mtag-example\Headers\vlan_t.cs" />
+    <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\BitHelper.cs" />
+    <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\BitString.cs" />
+    <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\HeaderBase.cs" />
+    <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\IControl.cs" />
+    <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\IPackage.cs" />
+    <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\IParser.cs" />
+    <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\ITable.cs" />
+    <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\Table.cs" />
+    <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Program.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="P4lang\P4c\P4_16_samples\ex1.cs" />
@@ -81,6 +90,7 @@
     <Compile Include="P4lang\P4-spec\Mtag-example\Parser\identify_port.cs" />
     <Compile Include="P4lang\P4-spec\Mtag-example\Parser\select_output_port.cs" />
     <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Architecture.cs" />
+    <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Core.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -306,11 +316,7 @@
     <None Include="P4lang\P4-spec\VerySimpleSwitch\simple-switch-example.p4" />
     <None Include="P4lang\P4-spec\VerySimpleSwitch\core.p4" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="P4lang\P4c\" />
-    <Folder Include="P4lang\P4c\P4_16_samples\" />
-    <Folder Include="P4lang\P4-spec\VerySimpleSwitch\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

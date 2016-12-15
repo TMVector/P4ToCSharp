@@ -1,4 +1,6 @@
-﻿using System;
+﻿using HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library;
+using System;
+using static HandConverted.Core;
 
 namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
 {
@@ -15,6 +17,15 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
       {
         Value = val;
       }
+
+      public static bool operator ==(PortId_t a, PortId_t b)
+      {
+        return a.Value == b.Value;
+      }
+      public static bool operator !=(PortId_t a, PortId_t b)
+      {
+        return !(a == b);
+      }
     }
 
     /* only 8 ports are “real” */
@@ -23,7 +34,7 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
     /* metadata accompanying an input packet */
     public class InControl
     {
-      PortId_t inputPort;
+      public PortId_t inputPort;
     }
 
     /* special input port values */
@@ -33,7 +44,7 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
     /* metadata that must be computed for outgoing packets */
     public class OutControl
     {
-      PortId_t outputPort;
+      public PortId_t outputPort;
     }
 
     /* special output port values for outgoing packet */
@@ -47,9 +58,9 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
      * @param b input packet
      * @param parsedHeaders headers constructed by parser
      */
-    public interface Parser<H> : Parser
+    public interface Parser<H> : IParser
     {
-      void Apply(Core.paket_in b,
+      void Apply(Packet_in b,
                  out H parsedHeaders);
     }
 
@@ -61,7 +72,7 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
      * @param inCtrl information from architecture, accompanying input packet
      * @param outCtrl information for architecture, accompanying output packet
      */
-    public interface Pipe<H> : Control
+    public interface Pipe<H> : IControl
     {
       void Apply(ref H headers,
                  Error parseError, // parser error
@@ -75,10 +86,10 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
      * @param b output packet
      * @param outputHeaders headers for output packet
      */
-    public interface Deparser<H> : Control
+    public interface Deparser<H> : IControl
     {
       void Apply(ref H outputHeaders,
-                 Core.packet_out b);
+                 Packet_out b);
     }
 
     /**
@@ -87,7 +98,7 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
      * must be instantiated by the user.
      * @param <H> user-defined type of the headers processed.
      */
-    interface VSS<H> : Package
+    interface VSS<H> : IPackage
     {
       Parser<H> p { get; }
       Pipe<H> map { get; }
@@ -98,23 +109,23 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
     public sealed class Checksum16
     {
       // prepare unit for computation
-      public void clear()
+      public void Clear()
       { }
 
       // add data to checksum
-      public void update(HeaderBase dt)
+      public void Update(HeaderBase dt)
       { }
-      public void update(Bitstring dt)
+      public void Update(BitString dt)
       { }
 
       // remove data from existing checksum
-      public void remove(bool condition, HeaderBase dt)
+      public void Remove(HeaderBase dt)
       { }
-      public void remove(bool condition, Bitstring dt)
+      public void Remove(BitString dt)
       { }
 
       // get the checksum for the data added since last clear
-      public ushort get()
+      public ushort Get()
       { }
     }
   }
