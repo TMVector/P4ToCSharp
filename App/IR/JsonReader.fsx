@@ -18,8 +18,6 @@ type NameMap() =
 
 type Type(node_id, node_type) =
   inherit Node(node_id, node_type)
-  abstract width_bits : int
-  default this.width_bits = 0
 
 type Type_Base(node_id, node_type) =
   inherit Type(node_id, node_type)
@@ -65,7 +63,7 @@ type Direction = None | In | Out | InOut
 
 type Type_Type(node_id, node_type, type_) =
   inherit Type(node_id, node_type)
-  member this.type_ = type_
+  member this.type_ = type_ // type
 
 type Type_Boolean(node_id, node_type) =
   inherit Type_Base(node_id, node_type)
@@ -82,10 +80,11 @@ type Type_Varbits(node_id, node_type, size) =
   inherit Type_Base(node_id, node_type)
   member this.size = size
 
-type Parameter(node_id, node_type, name, declid, annotations, direction) =
+type Parameter(node_id, node_type, name, declid, annotations, direction, type_) =
   inherit Declaration(node_id, node_type, name, declid)
   member this.annotations = annotations
   member this.direction = direction
+  member this.type_ = type_ // type
 
 type ParameterList(node_id, node_type, parameters) =
   inherit Node(node_id, node_type)
@@ -94,9 +93,8 @@ type ParameterList(node_id, node_type, parameters) =
 type Type_Var(node_id, node_type, name, declid) =
   inherit Type_Declaration(node_id, node_type, name, declid)
 
-type Type_InfInt(node_id, node_type, name, declid) =
+type Type_InfInt(node_id, node_type, declid) =
   inherit Type(node_id, node_type)
-  member this.name = name
   member this.declid = declid
 
 type Type_Dontcare(node_id, node_type) =
@@ -115,7 +113,7 @@ type TypeParameters(node_id, node_type, parameters) =
 type StructField(node_id, node_type, name, declid, annotations, type_) =
   inherit Declaration(node_id, node_type, name, declid)
   member this.annotations = annotations
-  member this.type_ = type_
+  member this.type_ = type_ // type
 
 type Type_StructLike(node_id, node_type, name, declid, annotations, fields) =
   inherit Type_Declaration(node_id, node_type, name, declid)
@@ -197,35 +195,37 @@ type Type_ActionEnum(node_id, node_type, actionList) =
 type Type_MethodBase(node_id, node_type, typeParameters, returnType, parameters) =
   inherit Type(node_id, node_type)
   member this.typeParameters = typeParameters
-  member this.returnType = returnType
+  member this.returnType = returnType // if != nullptr
   member this. parameters = parameters
 
 type Type_Method(node_id, node_type, typeParameters, returnType, parameters) =
   inherit Type_MethodBase(node_id, node_type, typeParameters, returnType, parameters)
 
-type ArgumentInfo(node_id, node_type, type_) =
+type ArgumentInfo(node_id, node_type, leftValue, compileTimeConstant, type_) =
   inherit Node(node_id, node_type)
-  member this.type_ = type_
+  member this.leftValue = leftValue
+  member this.compileTimeConstant = compileTimeConstant
+  member this.type_ = type_ // type
 
 type Type_MethodCall(node_id, node_type, typeArguments, returnType, arguments) =
   inherit Type(node_id, node_type)
   member this.typeParameters = typeArguments
   member this.returnType = returnType
-  member this. parameters = arguments
+  member this.arguments = arguments
 
 type Type_Action(node_id, node_type, typeParameters, returnType, parameters) =
   inherit Type_MethodBase(node_id, node_type, typeParameters, returnType, parameters)
 
 type Method(node_id, node_type, name, declid, type_, isAbstract, annotations) =
   inherit Declaration(node_id, node_type, name, declid)
-  member this.type_ = type_
+  member this.type_ = type_ // type
   member this.isAbstract = isAbstract
   member this.annotations = annotations
 
 type Type_Typedef(node_id, node_type, name, declid, annotations, type_) =
   inherit Type_Declaration(node_id, node_type, name, declid)
   member this.annotations = annotations
-  member this.type_ = type_
+  member this.type_ = type_ // type
 
 type Type_Extern(node_id, node_type, name, declid, typeParameters, methods, attributes, annotations) =
   inherit Type_Declaration(node_id, node_type, name, declid)
@@ -321,7 +321,7 @@ type Literal(node_id, node_type, type_) =
 type Constant(node_id, node_type, type_, value, base_) = 
   inherit Literal(node_id, node_type, type_)
   member this.value = value
-  member this.base_ = base_
+  member this.base_ = base_ // base
 
 type BoolLiteral(node_id, node_type, type_, value) = 
   inherit Literal(node_id, node_type, type_)
@@ -344,7 +344,7 @@ type Slice(node_id, node_type, type_, e0, e1, e2) =
 
 type Member(node_id, node_type, type_, expr, member_) =
   inherit Operation_Unary(node_id, node_type, type_, expr)
-  member this.member_ = member_
+  member this.member_ = member_ // member
 
 type Concat(node_id, node_type, type_, left, right) =
   inherit Operation_Binary(node_id, node_type, type_, left, right)
@@ -383,7 +383,7 @@ type SelectExpression(node_id, node_type, type_, select, selectCases) =
 
 type MethodCallExpression(node_id, node_type, type_, method_, typeArguments, arguments) = 
   inherit Expression(node_id, node_type, type_)
-  member this.method_ = method_
+  member this.method_ = method_ // method
   member this.typeArguments = typeArguments
   member this.arguments = arguments
 
@@ -400,18 +400,18 @@ type ParserState(node_id, node_type, name, declid, annotations, components, sele
   inherit Declaration(node_id, node_type, name, declid)
   member this.annotations = annotations
   member this.components = components
-  member this.selectExpression = selectExpression
+  member this.selectExpression = selectExpression // if != nullptr
 
 type P4Parser(node_id, node_type, name, declid, type_, constructorParams, parserLocals, states) =
   inherit Type_Declaration(node_id, node_type, name, declid)
-  member this.type_ = type_
+  member this.type_ = type_ // type
   member this.constructorParams = constructorParams
   member this.parserLocals = parserLocals
   member this.states = states
 
 type P4Control(node_id, node_type, name, declid, type_, constructorParams, controlLocals, body) =
   inherit Type_Declaration(node_id, node_type, name, declid)
-  member this.type_ = type_
+  member this.type_ = type_ // type
   member this.constructorParams = constructorParams
   member this.controlLocals = controlLocals
   member this.body = body
@@ -460,10 +460,11 @@ type Key(node_id, node_type, keyElements) =
   inherit PropertyValue(node_id, node_type)
   member this.keyElements = keyElements
 
-type Property(node_id, node_type, name, declid, annotations, value) =
+type Property(node_id, node_type, name, declid, annotations, value, isConstant) =
   inherit Declaration(node_id, node_type, name, declid)
   member this.annotations = annotations
   member this.value = value
+  member this.isConstant = isConstant
 
 type TableProperties(node_id, node_type, properties) =
   inherit Node(node_id, node_type)
@@ -478,22 +479,22 @@ type P4Table(node_id, node_type, name, declid, annotations, parameters, properti
 type Declaration_Variable(node_id, node_type, name, declid, annotations, type_, initializer) =
   inherit Declaration(node_id, node_type, name, declid)
   member this.annotations = annotations
-  member this.type_ = type_
-  member this.initializer = initializer
+  member this.type_ = type_ // type
+  member this.initializer = initializer // if != nullptr
 
 type Declaration_Constant(node_id, node_type, name, declid, annotations, type_, initializer) =
   inherit Declaration(node_id, node_type, name, declid)
   member this.annotations = annotations
-  member this.type_ = type_
+  member this.type_ = type_ // type
   member this.initializer = initializer
 
 type Declaration_Instance(node_id, node_type, name, declid, annotations, type_, arguments, properties, initializer) =
   inherit Declaration(node_id, node_type, name, declid)
   member this.annotations = annotations
-  member this.type_ = type_
+  member this.type_ = type_ // type
   member this.arguments = arguments
   member this.properties = properties
-  member this.initializer = initializer
+  member this.initializer = initializer // if != nullptr
 
 type P4Program(node_id, node_type, declarations) =
   inherit Node(node_id, node_type)
@@ -507,7 +508,7 @@ type ExitStatement(node_id, node_type) =
 
 type ReturnStatement(node_id, node_type, expression) =
   inherit Statement(node_id, node_type)
-  member this.expression = expression
+  member this.expression = expression // if != nullptr
 
 type EmptyStatement(node_id, node_type) =
   inherit Statement(node_id, node_type)
@@ -521,7 +522,7 @@ type IfStatement(node_id, node_type, condition, ifTrue, ifFalse) =
   inherit Statement(node_id, node_type)
   member this.condition = condition
   member this.ifTrue = ifTrue
-  member this.ifFalse = ifFalse
+  member this.ifFalse = ifFalse // if != nullptr
 
 type BlockStatement(node_id, node_type, annotations, components) =
   inherit Statement(node_id, node_type)
@@ -535,19 +536,19 @@ type MethodCallStatement(node_id, node_type, methodCall) =
 type SwitchCase(node_id, node_type, label, statement) =
   inherit Node(node_id, node_type)
   member this.label = label
-  member this.statement = statement
+  member this.statement = statement // if != nullptr
 
-type SwitchStatement(node_id, node_type, expressions, cases) =
+type SwitchStatement(node_id, node_type, expression, cases) =
   inherit Statement(node_id, node_type)
-  member this.expressions = expressions
+  member this.expression = expression
   member this.cases = cases
 
 type Function(node_id, node_type, name, declid, type_, body) =
   inherit Declaration(node_id, node_type, name, declid)
-  member this.type_ = type_
+  member this.type_ = type_ // type
   member this.body = body
 
-type Block(node_id, node_type, node, constantVaue) =
+type Block(node_id, node_type, node, constantValue) =
   inherit Node(node_id, node_type)
   member this.node = node
   member this.constantValue = constantValue
@@ -570,12 +571,12 @@ type ControlBlock(node_id, node_type, node, constantValue, instanceType, contain
 
 type PackageBlock(node_id, node_type, node, constantValue, instanceType, type_) =
   inherit InstantiatedBlock(node_id, node_type, node, constantValue, instanceType)
-  member this.type_ = type_
+  member this.type_ = type_ // type
 
 type ExternBlock(node_id, node_type, node, constantValue, instanceType, type_, constructor_) =
   inherit InstantiatedBlock(node_id, node_type, node, constantValue, instanceType)
-  member this.type_ = type_
-  member this.constructor_ = constructor_
+  member this.type_ = type_ // type
+  member this.constructor_ = constructor_ // constructor
 
 type TopLevelBlock(node_id, node_type, node, constantValue) =
   inherit Block(node_id, node_type, node, constantValue)
@@ -621,7 +622,7 @@ type HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_) =
   member this.type_name = type_name
   member this.name = name
   member this.annotations = annotations
-  member this.type_ = type_
+  member this.type_ = type_ // type; if != nullptr
 
 type Header(node_id, node_type, type_name, name, annotations, type_) =
   inherit HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_)
@@ -633,17 +634,17 @@ type HeaderStack(node_id, node_type, type_name, name, annotations, type_, size) 
 type Metadata(node_id, node_type, type_name, name, annotations, type_) =
   inherit HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_)
 
-type HeaderRef(node_id, node_type, type_name, name, annotations, type_) =
-  inherit Header(node_id, node_type, type_name, name, annotations, type_)
+type HeaderRef(node_id, node_type, type_) =
+  inherit Expression(node_id, node_type, type_)
 
 type ConcreteHeaderRef(node_id, node_type, type_name, name, annotations, type_, ref) =
-  inherit HeaderRef(node_id, node_type, type_name, name, annotations, type_)
+  inherit HeaderRef(node_id, node_type, type_)
   member this.ref = ref
 
-type HeaderStackItemRef(node_id, node_type, type_name, name, annotations, type_, base_, index_) =
-  inherit HeaderRef(node_id, node_type, type_name, name, annotations, type_)
-  member this.base_ = base_
-  member this.index_ = index_
+type HeaderStackItemRef(node_id, node_type, type_, base_, index_) =
+  inherit HeaderRef(node_id, node_type, type_)
+  member this.base_ = base_ // sic
+  member this.index_ = index_ // sic
 
 type NamedRef(node_id, node_type, type_, name) =
   inherit Expression(node_id, node_type, type_)
@@ -652,8 +653,8 @@ type NamedRef(node_id, node_type, type_, name) =
 type If(node_id, node_type, type_, pred, ifTrue, ifFalse) =
   inherit Expression(node_id, node_type, type_)
   member this.pred = pred
-  member this.ifTrue = ifTrue
-  member this.ifFalse = ifFalse
+  member this.ifTrue = ifTrue // if != nullptr
+  member this.ifFalse = ifFalse // if != nullptr
 
 type NamedCond(node_id, node_type, type_, pred, ifTrue, ifFalse, name) =
   inherit If(node_id, node_type, type_, pred, ifTrue, ifFalse)
@@ -676,32 +677,38 @@ type FieldList(node_id, node_type, name, payload, annotations, fields) =
   member this.annotations = annotations
   member this.fields = fields
 
-type FieldListCalculation(node_id, node_type, name, input, algorithm, annotations) =
+type FieldListCalculation(node_id, node_type, name, input, algorithm, output_width, annotations) =
   inherit Node(node_id, node_type)
   member this.name = name
-  member this.input = input
+  member this.input = input // if != nullptr
   member this.algorithm = algorithm
+  member this.output_width = output_width
   member this.annotations = annotations
 
-type CalculatedField(node_id, node_type, field, name, cond) =
+type CalculatedField_update_or_verify =
+  { update : bool;
+    name : string;
+    cond : Expression; }
+type CalculatedField(node_id, node_type, field, specs, annotations) =
   inherit Node(node_id, node_type)
-  member this.field = field
-  member this.name = name
-  member this.cond = cond
+  member this.field = field // if != nullptr
+  member this.specs = specs
+  member this.annotations = annotations
 
 type CaseEntry(node_id, node_type, values, action) =
   inherit Node(node_id, node_type)
   member this.values = values
   member this.action = action
 
-type V1Parser(node_id, node_type, name, stmts, select, cases, default_return, parse_error, annotations) =
+type V1Parser(node_id, node_type, name, stmts, select, cases, default_return, parse_error, drop, annotations) =
   inherit Node(node_id, node_type)
   member this.name = name
   member this.stmts = stmts
-  member this.select = select
-  member this.cases = cases
+  member this.select = select // if != nullptr
+  member this.cases = cases // if != nullptr
   member this.default_return = default_return
   member this.parse_error = parse_error
+  member this.drop = drop
   member this.annotations = annotations
 
 type ParserException(node_id, node_type) =
@@ -712,28 +719,33 @@ type Attached(node_id, node_type, name, annotations) =
   member this.name = name
   member this.annotations = annotations
 
-type Stateful(node_id, node_type, name, annotations, table) =
+type Stateful(node_id, node_type, name, annotations, table, direct, saturating, instance_count) =
   inherit Attached(node_id, node_type, name, annotations)
   member this.table = table
+  member this.direct = direct
+  member this.saturating = saturating
+  member this.instance_count = instance_count
 
-type CounterOrMeter(node_id, node_type, name, annotations, table, type_) =
-  inherit Stateful(node_id, node_type, name, annotations, table)
-  member this.type_ = type_
+type CounterOrMeter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_) =
+  inherit Stateful(node_id, node_type, name, annotations, table, direct, saturating, instance_count)
+  member this.type_ = type_ // type
 
-type Counter(node_id, node_type, name, annotations, table, type_) =
-  inherit CounterOrMeter(node_id, node_type, name, annotations, table, type_)
+type Counter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_, max_width, min_width) =
+  inherit CounterOrMeter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_)
+  member this.max_width = max_width
+  member this.min_width = min_width
 
-type  Meter(node_id, node_type, name, annotations, table, result, pre_color, implementation) =
-  inherit CounterOrMeter(node_id, node_type, name, annotations, table, type_)
-  member this.result = result
-  member this.pre_color = pre_color
+type  Meter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_, result, pre_color, implementation) =
+  inherit CounterOrMeter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_)
+  member this.result = result // if != nullptr
+  member this.pre_color = pre_color // if != nullptr
   member this.implementation = implementation
 
-type Register(node_id, node_type, name, annotations, table, layout, width, signed_) =
-  inherit Stateful(node_id, node_type, name, annotations, table)
+type Register(node_id, node_type, name, annotations, table, direct, saturating, instance_count, layout, width, signed_) =
+  inherit Stateful(node_id, node_type, name, annotations, table, direct, saturating, instance_count)
   member this.layout = layout
   member this.width = width
-  member this.signed_ = signed_
+  member this.signed_ = signed_ // sic
 
 type PrimitiveAction(node_id, node_type) =
   inherit Node(node_id, node_type)
@@ -742,10 +754,12 @@ type NameList(node_id, node_type, names) =
   inherit Node(node_id, node_type)
   member this.names = names
 
-type ActionArg(node_id, node_type, type_, action_name, name) =
+type ActionArg(node_id, node_type, type_, action_name, name, read, write) =
   inherit Expression(node_id, node_type, type_)
   member this.action_name = action_name
   member this.name = name
+  member this.read = read
+  member this.write = write
 
 type ActionFunction(node_id, node_type, name, action, args, annotations) =
   inherit Node(node_id, node_type)
@@ -764,27 +778,45 @@ type ActionSelector(node_id, node_type, name, annotations, key, mode, type_) =
   inherit Attached(node_id, node_type, name, annotations)
   member this.key = key
   member this.mode = mode
-  member this.type_ = type_
+  member this.type_ = type_ // type
 
-type V1Table(node_id, node_type, ...) = //FIXME ignored loads of fields
+type V1Table(node_id, node_type, name, reads, reads_types, min_size, max_size, size, action_profile, actions, default_action, default_action_args, properties, annotations) =
   inherit Node(node_id, node_type)
+  member this.name = name
+  member this.reads = reads // if != nullptr
+  member this.reads_types = reads_types
+  member this.min_size = min_size
+  member this.max_size = max_size
+  member this.size = size
+  member this.action_profile = action_profile
+  member this.actions = actions
+  member this.default_action = default_action
+  member this.default_action_args = default_action_args // if != nullptr
+  member this.properties = properties
+  member this.annotations = annotations
 
-type V1Control(node_id, node_type, ...) = //FIXME ignored loads of fields
+type V1Control(node_id, node_type, name, code, annotations) =
   inherit Node(node_id, node_type)
+  member this.name = name
+  member this.code = code
+  member this.annotations = annotations
 
-type Attribute(node_id, node_type. name, declid, type_, locals, optional) =
+type Attribute(node_id, node_type, name, declid, type_, locals, optional) =
   inherit Declaration(node_id, node_type, name, declid)
-  member this.type_ = type_
-  member this.locals = locals
+  member this.type_ = type_ // type; if != nullptr
+  member this.locals = locals // if != nullptr
   member this.optional = optional
 
-type V1Program(node_id, node_type, ...) = //FIXME ignored loads of fields
+type V1Program(node_id, node_type, scope) =
   inherit Node(node_id, node_type)
+  member this.scope = scope
 
-type V1HeaderType(node_id, node_type, ...) = //FIXME ignored loads of fields
+type v1HeaderType(node_id, node_type, name, as_metadata, as_header) = // sic
   inherit Node(node_id, node_type)
+  member this.name = name
+  member this.as_metadata = as_metadata
+  member this.as_header = as_header // if != nullptr
 
 type IntMod(node_id, node_type, type_, expr, width) =
   inherit Operation_Unary(node_id, node_type, type_, expr)
   member this.width = width
-
