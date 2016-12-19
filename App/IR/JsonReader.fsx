@@ -14,6 +14,7 @@ type OrderedMap<'K, 'V> = ('K * 'V) array
 type MultiMap<'K, 'V> = System.Linq.ILookup<'K, 'V>
 type UnorderedMap<'K, 'V> = System.Collections.Generic.IDictionary<'K, 'V>
 type vector<'T> = 'T array
+type OrderedMultiMap<'K, 'V> = ('K * 'V list) array
 
 type Node(node_id, node_type) =
   interface INode
@@ -28,9 +29,11 @@ type IndexedVector<'T>(node_id, node_type, vec, declarations) =
   inherit Vector<'T>(node_id, node_type, vec)
   member this.declarations : OrderedMap<string, IDeclaration> = declarations // value is json list
 
-type NameMap<'T, 'C when 'C :> Map<string, 'T>>(node_id, node_type, symbols)
+type NameMap<'T>(node_id, node_type, symbols) =
   inherit Node(node_id, node_type)
-  member this.symbols : 'C = symbols // value is json dictionary
+  // FIXME We are using one datastructure instead of parameterising like in the C++.
+  //       This has the problem of not enforcing single value when it's not supposed to be a multimap...
+  member this.symbols : OrderedMultiMap<string, 'T> = symbols // value is json dictionary
 
 type Type(node_id, node_type) =
   inherit Node(node_id, node_type)
