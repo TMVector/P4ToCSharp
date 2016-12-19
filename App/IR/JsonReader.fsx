@@ -96,6 +96,7 @@ type Direction = None | In | Out | InOut with
     | "in" -> In
     | "out" -> Out
     | "inout" -> InOut
+    | _ -> failwith "Couldn't parse Direction"
 
 type Type_Type(node_id, node_type, type_) =
   inherit Type(node_id, node_type)
@@ -224,9 +225,39 @@ type Type_Enum(node_id, node_type, name, declid, members) =
   inherit Type_Declaration(node_id, node_type, name, declid)
   member this.members : IndexedVector<Declaration_ID> = members
 
+[<AbstractClass>]
+type PropertyValue(node_id, node_type) =
+  inherit Node(node_id, node_type)
+
+type Property(node_id, node_type, name, declid, annotations, value, isConstant) =
+  inherit Declaration(node_id, node_type, name, declid)
+  member this.annotations : Annotations = annotations
+  member this.value : PropertyValue = value
+  member this.isConstant : bool = isConstant
+
+type TableProperties(node_id, node_type, properties) =
+  inherit Node(node_id, node_type)
+  member this.properties : IndexedVector<Property> = properties
+
+type P4Table(node_id, node_type, name, declid, annotations, parameters, properties) =
+  inherit Declaration(node_id, node_type, name, declid)
+  member this.annotations : Annotations = annotations
+  member this.parameters : ParameterList = parameters
+  member this.properties : TableProperties = properties
+
 type Type_Table(node_id, node_type, table) =
   inherit Type(node_id, node_type)
   member this.table : P4Table = table
+
+type ActionListElement(node_id, node_type, annotations, expression) =
+  inherit Node(node_id, node_type)
+  interface IDeclaration
+  member this.annotations : Annotations = annotations
+  member this.expression : Expression = expression
+
+type ActionList(node_id, node_type, actionList) =
+  inherit PropertyValue(node_id, node_type)
+  member this.actionList : IndexedVector<ActionListElement> = actionList
 
 type Type_ActionEnum(node_id, node_type, actionList) =
   inherit Type(node_id, node_type)
@@ -267,6 +298,16 @@ type Type_Typedef(node_id, node_type, name, declid, annotations, type_) =
   inherit Type_Declaration(node_id, node_type, name, declid)
   member this.annotations : Annotations = annotations
   member this.type_ : Type = type_ // type
+
+type NameList(node_id, node_type, names) =
+  inherit Node(node_id, node_type)
+  member this.names : vector<ID> = names
+
+type Attribute(node_id, node_type, name, declid, type_, locals, optional) =
+  inherit Declaration(node_id, node_type, name, declid)
+  member this.type_ : Type = type_ // type; if != nullptr
+  member this.locals : NameList = locals // if != nullptr
+  member this.optional : bool = optional
 
 type Type_Extern(node_id, node_type, name, declid, typeParameters, methods, attributes, annotations) =
   inherit Type_Declaration(node_id, node_type, name, declid)
@@ -423,6 +464,10 @@ type SelectCase(node_id, node_type, keyset, state) =
   member this.keyset : Expression = keyset
   member this.state : PathExpression = state
 
+type ListExpression(node_id, node_type, type_, components) = 
+  inherit Expression(node_id, node_type, type_)
+  member this.components : Vector<Expression> = components
+
 type SelectExpression(node_id, node_type, type_, select, selectCases) = 
   inherit Expression(node_id, node_type, type_)
   member this.select : ListExpression = select
@@ -439,10 +484,6 @@ type ConstructorCallExpression(node_id, node_type, type_, arguments) =
   member this.constructedType : Type = this.type_
   member this.arguments : Vector<Expression> = arguments
 
-type ListExpression(node_id, node_type, type_, components) = 
-  inherit Expression(node_id, node_type, type_)
-  member this.components : Vector<Expression> = components
-
 type ParserState(node_id, node_type, name, declid, annotations, components, selectExpression) = 
   inherit Declaration(node_id, node_type, name, declid)
   member this.annotations : Annotations = annotations
@@ -456,6 +497,15 @@ type P4Parser(node_id, node_type, name, declid, type_, constructorParams, parser
   member this.constructorParams : ParameterList = constructorParams
   member this.parserLocals : IndexedVector<Declaration> = parserLocals
   member this.states : IndexedVector<ParserState> = states
+
+[<AbstractClass>]
+type Statement(node_id, node_type) =
+  inherit StatOrDecl(node_id, node_type)
+
+type BlockStatement(node_id, node_type, annotations, components) =
+  inherit Statement(node_id, node_type)
+  member this.annotations : Annotations = annotations
+  member this.components : IndexedVector<StatOrDecl> = components
 
 type P4Control(node_id, node_type, name, declid, type_, constructorParams, controlLocals, body) =
   inherit Type_Declaration(node_id, node_type, name, declid)
@@ -479,10 +529,6 @@ type Declaration_MatchKind(node_id, node_type, members) =
   inherit Node(node_id, node_type)
   member this.members : IndexedVector<Declaration_ID> = members
 
-[<AbstractClass>]
-type PropertyValue(node_id, node_type) =
-  inherit Node(node_id, node_type)
-
 type ExpressionValue(node_id, node_type, expression) =
   inherit PropertyValue(node_id, node_type)
   member this.expression : Expression = expression
@@ -490,16 +536,6 @@ type ExpressionValue(node_id, node_type, expression) =
 type ExpressionListValue(node_id, node_type, expressions) =
   inherit PropertyValue(node_id, node_type)
   member this.expressions : Vector<Expression> = expressions
-
-type ActionListElement(node_id, node_type, annotations, expression) =
-  inherit Node(node_id, node_type)
-  interface IDeclaration
-  member this.annotations : Annotations = annotations
-  member this.expression : Expression = expression
-
-type ActionList(node_id, node_type, actionList) =
-  inherit PropertyValue(node_id, node_type)
-  member this.actionList : IndexedVector<ActionListElement> = actionList
 
 type KeyElement(node_id, node_type, annotations, expression, matchType) =
   inherit Node(node_id, node_type)
@@ -510,22 +546,6 @@ type KeyElement(node_id, node_type, annotations, expression, matchType) =
 type Key(node_id, node_type, keyElements) =
   inherit PropertyValue(node_id, node_type)
   member this.keyElements : Vector<KeyElement> = keyElements
-
-type Property(node_id, node_type, name, declid, annotations, value, isConstant) =
-  inherit Declaration(node_id, node_type, name, declid)
-  member this.annotations : Annotations = annotations
-  member this.value : PropertyValue = value
-  member this.isConstant : bool = isConstant
-
-type TableProperties(node_id, node_type, properties) =
-  inherit Node(node_id, node_type)
-  member this.properties : IndexedVector<Property> = properties
-
-type P4Table(node_id, node_type, name, declid, annotations, parameters, properties) =
-  inherit Declaration(node_id, node_type, name, declid)
-  member this.annotations : Annotations = annotations
-  member this.parameters : ParameterList = parameters
-  member this.properties : TableProperties = properties
 
 type Declaration_Variable(node_id, node_type, name, declid, annotations, type_, initializer) =
   inherit Declaration(node_id, node_type, name, declid)
@@ -551,10 +571,6 @@ type P4Program(node_id, node_type, declarations) =
   inherit Node(node_id, node_type)
   member this.declarations : IndexedVector<Node> = declarations
 
-[<AbstractClass>]
-type Statement(node_id, node_type) =
-  inherit StatOrDecl(node_id, node_type)
-
 type ExitStatement(node_id, node_type) =
   inherit Statement(node_id, node_type)
 
@@ -575,11 +591,6 @@ type IfStatement(node_id, node_type, condition, ifTrue, ifFalse) =
   member this.condition : Expression = condition
   member this.ifTrue : Statement = ifTrue
   member this.ifFalse : Statement = ifFalse // if != nullptr
-
-type BlockStatement(node_id, node_type, annotations, components) =
-  inherit Statement(node_id, node_type)
-  member this.annotations : Annotations = annotations
-  member this.components : IndexedVector<StatOrDecl> = components
 
 type MethodCallStatement(node_id, node_type, methodCall) =
   inherit Statement(node_id, node_type)
@@ -749,7 +760,7 @@ type CalculatedField_update_or_verify =
 type CalculatedField(node_id, node_type, field, specs, annotations) =
   inherit Node(node_id, node_type)
   member this.field : Expression = field // if != nullptr
-  member this.specs : vector<CalculatedField_update_or_verify = specs
+  member this.specs : vector<CalculatedField_update_or_verify> = specs
   member this.annotations : Annotations = annotations
 
 type CaseEntry(node_id, node_type, values, action) =
@@ -810,10 +821,6 @@ type Register(node_id, node_type, name, annotations, table, direct, saturating, 
 type PrimitiveAction(node_id, node_type) =
   inherit Node(node_id, node_type)
 
-type NameList(node_id, node_type, names) =
-  inherit Node(node_id, node_type)
-  member this.names : vector<ID> = names
-
 type ActionArg(node_id, node_type, type_, action_name, name, read, write) =
   inherit Expression(node_id, node_type, type_)
   member this.action_name : string = action_name
@@ -861,12 +868,6 @@ type V1Control(node_id, node_type, name, code, annotations) =
   member this.name : ID = name
   member this.code : Vector<Expression> = code
   member this.annotations : Annotations = annotations
-
-type Attribute(node_id, node_type, name, declid, type_, locals, optional) =
-  inherit Declaration(node_id, node_type, name, declid)
-  member this.type_ : Type = type_ // type; if != nullptr
-  member this.locals : NameList = locals // if != nullptr
-  member this.optional : bool = optional
 
 type V1Program(node_id, node_type, scope) =
   inherit Node(node_id, node_type)
