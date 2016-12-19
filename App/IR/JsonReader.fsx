@@ -1,20 +1,29 @@
 ﻿module App.IR
 
+// Original IR uses a struct with original name and source info, but only name is serialised
+type ID = string
+
+// Marker interfaces
+type INode = interface end
+type IDeclaration = inherit INode
+type IContainer = inherit IDeclaration
+
 type Node(node_id, node_type) =
+  interface INode
   member this.Node_ID : int = node_id
   member this.Node_Type : string = node_type
 
 type Vector<'T>(node_id, node_type, vec) =
   inherit Node(node_id, node_type)
-  member this.vec = vec
+  member this.vec : 'T array = vec // value is json list
 
 type IndexedVector<'T>(node_id, node_type, vec, declarations) =
   inherit Vector<'T>(node_id, node_type, vec)
-  member this.declarations = declarations
+  member this.declarations : IDictionary<string, IDeclaration> = declarations // value is json list
 
-type NameMap() =
+type NameMap(node_id, node_type, symbols) =
   inherit Node(node_id, node_type)
-  member kv = null
+  member this.symbols = symbols // value is json dictionary
 
 type Type(node_id, node_type) =
   inherit Node(node_id, node_type)
@@ -30,11 +39,13 @@ type StatOrDecl(node_id, node_type) =
 
 type Declaration(node_id, node_type, name, declid) =
   inherit StatOrDecl(node_id, node_type)
-  member this.name = name
-  member this.declid = declid
+  interface IDeclaration
+  member this.name : ID = name
+  member this.declid : int = declid
 
 type Type_Declaration(node_id, node_type, name, declid) =
   inherit Type(node_id, node_type)
+  interface IDeclaration
   member this.name = name
   member this.declid = declid
 
@@ -144,6 +155,7 @@ type Type_ArchBlock(node_id, node_type, name, declid, annotations, typeParameter
 
 type Type_Package(node_id, node_type, name, declid, annotations, typeParameters, constructorParams) =
   inherit Type_ArchBlock(node_id, node_type, name, declid, annotations, typeParameters)
+  interface IContainer
   member this.constructorParams = constructorParams
 
 type Type_Parser(node_id, node_type, name, declid, annotations, typeParameters, applyParams) =
@@ -404,6 +416,7 @@ type ParserState(node_id, node_type, name, declid, annotations, components, sele
 
 type P4Parser(node_id, node_type, name, declid, type_, constructorParams, parserLocals, states) =
   inherit Type_Declaration(node_id, node_type, name, declid)
+  interface IContainer
   member this.type_ = type_ // type
   member this.constructorParams = constructorParams
   member this.parserLocals = parserLocals
@@ -411,6 +424,7 @@ type P4Parser(node_id, node_type, name, declid, type_, constructorParams, parser
 
 type P4Control(node_id, node_type, name, declid, type_, constructorParams, controlLocals, body) =
   inherit Type_Declaration(node_id, node_type, name, declid)
+  interface IContainer
   member this.type_ = type_ // type
   member this.constructorParams = constructorParams
   member this.controlLocals = controlLocals
@@ -443,6 +457,7 @@ type ExpressionListValue(node_id, node_type, expressions) =
 
 type ActionListElement(node_id, node_type, annotations, expression) =
   inherit Node(node_id, node_type)
+  interface IDeclaration
   member this.annotations = annotations
   member this.expression = expression
 
