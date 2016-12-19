@@ -402,3 +402,389 @@ type ParserState(node_id, node_type, name, declid, annotations, components, sele
   member this.components = components
   member this.selectExpression = selectExpression
 
+type P4Parser(node_id, node_type, name, declid, type_, constructorParams, parserLocals, states) =
+  inherit Type_Declaration(node_id, node_type, name, declid)
+  member this.type_ = type_
+  member this.constructorParams = constructorParams
+  member this.parserLocals = parserLocals
+  member this.states = states
+
+type P4Control(node_id, node_type, name, declid, type_, constructorParams, controlLocals, body) =
+  inherit Type_Declaration(node_id, node_type, name, declid)
+  member this.type_ = type_
+  member this.constructorParams = constructorParams
+  member this.controlLocals = controlLocals
+  member this.body = body
+
+type P4Action(node_id, node_type, name, declid, annotations, parameters, body) =
+  inherit Declaration(node_id, node_type, name, declid)
+  member this.annotations = annotations
+  member this.parameters = parameters
+  member this.body = body
+
+type Type_Error(node_id, node_type, name, declid, members) =
+  inherit Type_Declaration(node_id, node_type, name, declid)
+  member this.members = members
+
+type Declaration_MatchKind(node_id, node_type, members) =
+  inherit Node(node_id, node_type)
+  member this.members = members
+
+type PropertyValue(node_id, node_type) =
+  inherit Node(node_id, node_type)
+
+type ExpressionValue(node_id, node_type, expression) =
+  inherit PropertyValue(node_id, node_type)
+  member this.expression = expression
+
+type ExpressionListValue(node_id, node_type, expressions) =
+  inherit PropertyValue(node_id, node_type)
+  member this.expressions = expressions
+
+type ActionListElement(node_id, node_type, annotations, expression) =
+  inherit Node(node_id, node_type)
+  member this.annotations = annotations
+  member this.expression = expression
+
+type ActionList(node_id, node_type, actionList) =
+  inherit PropertyValue(node_id, node_type)
+  member this.actionList = actionList
+
+type KeyElement(node_id, node_type, annotations, expression, matchType) =
+  inherit Node(node_id, node_type)
+  member this.annotations = annotations
+  member this.expression = expression
+  member this.matchType = matchType
+
+type Key(node_id, node_type, keyElements) =
+  inherit PropertyValue(node_id, node_type)
+  member this.keyElements = keyElements
+
+type Property(node_id, node_type, name, declid, annotations, value) =
+  inherit Declaration(node_id, node_type, name, declid)
+  member this.annotations = annotations
+  member this.value = value
+
+type TableProperties(node_id, node_type, properties) =
+  inherit Node(node_id, node_type)
+  member this.properties = properties
+
+type P4Table(node_id, node_type, name, declid, annotations, parameters, properties) =
+  inherit Declaration(node_id, node_type, name, declid)
+  member this.annotations = annotations
+  member this.parameters = parameters
+  member this.properties = properties
+
+type Declaration_Variable(node_id, node_type, name, declid, annotations, type_, initializer) =
+  inherit Declaration(node_id, node_type, name, declid)
+  member this.annotations = annotations
+  member this.type_ = type_
+  member this.initializer = initializer
+
+type Declaration_Constant(node_id, node_type, name, declid, annotations, type_, initializer) =
+  inherit Declaration(node_id, node_type, name, declid)
+  member this.annotations = annotations
+  member this.type_ = type_
+  member this.initializer = initializer
+
+type Declaration_Instance(node_id, node_type, name, declid, annotations, type_, arguments, properties, initializer) =
+  inherit Declaration(node_id, node_type, name, declid)
+  member this.annotations = annotations
+  member this.type_ = type_
+  member this.arguments = arguments
+  member this.properties = properties
+  member this.initializer = initializer
+
+type P4Program(node_id, node_type, declarations) =
+  inherit Node(node_id, node_type)
+  member this.declarations = declarations
+
+type Statement(node_id, node_type) =
+  inherit StatOrDecl(node_id, node_type)
+
+type ExitStatement(node_id, node_type) =
+  inherit Statement(node_id, node_type)
+
+type ReturnStatement(node_id, node_type, expression) =
+  inherit Statement(node_id, node_type)
+  member this.expression = expression
+
+type EmptyStatement(node_id, node_type) =
+  inherit Statement(node_id, node_type)
+
+type AssignmentStatement(node_id, node_type, left, right) =
+  inherit Statement(node_id, node_type)
+  member this.left = left
+  member this.right = right
+
+type IfStatement(node_id, node_type, condition, ifTrue, ifFalse) =
+  inherit Statement(node_id, node_type)
+  member this.condition = condition
+  member this.ifTrue = ifTrue
+  member this.ifFalse = ifFalse
+
+type BlockStatement(node_id, node_type, annotations, components) =
+  inherit Statement(node_id, node_type)
+  member this.annotations = annotations
+  member this.components = components
+
+type MethodCallStatement(node_id, node_type, methodCall) =
+  inherit Statement(node_id, node_type)
+  member this.methodCall = methodCall
+
+type SwitchCase(node_id, node_type, label, statement) =
+  inherit Node(node_id, node_type)
+  member this.label = label
+  member this.statement = statement
+
+type SwitchStatement(node_id, node_type, expressions, cases) =
+  inherit Statement(node_id, node_type)
+  member this.expressions = expressions
+  member this.cases = cases
+
+type Function(node_id, node_type, name, declid, type_, body) =
+  inherit Declaration(node_id, node_type, name, declid)
+  member this.type_ = type_
+  member this.body = body
+
+type Block(node_id, node_type, node, constantVaue) =
+  inherit Node(node_id, node_type)
+  member this.node = node
+  member this.constantValue = constantValue
+
+type TableBlock(node_id, node_type, node, constantValue, container) =
+  inherit Block(node_id, node_type, node, constantValue)
+  member this.container = container
+
+type InstantiatedBlock(node_id, node_type, node, constantValue, instanceType) =
+  inherit Block(node_id, node_type, node, constantValue)
+  member this.instanceType = instanceType
+
+type ParserBlock(node_id, node_type, node, constantValue, instanceType, container) =
+  inherit InstantiatedBlock(node_id, node_type, node, constantValue, instanceType)
+  member this.container = container
+
+type ControlBlock(node_id, node_type, node, constantValue, instanceType, container) =
+  inherit InstantiatedBlock(node_id, node_type, node, constantValue, instanceType)
+  member this.container = container
+
+type PackageBlock(node_id, node_type, node, constantValue, instanceType, type_) =
+  inherit InstantiatedBlock(node_id, node_type, node, constantValue, instanceType)
+  member this.type_ = type_
+
+type ExternBlock(node_id, node_type, node, constantValue, instanceType, type_, constructor_) =
+  inherit InstantiatedBlock(node_id, node_type, node, constantValue, instanceType)
+  member this.type_ = type_
+  member this.constructor_ = constructor_
+
+type TopLevelBlock(node_id, node_type, node, constantValue) =
+  inherit Block(node_id, node_type, node, constantValue)
+
+type CounterType = None | Packets | Bytes | Both with
+  static member parse s =
+    match s with
+    | "NONE" -> None
+    | "PACKETS" -> Packets
+    | "BYTES" -> Bytes
+    | "BOTH" -> Both
+    | _ -> failwith "ERROR"
+  static member toString c =
+    match c with
+    | None -> "NONE"
+    | Packets -> "PACKETS"
+    | Bytes -> "BYTES"
+    | Both -> "BOTH"
+
+type Type_Block(node_id, node_type) =
+  inherit Type_Base(node_id, node_type)
+
+type Type_Counter(node_id, node_type) =
+  inherit Type_Base(node_id, node_type)
+
+type Type_Expression(node_id, node_type) =
+  inherit Type_Base(node_id, node_type)
+
+type Type_FieldListCalculation(node_id, node_type) =
+  inherit Type_Base(node_id, node_type)
+
+type Type_Meter(node_id, node_type) =
+  inherit Type_Base(node_id, node_type)
+
+type Type_Register(node_id, node_type) =
+  inherit Type_Base(node_id, node_type)
+
+type Type_AnyTable(node_id, node_type) =
+  inherit Type_Base(node_id, node_type)
+
+type HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_) =
+  inherit Node(node_id, node_type)
+  member this.type_name = type_name
+  member this.name = name
+  member this.annotations = annotations
+  member this.type_ = type_
+
+type Header(node_id, node_type, type_name, name, annotations, type_) =
+  inherit HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_)
+
+type HeaderStack(node_id, node_type, type_name, name, annotations, type_, size) =
+  inherit HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_)
+  member this.size = size
+
+type Metadata(node_id, node_type, type_name, name, annotations, type_) =
+  inherit HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_)
+
+type HeaderRef(node_id, node_type, type_name, name, annotations, type_) =
+  inherit Header(node_id, node_type, type_name, name, annotations, type_)
+
+type ConcreteHeaderRef(node_id, node_type, type_name, name, annotations, type_, ref) =
+  inherit HeaderRef(node_id, node_type, type_name, name, annotations, type_)
+  member this.ref = ref
+
+type HeaderStackItemRef(node_id, node_type, type_name, name, annotations, type_, base_, index_) =
+  inherit HeaderRef(node_id, node_type, type_name, name, annotations, type_)
+  member this.base_ = base_
+  member this.index_ = index_
+
+type NamedRef(node_id, node_type, type_, name) =
+  inherit Expression(node_id, node_type, type_)
+  member this.name = name
+
+type If(node_id, node_type, type_, pred, ifTrue, ifFalse) =
+  inherit Expression(node_id, node_type, type_)
+  member this.pred = pred
+  member this.ifTrue = ifTrue
+  member this.ifFalse = ifFalse
+
+type NamedCond(node_id, node_type, type_, pred, ifTrue, ifFalse, name) =
+  inherit If(node_id, node_type, type_, pred, ifTrue, ifFalse)
+  member this.name = name
+
+type Apply(node_id, node_type, type_, name, actions) =
+  inherit Expression(node_id, node_type, type_)
+  member this.name = name
+  member this.actions = actions
+
+type Primitive(node_id, node_type, type_, name, operands) =
+  inherit Operation(node_id, node_type, type_)
+  member this.name = name
+  member this.operands = operands
+
+type FieldList(node_id, node_type, name, payload, annotations, fields) =
+  inherit Node(node_id, node_type)
+  member this.name = name
+  member this.payload = payload
+  member this.annotations = annotations
+  member this.fields = fields
+
+type FieldListCalculation(node_id, node_type, name, input, algorithm, annotations) =
+  inherit Node(node_id, node_type)
+  member this.name = name
+  member this.input = input
+  member this.algorithm = algorithm
+  member this.annotations = annotations
+
+type CalculatedField(node_id, node_type, field, name, cond) =
+  inherit Node(node_id, node_type)
+  member this.field = field
+  member this.name = name
+  member this.cond = cond
+
+type CaseEntry(node_id, node_type, values, action) =
+  inherit Node(node_id, node_type)
+  member this.values = values
+  member this.action = action
+
+type V1Parser(node_id, node_type, name, stmts, select, cases, default_return, parse_error, annotations) =
+  inherit Node(node_id, node_type)
+  member this.name = name
+  member this.stmts = stmts
+  member this.select = select
+  member this.cases = cases
+  member this.default_return = default_return
+  member this.parse_error = parse_error
+  member this.annotations = annotations
+
+type ParserException(node_id, node_type) =
+  inherit Node(node_id, node_type)
+
+type Attached(node_id, node_type, name, annotations) =
+  inherit Node(node_id, node_type)
+  member this.name = name
+  member this.annotations = annotations
+
+type Stateful(node_id, node_type, name, annotations, table) =
+  inherit Attached(node_id, node_type, name, annotations)
+  member this.table = table
+
+type CounterOrMeter(node_id, node_type, name, annotations, table, type_) =
+  inherit Stateful(node_id, node_type, name, annotations, table)
+  member this.type_ = type_
+
+type Counter(node_id, node_type, name, annotations, table, type_) =
+  inherit CounterOrMeter(node_id, node_type, name, annotations, table, type_)
+
+type  Meter(node_id, node_type, name, annotations, table, result, pre_color, implementation) =
+  inherit CounterOrMeter(node_id, node_type, name, annotations, table, type_)
+  member this.result = result
+  member this.pre_color = pre_color
+  member this.implementation = implementation
+
+type Register(node_id, node_type, name, annotations, table, layout, width, signed_) =
+  inherit Stateful(node_id, node_type, name, annotations, table)
+  member this.layout = layout
+  member this.width = width
+  member this.signed_ = signed_
+
+type PrimitiveAction(node_id, node_type) =
+  inherit Node(node_id, node_type)
+
+type NameList(node_id, node_type, names) =
+  inherit Node(node_id, node_type)
+  member this.names = names
+
+type ActionArg(node_id, node_type, type_, action_name, name) =
+  inherit Expression(node_id, node_type, type_)
+  member this.action_name = action_name
+  member this.name = name
+
+type ActionFunction(node_id, node_type, name, action, args, annotations) =
+  inherit Node(node_id, node_type)
+  member this.name = name
+  member this.action = action
+  member this.args = args
+  member this.annotations = annotations
+
+type ActionProfile(node_id, node_type, name, annotations, selector, actions, size) =
+  inherit Attached(node_id, node_type, name, annotations)
+  member this.selector = selector
+  member this.actions = actions
+  member this.size = size
+
+type ActionSelector(node_id, node_type, name, annotations, key, mode, type_) =
+  inherit Attached(node_id, node_type, name, annotations)
+  member this.key = key
+  member this.mode = mode
+  member this.type_ = type_
+
+type V1Table(node_id, node_type, ...) = //FIXME ignored loads of fields
+  inherit Node(node_id, node_type)
+
+type V1Control(node_id, node_type, ...) = //FIXME ignored loads of fields
+  inherit Node(node_id, node_type)
+
+type Attribute(node_id, node_type. name, declid, type_, locals, optional) =
+  inherit Declaration(node_id, node_type, name, declid)
+  member this.type_ = type_
+  member this.locals = locals
+  member this.optional = optional
+
+type V1Program(node_id, node_type, ...) = //FIXME ignored loads of fields
+  inherit Node(node_id, node_type)
+
+type V1HeaderType(node_id, node_type, ...) = //FIXME ignored loads of fields
+  inherit Node(node_id, node_type)
+
+type IntMod(node_id, node_type, type_, expr, width) =
+  inherit Operation_Unary(node_id, node_type, type_, expr)
+  member this.width = width
+
