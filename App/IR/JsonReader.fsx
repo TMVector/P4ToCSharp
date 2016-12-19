@@ -9,8 +9,11 @@ type IDeclaration = inherit INode
 type IContainer = inherit IDeclaration
 type ICompileTimeValue = inherit INode
 
-// Use this as ordered map for now
+// FIXME Makeshift map types
 type OrderedMap<'K, 'V> = ('K * 'V) array
+type MultiMap<'K, 'V> = System.Linq.ILookup<'K, 'V>
+type UnorderedMap<'K, 'V> = System.Collections.Generic.IDictionary<'K, 'V>
+type vector<'T> = 'T array
 
 type Node(node_id, node_type) =
   interface INode
@@ -19,15 +22,15 @@ type Node(node_id, node_type) =
 
 type Vector<'T>(node_id, node_type, vec) =
   inherit Node(node_id, node_type)
-  member this.vec : 'T array = vec // value is json list
+  member this.vec : vector<'T> = vec // value is json list
 
 type IndexedVector<'T>(node_id, node_type, vec, declarations) =
   inherit Vector<'T>(node_id, node_type, vec)
-  member this.declarations : System.Collections.Generic.IDictionary<string, IDeclaration> = declarations // value is json list
+  member this.declarations : OrderedMap<string, IDeclaration> = declarations // value is json list
 
-type NameMap<'T>(node_id, node_type, symbols) =
+type NameMap<'T, 'C when 'C :> Map<string, 'T>>(node_id, node_type, symbols)
   inherit Node(node_id, node_type)
-  member this.symbols : System.Collections.Generic.IDictionary<string, 'T> = symbols // value is json dictionary
+  member this.symbols : 'C = symbols // value is json dictionary
 
 type Type(node_id, node_type) =
   inherit Node(node_id, node_type)
@@ -47,16 +50,19 @@ type Declaration(node_id, node_type, name, declid) =
   member this.name : ID = name
   member this.declid : int = declid
 
+[<AbstractClass>]
 type Type_Declaration(node_id, node_type, name, declid) =
   inherit Type(node_id, node_type)
   interface IDeclaration
   member this.name : ID = name
   member this.declid : int = declid
 
+[<AbstractClass>]
 type Expression(node_id, node_type, type_) =
   inherit Node(node_id, node_type)
   member this.type_ : Type = type_
 
+[<AbstractClass>]
 type Operation(node_id, node_type, type_) =
   inherit Expression(node_id, node_type, type_)
 
@@ -142,6 +148,7 @@ type StructField(node_id, node_type, name, declid, annotations, type_) =
   member this.annotations : Annotations = annotations
   member this.type_ : Type = type_ // type
 
+[<AbstractClass>]
 type Type_StructLike(node_id, node_type, name, declid, annotations, fields) =
   inherit Type_Declaration(node_id, node_type, name, declid)
   member this.annotations : Annotations = annotations
@@ -164,6 +171,7 @@ type Type_Tuple(node_id, node_type, components) =
   inherit Type(node_id, node_type)
   member this.components : Vector<Type> = components
 
+[<AbstractClass>]
 type Type_ArchBlock(node_id, node_type, name, declid, annotations, typeParameters) =
   inherit Type_Declaration(node_id, node_type, name, declid)
   member this.annotations : Annotations = annotations
@@ -221,6 +229,7 @@ type Type_ActionEnum(node_id, node_type, actionList) =
   inherit Type(node_id, node_type)
   member this.actionList : ActionList = actionList
 
+[<AbstractClass>]
 type Type_MethodBase(node_id, node_type, typeParameters, returnType, parameters) =
   inherit Type(node_id, node_type)
   member this.typeParameters : TypeParameters = typeParameters
@@ -263,6 +272,7 @@ type Type_Extern(node_id, node_type, name, declid, typeParameters, methods, attr
   member this.attributes : NameMap<Attribute> = attributes // ordered_map
   member this.annotations : Annotations = annotations
 
+[<AbstractClass>]
 type Operation_Unary(node_id, node_type, type_, expr) =
   inherit Operation(node_id, node_type, type_)
   member this.expr : Expression = expr
@@ -276,17 +286,20 @@ type Cmpl(node_id, node_type, type_, expr) =
 type LNot(node_id, node_type, type_, expr) =
   inherit Operation_Unary(node_id, node_type, type_, expr)
 
+[<AbstractClass>]
 type Operation_Binary(node_id, node_type, type_, left, right) =
   inherit Operation(node_id, node_type, type_)
   member this.left : Expression = left
   member this.right : Expression = right
 
+[<AbstractClass>]
 type Operation_Ternary(node_id, node_type, type_, e0, e1, e2) =
   inherit Operation(node_id, node_type, type_)
   member this.e0 : Expression = e0
   member this.e1 : Expression = e1
   member this.e2 : Expression = e2
 
+[<AbstractClass>]
 type Operation_Relation(node_id, node_type, type_, left, right) =
   inherit Operation_Binary(node_id, node_type, type_, left, right)
 
@@ -344,6 +357,7 @@ type LAnd(node_id, node_type, type_, left, right) =
 type LOr(node_id, node_type, type_, left, right) =
   inherit Operation_Binary(node_id, node_type, type_, left, right)
 
+[<AbstractClass>]
 type Literal(node_id, node_type, type_) = 
   inherit Expression(node_id, node_type, type_)
   interface ICompileTimeValue
@@ -462,6 +476,7 @@ type Declaration_MatchKind(node_id, node_type, members) =
   inherit Node(node_id, node_type)
   member this.members : IndexedVector<Declaration_ID> = members
 
+[<AbstractClass>]
 type PropertyValue(node_id, node_type) =
   inherit Node(node_id, node_type)
 
@@ -533,6 +548,7 @@ type P4Program(node_id, node_type, declarations) =
   inherit Node(node_id, node_type)
   member this.declarations : IndexedVector<Node> = declarations
 
+[<AbstractClass>]
 type Statement(node_id, node_type) =
   inherit StatOrDecl(node_id, node_type)
 
@@ -581,6 +597,7 @@ type Function(node_id, node_type, name, declid, type_, body) =
   member this.type_ : Type_Method = type_ // type
   member this.body : BlockStatement = body
 
+[<AbstractClass>]
 type Block(node_id, node_type, node, constantValue) =
   inherit Node(node_id, node_type)
   interface ICompileTimeValue
@@ -591,6 +608,7 @@ type TableBlock(node_id, node_type, node, constantValue, container) =
   inherit Block(node_id, node_type, node, constantValue)
   member this.container : P4Table = container
 
+[<AbstractClass>]
 type InstantiatedBlock(node_id, node_type, node, constantValue, instanceType) =
   inherit Block(node_id, node_type, node, constantValue)
   member this.instanceType : Type = instanceType
@@ -651,6 +669,7 @@ type Type_Register(node_id, node_type) =
 type Type_AnyTable(node_id, node_type) =
   inherit Type_Base(node_id, node_type)
 
+[<AbstractClass>]
 type HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_) =
   inherit Node(node_id, node_type)
   member this.type_name : ID = type_name
@@ -668,6 +687,7 @@ type HeaderStack(node_id, node_type, type_name, name, annotations, type_, size) 
 type Metadata(node_id, node_type, type_name, name, annotations, type_) =
   inherit HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_)
 
+[<AbstractClass>]
 type HeaderRef(node_id, node_type, type_) =
   inherit Expression(node_id, node_type, type_)
 
@@ -726,12 +746,12 @@ type CalculatedField_update_or_verify =
 type CalculatedField(node_id, node_type, field, specs, annotations) =
   inherit Node(node_id, node_type)
   member this.field : Expression = field // if != nullptr
-  member this.specs CalculatedField_update_or_verify array = specs
+  member this.specs : vector<CalculatedField_update_or_verify = specs
   member this.annotations : Annotations = annotations
 
 type CaseEntry(node_id, node_type, values, action) =
   inherit Node(node_id, node_type)
-  member this.values : (CaseEntry * Constant) array = values
+  member this.values : vector<CaseEntry * Constant> = values
   member this.action : ID = action
 
 type V1Parser(node_id, node_type, name, stmts, select, cases, default_return, parse_error, drop, annotations) =
@@ -748,11 +768,13 @@ type V1Parser(node_id, node_type, name, stmts, select, cases, default_return, pa
 type ParserException(node_id, node_type) =
   inherit Node(node_id, node_type)
 
+[<AbstractClass>]
 type Attached(node_id, node_type, name, annotations) =
   inherit Node(node_id, node_type)
   member this.name : ID = name
   member this.annotations : Annotations = annotations
 
+[<AbstractClass>]
 type Stateful(node_id, node_type, name, annotations, table, direct, saturating, instance_count) =
   inherit Attached(node_id, node_type, name, annotations)
   member this.table : ID = table
@@ -760,6 +782,7 @@ type Stateful(node_id, node_type, name, annotations, table, direct, saturating, 
   member this.saturating : bool = saturating
   member this.instance_count : int = instance_count
 
+[<AbstractClass>]
 type CounterOrMeter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_) =
   inherit Stateful(node_id, node_type, name, annotations, table, direct, saturating, instance_count)
   member this.type_ : CounterType = type_ // type
@@ -786,7 +809,7 @@ type PrimitiveAction(node_id, node_type) =
 
 type NameList(node_id, node_type, names) =
   inherit Node(node_id, node_type)
-  member this.names : ID array = names
+  member this.names : vector<ID> = names
 
 type ActionArg(node_id, node_type, type_, action_name, name, read, write) =
   inherit Expression(node_id, node_type, type_)
@@ -799,13 +822,13 @@ type ActionFunction(node_id, node_type, name, action, args, annotations) =
   inherit Node(node_id, node_type)
   member this.name : ID = name
   member this.action : Vector<Primitive> = action
-  member this.args : ActionArg array = args
+  member this.args : vector<ActionArg> = args
   member this.annotations : Annotations = annotations
 
 type ActionProfile(node_id, node_type, name, annotations, selector, actions, size) =
   inherit Attached(node_id, node_type, name, annotations)
   member this.selector : ID = selector
-  member this.actions : ID array = actions
+  member this.actions : vector<ID> = actions
   member this.size : int = size
 
 type ActionSelector(node_id, node_type, name, annotations, key, mode, type_) =
@@ -814,16 +837,17 @@ type ActionSelector(node_id, node_type, name, annotations, key, mode, type_) =
   member this.mode : ID = mode
   member this.type_ : ID = type_ // type
 
-type V1Table(node_id, node_type, name, reads, reads_types, min_size, max_size, size, action_profile, actions, default_action, default_action_args, properties, annotations) =
+type V1Table(node_id, node_type, name, reads, reads_types, min_size, max_size, size, action_profile, actions,
+              default_action, default_action_args, properties, annotations) =
   inherit Node(node_id, node_type)
   member this.name : ID = name
-  member this.reads : Expression array = reads // if != nullptr
-  member this.reads_types : ID array = reads_types
+  member this.reads : Vector<Expression> = reads // if != nullptr
+  member this.reads_types : vector<ID> = reads_types
   member this.min_size : int = min_size
   member this.max_size : int = max_size
   member this.size : int = size
   member this.action_profile : ID = action_profile
-  member this.actions : ID array = actions
+  member this.actions : vector<ID> = actions
   member this.default_action : ID = default_action
   member this.default_action_args : Vector<Expression> = default_action_args // if != nullptr
   member this.properties : TableProperties = properties
