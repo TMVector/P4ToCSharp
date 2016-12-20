@@ -1,4 +1,17 @@
-﻿module App.IR
+﻿(*
+  Copyright 2016 Jonny Shipton
+
+  This file contains the IR structures for code parsed by p4c and dumped as JSON.
+*)
+
+#if !INTERACTIVE
+module P4ToCSharp.App.IR =
+#endif
+
+#if INTERACTIVE
+#r "../../packages/Newtonsoft.Json/lib/net45/Newtonsoft.Json.dll"
+#endif
+open Newtonsoft.Json
 
 // Original IR uses a struct with original name and source info, but only name is serialised
 type ID = string
@@ -27,7 +40,7 @@ type Vector<'T>(node_id, node_type, vec) =
 
 type IndexedVector<'T>(node_id, node_type, vec, declarations) =
   inherit Vector<'T>(node_id, node_type, vec)
-  member this.declarations : OrderedMap<string, IDeclaration> = declarations // value is json list
+  member this.declarations : OrderedMap<string, IDeclaration> = declarations // value is json dictionary
 
 type NameMap<'T>(node_id, node_type, symbols) =
   inherit Node(node_id, node_type)
@@ -100,6 +113,7 @@ type Direction = None | In | Out | InOut with
 
 type Type_Type(node_id, node_type, type_) =
   inherit Type(node_id, node_type)
+  [<JsonProperty("type")>]
   member this.type_ : Type = type_ // type
 
 type Type_Boolean(node_id, node_type) =
@@ -121,6 +135,7 @@ type Parameter(node_id, node_type, name, declid, annotations, direction, type_) 
   inherit Declaration(node_id, node_type, name, declid)
   member this.annotations : Annotations = annotations
   member this.direction : Direction = direction
+  [<JsonProperty("type")>]
   member this.type_ : Type = type_ // type
 
 type ParameterList(node_id, node_type, parameters) =
@@ -150,6 +165,7 @@ type TypeParameters(node_id, node_type, parameters) =
 type StructField(node_id, node_type, name, declid, annotations, type_) =
   inherit Declaration(node_id, node_type, name, declid)
   member this.annotations : Annotations = annotations
+  [<JsonProperty("type")>]
   member this.type_ : Type = type_ // type
 
 [<AbstractClass>]
@@ -277,6 +293,7 @@ type ArgumentInfo(node_id, node_type, leftValue, compileTimeConstant, type_) =
   inherit Node(node_id, node_type)
   member this.leftValue : bool = leftValue
   member this.compileTimeConstant : bool = compileTimeConstant
+  [<JsonProperty("type")>]
   member this.type_ : Type = type_ // type
 
 type Type_MethodCall(node_id, node_type, typeArguments, returnType, arguments) =
@@ -290,6 +307,7 @@ type Type_Action(node_id, node_type, typeParameters, returnType, parameters) =
 
 type Method(node_id, node_type, name, declid, type_, isAbstract, annotations) =
   inherit Declaration(node_id, node_type, name, declid)
+  [<JsonProperty("type")>]
   member this.type_ : Type_Method = type_ // type
   member this.isAbstract : bool = isAbstract
   member this.annotations : Annotations = annotations
@@ -297,6 +315,7 @@ type Method(node_id, node_type, name, declid, type_, isAbstract, annotations) =
 type Type_Typedef(node_id, node_type, name, declid, annotations, type_) =
   inherit Type_Declaration(node_id, node_type, name, declid)
   member this.annotations : Annotations = annotations
+  [<JsonProperty("type")>]
   member this.type_ : Type = type_ // type
 
 type NameList(node_id, node_type, names) =
@@ -305,6 +324,7 @@ type NameList(node_id, node_type, names) =
 
 type Attribute(node_id, node_type, name, declid, type_, locals, optional) =
   inherit Declaration(node_id, node_type, name, declid)
+  [<JsonProperty("type")>]
   member this.type_ : Type = type_ // type; if != nullptr
   member this.locals : NameList = locals // if != nullptr
   member this.optional : bool = optional
@@ -409,6 +429,7 @@ type Literal(node_id, node_type, type_) =
 type Constant(node_id, node_type, type_, value, base_) = 
   inherit Literal(node_id, node_type, type_)
   member this.value : bigint = value
+  [<JsonProperty("base")>]
   member this.base_ : uint32 = base_ // base
 
 type BoolLiteral(node_id, node_type, type_, value) = 
@@ -432,6 +453,7 @@ type Slice(node_id, node_type, type_, e0, e1, e2) =
 
 type Member(node_id, node_type, type_, expr, member_) =
   inherit Operation_Unary(node_id, node_type, type_, expr)
+  [<JsonProperty("member")>]
   member this.member_ : ID = member_ // member
 
 type Concat(node_id, node_type, type_, left, right) =
@@ -475,6 +497,7 @@ type SelectExpression(node_id, node_type, type_, select, selectCases) =
 
 type MethodCallExpression(node_id, node_type, type_, method_, typeArguments, arguments) = 
   inherit Expression(node_id, node_type, type_)
+  [<JsonProperty("method")>]
   member this.method_ : Expression = method_ // method
   member this.typeArguments : Vector<Type> = typeArguments
   member this.arguments : Vector<Expression> = arguments
@@ -493,6 +516,7 @@ type ParserState(node_id, node_type, name, declid, annotations, components, sele
 type P4Parser(node_id, node_type, name, declid, type_, constructorParams, parserLocals, states) =
   inherit Type_Declaration(node_id, node_type, name, declid)
   interface IContainer
+  [<JsonProperty("type")>]
   member this.type_ : Type_Parser = type_ // type
   member this.constructorParams : ParameterList = constructorParams
   member this.parserLocals : IndexedVector<Declaration> = parserLocals
@@ -510,6 +534,7 @@ type BlockStatement(node_id, node_type, annotations, components) =
 type P4Control(node_id, node_type, name, declid, type_, constructorParams, controlLocals, body) =
   inherit Type_Declaration(node_id, node_type, name, declid)
   interface IContainer
+  [<JsonProperty("type")>]
   member this.type_ : Type_Control = type_ // type
   member this.constructorParams : ParameterList = constructorParams
   member this.controlLocals : IndexedVector<Declaration> = controlLocals
@@ -550,18 +575,21 @@ type Key(node_id, node_type, keyElements) =
 type Declaration_Variable(node_id, node_type, name, declid, annotations, type_, initializer) =
   inherit Declaration(node_id, node_type, name, declid)
   member this.annotations : Annotations = annotations
+  [<JsonProperty("type")>]
   member this.type_ : Type = type_ // type
   member this.initializer : Expression = initializer // if != nullptr
 
 type Declaration_Constant(node_id, node_type, name, declid, annotations, type_, initializer) =
   inherit Declaration(node_id, node_type, name, declid)
   member this.annotations : Annotations = annotations
+  [<JsonProperty("type")>]
   member this.type_ : Type = type_ // type
   member this.initializer : Expression = initializer
 
 type Declaration_Instance(node_id, node_type, name, declid, annotations, type_, arguments, properties, initializer) =
   inherit Declaration(node_id, node_type, name, declid)
   member this.annotations : Annotations = annotations
+  [<JsonProperty("type")>]
   member this.type_ : Type = type_ // type
   member this.arguments : Vector<Expression> = arguments
   member this.properties : NameMap<Property> = properties
@@ -608,6 +636,7 @@ type SwitchStatement(node_id, node_type, expression, cases) =
 
 type Function(node_id, node_type, name, declid, type_, body) =
   inherit Declaration(node_id, node_type, name, declid)
+  [<JsonProperty("type")>]
   member this.type_ : Type_Method = type_ // type
   member this.body : BlockStatement = body
 
@@ -637,11 +666,14 @@ type ControlBlock(node_id, node_type, node, constantValue, instanceType, contain
 
 type PackageBlock(node_id, node_type, node, constantValue, instanceType, type_) =
   inherit InstantiatedBlock(node_id, node_type, node, constantValue, instanceType)
+  [<JsonProperty("type")>]
   member this.type_ : Type_Package = type_ // type
 
 type ExternBlock(node_id, node_type, node, constantValue, instanceType, type_, constructor_) =
   inherit InstantiatedBlock(node_id, node_type, node, constantValue, instanceType)
+  [<JsonProperty("type")>]
   member this.type_ : Type_Extern = type_ // type
+  [<JsonProperty("constructor")>]
   member this.constructor_ : Method = constructor_ // constructor
 
 type TopLevelBlock(node_id, node_type, node, constantValue) =
@@ -689,6 +721,7 @@ type HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_) =
   member this.type_name : ID = type_name
   member this.name : ID = name
   member this.annotations : Annotations = annotations
+  [<JsonProperty("type")>]
   member this.type_ : Type_StructLike = type_ // type; if != nullptr
 
 type Header(node_id, node_type, type_name, name, annotations, type_) =
@@ -799,6 +832,7 @@ type Stateful(node_id, node_type, name, annotations, table, direct, saturating, 
 [<AbstractClass>]
 type CounterOrMeter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_) =
   inherit Stateful(node_id, node_type, name, annotations, table, direct, saturating, instance_count)
+  [<JsonProperty("type")>]
   member this.type_ : CounterType = type_ // type
 
 type Counter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_, max_width, min_width) =
@@ -845,6 +879,7 @@ type ActionSelector(node_id, node_type, name, annotations, key, mode, type_) =
   inherit Attached(node_id, node_type, name, annotations)
   member this.key : ID = key
   member this.mode : ID = mode
+  [<JsonProperty("type")>]
   member this.type_ : ID = type_ // type
 
 type V1Table(node_id, node_type, name, reads, reads_types, min_size, max_size, size, action_profile, actions,
