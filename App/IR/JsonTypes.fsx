@@ -23,11 +23,45 @@ type IContainer = inherit IDeclaration
 type ICompileTimeValue = inherit INode
 
 // FIXME Makeshift map types
-type OrderedMap<'K, 'V> = ('K * 'V) array
+type OrderedMap<'K, 'V> = ('K * 'V) array with
+  static member asDict
 type MultiMap<'K, 'V> = System.Linq.ILookup<'K, 'V>
 type UnorderedMap<'K, 'V> = System.Collections.Generic.IDictionary<'K, 'V>
 type vector<'T> = 'T array
 type OrderedMultiMap<'K, 'V> = ('K * 'V list) array
+
+let (@) t idx =
+    match t.GetType().GetProperty(sprintf "Item%d" idx) with
+    | null -> invalidArg "idx" "invalid index"
+    | p -> p.GetValue(t, null) |> unbox
+type OrderedMapConverter() =
+  inherit JsonConverter()
+  static member private getPairTypes (t:System.Type) =
+    if t.IsArray && Reflection.FSharpType.IsTuple(t.GetElementType()) then
+      let elt = t.GetElementType()
+      let ft = elt.GetProperty("Item1").PropertyType
+      let st = elt.GetProperty("Item2").PropertyType
+      Option.Some (ft, st)
+    else
+      Option.None
+  override this.CanConvert(objectType) =
+    objectType.IsArray && Reflection.FSharpType.IsTuple(objectType.GetElementType())
+  override this.WriteJson(writer, value, serialiser) =
+    let arr = value :?> System.Array
+    let d = new System.Collections.Specialized.OrderedDictionary()
+    for o in arr do
+      d.Add(o@1, o@2)
+    serialiser.Serialize(writer, d)
+    ()
+  override this.ReadJson(reader, objectType, existingValue, serialiser) =
+    let types = getPairTypes objectType
+    if types = Option.None then failwith (sprintf "Cannot convert to type %s" objectType.Name)
+    let Some (ft, st) = types
+
+    let d = serialiser.Deserialize(reader, typeof(System.Collections.Generic.IDictionary<_,_>).MakeGenericType([|ft, st|]))
+
+
+
 
 type Node(node_id, node_type) =
   interface INode
@@ -46,6 +80,7 @@ type NameMap<'T>(node_id, node_type, symbols) =
   inherit Node(node_id, node_type)
   // FIXME We are using one datastructure instead of parameterising like in the C++.
   //       This has the problem of not enforcing single value when it's not supposed to be a multimap...
+  [<JsonConverter(typeof(OrderedMapConverter))>]
   member this.symbols : OrderedMultiMap<string, 'T> = symbols // value is json dictionary
 
 type Type(node_id, node_type) =
@@ -99,16 +134,16 @@ type Annotations(node_id, node_type, annotations) =
 type Direction = None | In | Out | InOut with
   static member toString d =
     match d with
-    | None -> ""
-    | In -> "in"
-    | Out -> "out"
-    | InOut -> "inout"
+    | Direction.None -> ""
+    | Direction.In -> "in"
+    | Direction.Out -> "out"
+    | Direction.InOut -> "inout"
   static member parse s =
     match s with
-    | "" -> None
-    | "in" -> In
-    | "out" -> Out
-    | "inout" -> InOut
+    | "" -> Direction.None
+    | "in" -> Direction.In
+    | "out" -> Direction.Out
+    | "inout" -> Direction.InOut
     | _ -> failwith "Couldn't parse Direction"
 
 type Type_Type(node_id, node_type, type_) =
@@ -682,17 +717,17 @@ type TopLevelBlock(node_id, node_type, node, constantValue) =
 type CounterType = None | Packets | Bytes | Both with
   static member parse s =
     match s with
-    | "NONE" -> None
-    | "PACKETS" -> Packets
-    | "BYTES" -> Bytes
-    | "BOTH" -> Both
+    | "NONE" -> CounterType.None
+    | "PACKETS" -> CounterType.Packets
+    | "BYTES" -> CounterType.Bytes
+    | "BOTH" -> CounterType.Both
     | _ -> failwith "ERROR"
   static member toString c =
     match c with
-    | None -> "NONE"
-    | Packets -> "PACKETS"
-    | Bytes -> "BYTES"
-    | Both -> "BOTH"
+    | CounterType.None -> "NONE"
+    | CounterType.Packets -> "PACKETS"
+    | CounterType.Bytes -> "BYTES"
+    | CounterType.Both -> "BOTH"
 
 type Type_Block(node_id, node_type) =
   inherit Type_Base(node_id, node_type)
