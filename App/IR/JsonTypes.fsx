@@ -45,7 +45,7 @@ type OrderedMapConverter() =
     else
       Option.None
   override this.CanConvert(objectType) =
-    objectType.IsArray && Reflection.FSharpType.IsTuple(objectType.GetElementType())
+    OrderedMapConverter.getPairTypes objectType <> Option.None
   override this.WriteJson(writer, value, serialiser) =
     let arr = value :?> System.Array
     let d = new System.Collections.Specialized.OrderedDictionary()
@@ -54,12 +54,22 @@ type OrderedMapConverter() =
     serialiser.Serialize(writer, d)
     ()
   override this.ReadJson(reader, objectType, existingValue, serialiser) =
-    let types = getPairTypes objectType
+    let types = OrderedMapConverter.getPairTypes objectType
     if types = Option.None then failwith (sprintf "Cannot convert to type %s" objectType.Name)
-    let Some (ft, st) = types
+    let Some (keyT, valT) = types
 
-    let d = serialiser.Deserialize(reader, typeof(System.Collections.Generic.IDictionary<_,_>).MakeGenericType([|ft, st|]))
+    let entries =
+      seq {
+        if reader.Read() && reader.TokenType = JsonToken.StartObject then
+          while reader.Read() && reader.TokenType = JsonToken.PropertyName do // Should end when reads EndObject
+            let key = reader.Value // string for now FIXME convert to correct type
+            let value = serialiser.Deserialize(reader, valT)
+            yield (key, value)
+      } |> Seq.toArray
+    entries :> obj
 
+    
+     
 
 
 
