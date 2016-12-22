@@ -160,6 +160,13 @@ type Direction = None | In | Out | InOut with
     | "out" -> Direction.Out
     | "inout" -> Direction.InOut
     | _ -> failwith "Couldn't parse Direction"
+type DirectionJsonConverter() =
+  inherit JsonConverter()
+  override this.CanConvert(objectType) = objectType = typeof<Direction>
+  override this.ReadJson(reader, objectType, existingValue, serialiser) =
+    Direction.parse <| serialiser.Deserialize<string>(reader) :> obj
+  override this.WriteJson(writer, value, serialiser) =
+    writer.WriteValue(Direction.toString(value :?> Direction))
 
 [<Sealed>]
 type Type_Type(node_id, node_type, type_) =
@@ -845,20 +852,7 @@ type ExternBlock(node_id, node_type, node, constantValue, instanceType, type_, c
 type ToplevelBlock(node_id, node_type, node, constantValue) =
   inherit Block(node_id, node_type, node, constantValue)
 
-type CounterType = None | Packets | Bytes | Both with
-  static member parse s =
-    match s with
-    | "NONE" -> CounterType.None
-    | "PACKETS" -> CounterType.Packets
-    | "BYTES" -> CounterType.Bytes
-    | "BOTH" -> CounterType.Both
-    | _ -> failwith "ERROR"
-  static member toString c =
-    match c with
-    | CounterType.None -> "NONE"
-    | CounterType.Packets -> "PACKETS"
-    | CounterType.Bytes -> "BYTES"
-    | CounterType.Both -> "BOTH"
+type CounterType = NONE | PACKETS | BYTES | BOTH
 
 [<Sealed>]
 type Type_Block(node_id, node_type) =
@@ -1121,10 +1115,22 @@ type IntMod(node_id, node_type, type_, expr, width) =
 
 let TypeNames =
   [|
+    ("Node", typeof<Node>);
+    ("Vector", typeof<Vector<_>>.GetGenericTypeDefinition());
+    ("IndexedVector", typeof<IndexedVector<_>>.GetGenericTypeDefinition());
+    ("NameMap", typeof<NameMap<_>>.GetGenericTypeDefinition());
+    ("Type", typeof<Type>);
+    ("Type_Base", typeof<Type_Base>);
     ("Type_Unknown", typeof<Type_Unknown>);
+    ("StatOrDecl", typeof<StatOrDecl>);
+    ("Declaration", typeof<Declaration>);
+    ("Type_Declaration", typeof<Type_Declaration>);
+    ("Expression", typeof<Expression>);
+    ("Operation", typeof<Operation>);
     ("Path", typeof<Path>);
     ("Annotation", typeof<Annotation>);
     ("Annotations", typeof<Annotations>);
+    ("Direction", typeof<Direction>);
     ("Type_Type", typeof<Type_Type>);
     ("Type_Boolean", typeof<Type_Boolean>);
     ("Type_State", typeof<Type_State>);
@@ -1139,11 +1145,13 @@ let TypeNames =
     ("Type_MatchKind", typeof<Type_MatchKind>);
     ("TypeParameters", typeof<TypeParameters>);
     ("StructField", typeof<StructField>);
+    ("Type_StructLike", typeof<Type_StructLike>);
     ("Type_Struct", typeof<Type_Struct>);
     ("Type_Union", typeof<Type_Union>);
     ("Type_Header", typeof<Type_Header>);
     ("Type_Set", typeof<Type_Set>);
     ("Type_Tuple", typeof<Type_Tuple>);
+    ("Type_ArchBlock", typeof<Type_ArchBlock>);
     ("Type_Package", typeof<Type_Package>);
     ("Type_Parser", typeof<Type_Parser>);
     ("Type_Control", typeof<Type_Control>);
@@ -1154,18 +1162,31 @@ let TypeNames =
     ("Declaration_ID", typeof<Declaration_ID>);
     ("Type_String", typeof<Type_String>);
     ("Type_Enum", typeof<Type_Enum>);
+    ("PropertyValue", typeof<PropertyValue>);
+    ("Property", typeof<Property>);
+    ("TableProperties", typeof<TableProperties>);
+    ("P4Table", typeof<P4Table>);
     ("Type_Table", typeof<Type_Table>);
+    ("ActionListElement", typeof<ActionListElement>);
+    ("ActionList", typeof<ActionList>);
     ("Type_ActionEnum", typeof<Type_ActionEnum>);
+    ("Type_MethodBase", typeof<Type_MethodBase>);
     ("Type_Method", typeof<Type_Method>);
     ("ArgumentInfo", typeof<ArgumentInfo>);
     ("Type_MethodCall", typeof<Type_MethodCall>);
     ("Type_Action", typeof<Type_Action>);
     ("Method", typeof<Method>);
     ("Type_Typedef", typeof<Type_Typedef>);
+    ("NameList", typeof<NameList>);
+    ("Attribute", typeof<Attribute>);
     ("Type_Extern", typeof<Type_Extern>);
+    ("Operation_Unary", typeof<Operation_Unary>);
     ("Neg", typeof<Neg>);
     ("Cmpl", typeof<Cmpl>);
     ("LNot", typeof<LNot>);
+    ("Operation_Binary", typeof<Operation_Binary>);
+    ("Operation_Ternary", typeof<Operation_Ternary>);
+    ("Operation_Relation", typeof<Operation_Relation>);
     ("Mul", typeof<Mul>);
     ("Div", typeof<Div>);
     ("Mod", typeof<Mod>);
@@ -1184,6 +1205,7 @@ let TypeNames =
     ("BXor", typeof<BXor>);
     ("LAnd", typeof<LAnd>);
     ("LOr", typeof<LOr>);
+    ("Literal", typeof<Literal>);
     ("Constant", typeof<Constant>);
     ("BoolLiteral", typeof<BoolLiteral>);
     ("StringLiteral", typeof<StringLiteral>);
@@ -1200,25 +1222,22 @@ let TypeNames =
     ("This", typeof<This>);
     ("Cast", typeof<Cast>);
     ("SelectCase", typeof<SelectCase>);
+    ("ListExpression", typeof<ListExpression>);
     ("SelectExpression", typeof<SelectExpression>);
     ("MethodCallExpression", typeof<MethodCallExpression>);
     ("ConstructorCallExpression", typeof<ConstructorCallExpression>);
-    ("ListExpression", typeof<ListExpression>);
     ("ParserState", typeof<ParserState>);
     ("P4Parser", typeof<P4Parser>);
+    ("Statement", typeof<Statement>);
+    ("BlockStatement", typeof<BlockStatement>);
     ("P4Control", typeof<P4Control>);
     ("P4Action", typeof<P4Action>);
     ("Type_Error", typeof<Type_Error>);
     ("Declaration_MatchKind", typeof<Declaration_MatchKind>);
     ("ExpressionValue", typeof<ExpressionValue>);
     ("ExpressionListValue", typeof<ExpressionListValue>);
-    ("ActionListElement", typeof<ActionListElement>);
-    ("ActionList", typeof<ActionList>);
     ("KeyElement", typeof<KeyElement>);
     ("Key", typeof<Key>);
-    ("Property", typeof<Property>);
-    ("TableProperties", typeof<TableProperties>);
-    ("P4Table", typeof<P4Table>);
     ("Declaration_Variable", typeof<Declaration_Variable>);
     ("Declaration_Constant", typeof<Declaration_Constant>);
     ("Declaration_Instance", typeof<Declaration_Instance>);
@@ -1228,17 +1247,19 @@ let TypeNames =
     ("EmptyStatement", typeof<EmptyStatement>);
     ("AssignmentStatement", typeof<AssignmentStatement>);
     ("IfStatement", typeof<IfStatement>);
-    ("BlockStatement", typeof<BlockStatement>);
     ("MethodCallStatement", typeof<MethodCallStatement>);
     ("SwitchCase", typeof<SwitchCase>);
     ("SwitchStatement", typeof<SwitchStatement>);
     ("Function", typeof<Function>);
+    ("Block", typeof<Block>);
     ("TableBlock", typeof<TableBlock>);
+    ("InstantiatedBlock", typeof<InstantiatedBlock>);
     ("ParserBlock", typeof<ParserBlock>);
     ("ControlBlock", typeof<ControlBlock>);
     ("PackageBlock", typeof<PackageBlock>);
     ("ExternBlock", typeof<ExternBlock>);
     ("ToplevelBlock", typeof<ToplevelBlock>);
+    ("CounterType", typeof<CounterType>);
     ("Type_Block", typeof<Type_Block>);
     ("Type_Counter", typeof<Type_Counter>);
     ("Type_Expression", typeof<Type_Expression>);
@@ -1246,9 +1267,11 @@ let TypeNames =
     ("Type_Meter", typeof<Type_Meter>);
     ("Type_Register", typeof<Type_Register>);
     ("Type_AnyTable", typeof<Type_AnyTable>);
+    ("HeaderOrMetadata", typeof<HeaderOrMetadata>);
     ("Header", typeof<Header>);
     ("HeaderStack", typeof<HeaderStack>);
     ("Metadata", typeof<Metadata>);
+    ("HeaderRef", typeof<HeaderRef>);
     ("ConcreteHeaderRef", typeof<ConcreteHeaderRef>);
     ("HeaderStackItemRef", typeof<HeaderStackItemRef>);
     ("NamedRef", typeof<NamedRef>);
@@ -1258,22 +1281,23 @@ let TypeNames =
     ("Primitive", typeof<Primitive>);
     ("FieldList", typeof<FieldList>);
     ("FieldListCalculation", typeof<FieldListCalculation>);
+    ("CalculatedField_update_or_verify", typeof<CalculatedField_update_or_verify>);
     ("CalculatedField", typeof<CalculatedField>);
     ("CaseEntry", typeof<CaseEntry>);
     ("V1Parser", typeof<V1Parser>);
     ("ParserException", typeof<ParserException>);
+    ("Attached", typeof<Attached>);
+    ("Stateful", typeof<Stateful>);
+    ("CounterOrMeter", typeof<CounterOrMeter>);
     ("Counter", typeof<Counter>);
-    ("Meter", typeof<Meter>);
     ("Register", typeof<Register>);
     ("PrimitiveAction", typeof<PrimitiveAction>);
-    ("NameList", typeof<NameList>);
     ("ActionArg", typeof<ActionArg>);
     ("ActionFunction", typeof<ActionFunction>);
     ("ActionProfile", typeof<ActionProfile>);
     ("ActionSelector", typeof<ActionSelector>);
     ("V1Table", typeof<V1Table>);
     ("V1Control", typeof<V1Control>);
-    ("Attribute", typeof<Attribute>);
     ("V1Program", typeof<V1Program>);
     ("v1HeaderType", typeof<v1HeaderType>);
     ("IntMod", typeof<IntMod>);
@@ -1292,23 +1316,23 @@ let private (|Match|_|) pattern input =
   match regexMatches pattern input with
   | [] -> Option.None
   | l -> Option.Some l
-let private splitTypeStrings (s : string) =
+let (*private*) splitTypeStrings (s : string) =
   let abCount (s:string) = s.ToCharArray() |> Seq.map (fun c -> match c with '<' -> 1 | '>' -> -1 | _ -> 0) |> Seq.sum
   seq {
     let mutable abc = 0
     let waiting = new System.Collections.Generic.List<string>()
     for part in s.Split(',') do
+      waiting.Add part
       abc <- abc + abCount part
       if abc = 0 then
         yield String.concat "" waiting
         waiting.Clear()
-      else
-        waiting.Add part
   }
-let rec GetTypeOf s =
+let rec GetTypeOf s : System.Type =
+  printfn "GetTypeOf %s" s
   match s with
   | Match "^(?<Type>[^\<\>]*)\<(?<GenericParameters>.*)\>$" [t; p] ->
-      let tType = GetTypeOf t : System.Type
+      let tType = GetTypeOf t
       let pTypes = splitTypeStrings p |> Seq.map GetTypeOf |> Seq.toArray
       tType.MakeGenericType pTypes
   | Match "^(?<Type>[^\<\>]*)$" [t] -> TypeLookup.[t]
@@ -1359,4 +1383,5 @@ let deserialise filename =
   serialiser.Binder <- new IRBinder()
   serialiser.Converters.Add(new OrderedMapConverter())
   serialiser.Converters.Add(new IRConverter())
+  serialiser.Converters.Add(new DirectionJsonConverter())
   serialiser.Deserialize<P4Program>(new IRReader(reader))
