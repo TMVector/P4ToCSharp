@@ -10,11 +10,7 @@ module P4ToCSharp.App.IR
 
 #if INTERACTIVE
 #r "../../packages/Newtonsoft.Json/lib/net45/Newtonsoft.Json.dll"
+#load "JsonTypes.fsx"
 #endif
 open Newtonsoft.Json
-open System.IO
 
-let deserialise filename =
-  use reader = File.OpenText(filename)
-  let serialiser = new JsonSerializer()
-  serialiser.Deserialize<P4Program>(new JsonTextReader(reader))
