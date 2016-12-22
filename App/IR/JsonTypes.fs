@@ -10,8 +10,14 @@ module P4ToCSharp.App.IR
 
 #if INTERACTIVE
 #r "../../packages/Newtonsoft.Json/lib/net45/Newtonsoft.Json.dll"
+#r "../../packages/FSharpx.Collections/lib/net40/FSharpx.Collections.dll" 
 #endif
 open Newtonsoft.Json
+
+type IDictionary<'K,'V> = System.Collections.Generic.IDictionary<'K,'V>
+type Dictionary<'K,'V> = System.Collections.Generic.Dictionary<'K,'V>
+type ILookup<'K,'V> = System.Linq.ILookup<'K,'V>
+type HashSet<'T> = System.Collections.Generic.HashSet<'T>
 
 // Original IR uses a struct with original name and source info, but only name is serialised
 type ID = string
@@ -24,8 +30,8 @@ type ICompileTimeValue = inherit INode
 
 // FIXME Makeshift map types
 type OrderedMap<'K, 'V> = ('K * 'V) array
-type MultiMap<'K, 'V> = System.Linq.ILookup<'K, 'V>
-type UnorderedMap<'K, 'V> = System.Collections.Generic.IDictionary<'K, 'V>
+type MultiMap<'K, 'V> = ILookup<'K, 'V>
+type UnorderedMap<'K, 'V> = IDictionary<'K, 'V>
 type vector<'T> = 'T array
 type OrderedMultiMap<'K, 'V> = ('K * 'V list) array
 
@@ -1303,7 +1309,7 @@ let TypeNames =
     ("IntMod", typeof<IntMod>);
   |]
 let TypeLookup = TypeNames |> Map.ofSeq
-let Types = TypeNames |> Seq.map snd |> System.Collections.Generic.HashSet
+let Types = TypeNames |> Seq.map snd |> HashSet
   
 open System.Text.RegularExpressions
 let private regexMatches pattern input =
@@ -1338,6 +1344,18 @@ let rec GetTypeOf s : System.Type =
   | Match "^(?<Type>[^\<\>]*)$" [t] -> TypeLookup.[t]
   | _ -> failwith (sprintf "Invalid Node_Type %s" s)
 
+
+[<Literal>]
+let NodeId= "Node_ID" :> obj
+[<Literal>]
+let NodeType = "Node_Type" :> obj
+[<Literal>]
+let JType = "$type" :> obj
+[<Literal>]
+let JID = "$id" :> obj
+[<Literal>]
+let JRef = "$ref" :> obj
+
 open Newtonsoft.Json.Linq
 type IRConverter() =
   inherit JsonConverter()
@@ -1356,14 +1374,58 @@ type IRConverter() =
     let t = GetTypeOf tname
     jo.ToObject(t, serialiser)
 
-type IRReader(reader) =
+open FSharpx.Collections
+type AdvReader(reader, onRead) = 
+  inherit JsonTextReader(reader) 
+  let mutable queue = Deque.empty
+  member private this.OnRead = onRead
+  member private this.enqueue () = let hasToken = base.Read() in printfn "TOKEN %A %A" base.TokenType base.Value; queue <- queue.Conj ((base.TokenType, base.Value)); hasToken
+  override this.TokenType = match queue.TryHead with Option.Some(t,_) -> t | Option.None -> base.TokenType 
+  override this.Value = match queue.TryHead with Option.Some(_,v) -> v | Option.None -> base.Value 
+  override this.Read() =
+    if not queue.IsEmpty then
+      queue <- queue.Tail
+    let rec hasToken(readMore, queue') =
+      printfn "hasToken (%A, %A)" readMore queue'
+      queue <- queue'
+      if (queue.IsEmpty || readMore) && this.enqueue() then
+        hasToken (this.OnRead queue)
+      else
+        not queue.IsEmpty
+    hasToken (false, queue)
+  //override this.ReadAsBoolean() =
+
+type saIRReader(reader) =
   inherit JsonTextReader(reader)
-  let nodeId, nodeType, jType = "Node_ID", "Node_Type", "$type"
   override this.Read() =
     let hasToken = base.Read()
-    if hasToken && base.TokenType = JsonToken.PropertyName && string base.Value = nodeType then
-      base.SetToken(JsonToken.PropertyName, jType :> obj)
+    if hasToken && base.TokenType = JsonToken.PropertyName then 
+      match base.Value with
+      | NodeType -> base.SetToken(JsonToken.PropertyName, JType)
+      | NodeId -> base.SetToken(JsonToken.PropertyName, JID)
+      | _ -> ()
     hasToken
+type IRReader(reader) =
+  inherit AdvReader(reader, IRReader.onRead)
+  static member private onRead q =
+    let readMore, ql =
+      match Deque.toSeq q |> Seq.toList with
+      | [(JsonToken.StartObject,_); (JsonToken.PropertyName,NodeId); (JsonToken.Integer,nid); (JsonToken.EndObject,_)] ->
+          // This is a reference to another node - rewrite to $ref
+          false, [(JsonToken.StartObject,null); (JsonToken.PropertyName,JRef); (JsonToken.String,nid); (JsonToken.EndObject,null)]
+      | [(JsonToken.StartObject,_); (JsonToken.PropertyName,NodeId); (JsonToken.Integer,nid);
+                                    (JsonToken.PropertyName,NodeType); (JsonToken.String,nty)] ->
+          // This is not a reference, so just copy the id to $id and Node_Type to $type
+          false, [(JsonToken.StartObject,null); (JsonToken.PropertyName,JType); (JsonToken.String,nty);
+                                                (JsonToken.PropertyName,JID); (JsonToken.String,nid);
+                                                (JsonToken.PropertyName,NodeId); (JsonToken.String,nid);
+                                                (JsonToken.PropertyName,NodeType); (JsonToken.String,nty)]
+      | ((JsonToken.StartObject,_)::ts) as ql ->
+          match q.Last with
+          | (JsonToken.StartObject, _) -> Deque.length q <> 1, ql
+          | _ ->  Deque.length q < 5, ql // We want to read 5 tokens if the start is StartObject so we can check our match cases
+      | ql -> false, ql
+    readMore, Deque.ofList ql
 
 type IRBinder() =
   inherit System.Runtime.Serialization.SerializationBinder()
@@ -1374,6 +1436,23 @@ type IRBinder() =
 // FIXME for testing only
 let testFile = "/working/part-ii-project/p4_16_samples/json/action_param.p4.json"
 
+type IRReferenceResolver() =
+  member private this.RefLookup : IDictionary<string,Node> = new Dictionary<string,Node>() :> IDictionary<string,Node>
+  interface Newtonsoft.Json.Serialization.IReferenceResolver with
+    member this.IsReferenced(context:obj, value:obj) =
+      let node = value :?> Node
+      this.RefLookup.ContainsKey (string node.Node_ID)
+    member this.AddReference(context:obj, reference:string, value:obj) =
+      printfn "AddReference %s" reference
+      this.RefLookup.Add(reference, value :?> Node)
+    member this.GetReference(context:obj, value:obj) =
+      let node = value :?> Node
+      string node.Node_ID
+    member this.ResolveReference(context:obj, reference:string) =
+      printfn "ResolveReference %s" reference
+      let _, node = this.RefLookup.TryGetValue reference
+      node :> obj
+
 open System.IO
 let deserialise filename =
   use reader = File.OpenText(filename)
@@ -1381,6 +1460,8 @@ let deserialise filename =
   serialiser.TypeNameHandling <- TypeNameHandling.Auto
   serialiser.MetadataPropertyHandling <- MetadataPropertyHandling.ReadAhead
   serialiser.Binder <- new IRBinder()
+  serialiser.PreserveReferencesHandling <- PreserveReferencesHandling.Objects
+  serialiser.ReferenceResolver <- new IRReferenceResolver()
   serialiser.Converters.Add(new OrderedMapConverter())
   serialiser.Converters.Add(new IRConverter())
   serialiser.Converters.Add(new DirectionJsonConverter())
