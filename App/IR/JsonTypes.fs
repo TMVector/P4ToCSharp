@@ -1370,7 +1370,7 @@ type IRConverter() =
   override this.ReadJson(reader, objectType, existingValue, serialiser) =
     if reader.TokenType <> JsonToken.StartObject then reader.Read() |> ignore
     let jo = JObject.Load(reader)
-    let tname = jo.["$type"].Value<string>()
+    let tname = jo.["Node_Type"].Value<string>()
     let t = GetTypeOf tname
     jo.ToObject(t, serialiser)
 
@@ -1382,7 +1382,7 @@ type AdvReader(reader, onRead) =
   member private this.enqueue () = let hasToken = base.Read() in printfn "TOKEN %A %A" base.TokenType base.Value; queue <- queue.Conj ((base.TokenType, base.Value)); hasToken
   override this.TokenType = match queue.TryHead with Option.Some(t,_) -> t | Option.None -> base.TokenType 
   override this.Value = match queue.TryHead with Option.Some(_,v) -> v | Option.None -> base.Value 
-  override this.Read() =
+  override this.Read() = // FIXME presumably we also need to override ReadAsBoolean, etc.
     if not queue.IsEmpty then
       queue <- queue.Tail
     let rec hasToken(readMore, queue') =
@@ -1395,34 +1395,27 @@ type AdvReader(reader, onRead) =
     hasToken (false, queue)
   //override this.ReadAsBoolean() =
 
-type saIRReader(reader) =
-  inherit JsonTextReader(reader)
-  override this.Read() =
-    let hasToken = base.Read()
-    if hasToken && base.TokenType = JsonToken.PropertyName then 
-      match base.Value with
-      | NodeType -> base.SetToken(JsonToken.PropertyName, JType)
-      | NodeId -> base.SetToken(JsonToken.PropertyName, JID)
-      | _ -> ()
-    hasToken
 type IRReader(reader) =
   inherit AdvReader(reader, IRReader.onRead)
   static member private onRead q =
+    let intObjToStrObj (o:obj) = o :?> int64 |> string :> obj // FIXME Integer could also be BigInt
     let readMore, ql =
       match Deque.toSeq q |> Seq.toList with
-      | [(JsonToken.StartObject,_); (JsonToken.PropertyName,NodeId); (JsonToken.Integer,nid); (JsonToken.EndObject,_)] ->
+      | [(JsonToken.StartObject, _); (JsonToken.PropertyName, NodeId); (JsonToken.Integer, nid); (JsonToken.EndObject, _)] ->
           // This is a reference to another node - rewrite to $ref
-          false, [(JsonToken.StartObject,null); (JsonToken.PropertyName,JRef); (JsonToken.String,nid); (JsonToken.EndObject,null)]
-      | [(JsonToken.StartObject,_); (JsonToken.PropertyName,NodeId); (JsonToken.Integer,nid);
-                                    (JsonToken.PropertyName,NodeType); (JsonToken.String,nty)] ->
+          let nidStr = intObjToStrObj nid
+          false, [(JsonToken.StartObject, null); (JsonToken.PropertyName, JRef); (JsonToken.String, nidStr); (JsonToken.EndObject, null)]
+      | [(JsonToken.StartObject,_); (JsonToken.PropertyName, NodeId);   (JsonToken.Integer, nid);
+                                    (JsonToken.PropertyName, NodeType); (JsonToken.String, nty)] ->
           // This is not a reference, so just copy the id to $id and Node_Type to $type
-          false, [(JsonToken.StartObject,null); (JsonToken.PropertyName,JType); (JsonToken.String,nty);
-                                                (JsonToken.PropertyName,JID); (JsonToken.String,nid);
-                                                (JsonToken.PropertyName,NodeId); (JsonToken.String,nid);
-                                                (JsonToken.PropertyName,NodeType); (JsonToken.String,nty)]
+          let nidStr = intObjToStrObj nid
+          false, [(JsonToken.StartObject,null); (JsonToken.PropertyName, JType);    (JsonToken.String, nty);
+                                                (JsonToken.PropertyName, JID);      (JsonToken.String, nidStr);
+                                                (JsonToken.PropertyName, NodeId);   (JsonToken.Integer, nid);
+                                                (JsonToken.PropertyName, NodeType); (JsonToken.String, nty)]
       | ((JsonToken.StartObject,_)::ts) as ql ->
           match q.Last with
-          | (JsonToken.StartObject, _) -> Deque.length q <> 1, ql
+          | (JsonToken.StartObject, _) -> Deque.length q = 1, ql // Only read more if first token is only StartObject
           | _ ->  Deque.length q < 5, ql // We want to read 5 tokens if the start is StartObject so we can check our match cases
       | ql -> false, ql
     readMore, Deque.ofList ql
@@ -1458,11 +1451,11 @@ let deserialise filename =
   use reader = File.OpenText(filename)
   let serialiser = new JsonSerializer()
   serialiser.TypeNameHandling <- TypeNameHandling.Auto
-  serialiser.MetadataPropertyHandling <- MetadataPropertyHandling.ReadAhead
+  serialiser.MetadataPropertyHandling <- MetadataPropertyHandling.ReadAhead // FIXME why do we still need this even though we are reordering?
   serialiser.Binder <- new IRBinder()
   serialiser.PreserveReferencesHandling <- PreserveReferencesHandling.Objects
   serialiser.ReferenceResolver <- new IRReferenceResolver()
   serialiser.Converters.Add(new OrderedMapConverter())
   serialiser.Converters.Add(new IRConverter())
-  serialiser.Converters.Add(new DirectionJsonConverter())
+  serialiser.Converters.Add(new DirectionJsonConverter()) // FIXME Can this be attached to the type with an attribute?
   serialiser.Deserialize<P4Program>(new IRReader(reader))
