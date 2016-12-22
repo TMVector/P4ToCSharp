@@ -1332,63 +1332,20 @@ type IRConverter() =
     let t = GetTypeOf tname
     jo.ToObject(t, serialiser)
 
-type private IRRState = Normal | Start
 type IRReader(reader) =
   inherit JsonTextReader(reader)
   let nodeId, nodeType, jType = "Node_ID", "Node_Type", "$type"
-  let mutable state = IRRState.Normal
-  let mutable queue = new System.Collections.Generic.LinkedList<JsonToken*obj*string>()
-  let mutable qEl = Option.None
-  member private this.enqueue () = let hasToken = base.Read() in printfn "TOKEN %A %A %A" base.TokenType base.Value base.Path; queue.AddLast ((base.TokenType, base.Value, base.Path)) |> ignore; hasToken
-  member private this.setToken el = qEl <- Option.Some el
-  override this.TokenType = match qEl with Option.Some(t,_,_) -> t | Option.None -> base.TokenType
-  override this.Value = match qEl with Option.Some(_,v,_) -> v | Option.None -> base.Value
-  override this.Path = match qEl with Option.Some(_,_,p) -> p | Option.None -> base.Path
   override this.Read() =
-    // We are looking for the "Node_ID" property at the start of the object, followed by "Node_Type". Then we
-    //  will in Otherwise we will pretend like it never happened by replaying those tokens.
-    match state with
-    | IRRState.Normal ->
-        // If we have items to dequeue, do so
-        if queue.Count > 0 then
-          let el = queue.First.Value
-          queue.RemoveFirst()
-          this.setToken el
-          printfn "DQ TOKEN %A %A %A" this.TokenType this.Value this.Path
-          true
-        // Else read a new item
-        else
-          let hasToken = base.Read()
-          if hasToken && base.TokenType = JsonToken.StartObject then state <- IRRState.Start
-          printfn "RAW TOKEN %A %A %A" this.TokenType this.Value this.Path
-          hasToken
-    | IRRState.Start ->
-        state <- IRRState.Normal
-        // Save items as we read them (using enqueue()) in case we don't find the pattern we want
-        let hasToken = this.enqueue()
-        if hasToken && base.TokenType = JsonToken.PropertyName && string base.Value = nodeId then
-          let hasToken = this.enqueue()
-          if hasToken && base.TokenType = JsonToken.Integer then
-            let nid = base.Value
-            let hasToken = this.enqueue()
-            if hasToken && base.TokenType = JsonToken.PropertyName && string base.Value = nodeType then
-              let tyPropPath = base.Path.Substring(0, base.Path.Length - nodeType.Length)
-              let hasToken = this.enqueue()
-              if hasToken && base.TokenType = JsonToken.String then
-                let ty = base.Value
-                // We have found the pattern we wanted now, so we can insert the $type property before it
-                let path = tyPropPath + jType
-                this.setToken (JsonToken.PropertyName, jType :> obj, path)
-                queue.AddFirst ((JsonToken.String, ty, path)) |> ignore
-        printfn "Started %A" (queue |> Seq.toArray)
-        printfn "RAW TOKEN %A %A %A" this.TokenType this.Value this.Path
-        hasToken
+    let hasToken = base.Read()
+    if hasToken && base.TokenType = JsonToken.PropertyName && string base.Value = nodeType then
+      base.SetToken(JsonToken.PropertyName, jType :> obj)
+    hasToken
 
 type IRBinder() =
   inherit System.Runtime.Serialization.SerializationBinder()
   override this.BindToType(assemblyName, typeName) =
     printfn "Bind %s %s" assemblyName typeName
-    TypeLookup.[typeName]
+    GetTypeOf typeName
 
 // FIXME for testing only
 let testFile = "/working/part-ii-project/p4_16_samples/json/action_param.p4.json"
@@ -1398,7 +1355,7 @@ let deserialise filename =
   use reader = File.OpenText(filename)
   let serialiser = new JsonSerializer()
   serialiser.TypeNameHandling <- TypeNameHandling.Auto
-  //serialiser.MetadataPropertyHandling <- MetadataPropertyHandling.ReadAhead
+  serialiser.MetadataPropertyHandling <- MetadataPropertyHandling.ReadAhead
   serialiser.Binder <- new IRBinder()
   serialiser.Converters.Add(new OrderedMapConverter())
   serialiser.Converters.Add(new IRConverter())
