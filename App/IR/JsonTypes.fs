@@ -1328,7 +1328,6 @@ let private splitTypeStrings (s : string) =
         waiting.Clear()
   }
 let rec private GetTypeOf s : System.Type =
-  printfn "GetTypeOf %s" s
   match s with
   | Match "^(?<Type>[^\<\>]*)\<(?<GenericParameters>.*)\>$" [t; p] ->
       let tType = GetTypeOf t
@@ -1372,7 +1371,7 @@ type private AdvReader(reader, onRead) =
   inherit JsonTextReader(reader) 
   let mutable queue = Deque.empty
   member private this.OnRead = onRead
-  member private this.enqueue () = let hasToken = base.Read() in printfn "TOKEN %A %A" base.TokenType base.Value; queue <- queue.Conj ((base.TokenType, base.Value)); hasToken
+  member private this.enqueue () = let hasToken = base.Read() in queue <- queue.Conj ((base.TokenType, base.Value)); hasToken
   override this.TokenType = match queue.TryHead with Option.Some(t,_) -> t | Option.None -> JsonToken.None
   override this.Value = match queue.TryHead with Option.Some(_,v) -> v | Option.None -> null
   override this.ValueType = let v = this.Value in if v = null then null else v.GetType()
@@ -1380,7 +1379,6 @@ type private AdvReader(reader, onRead) =
     if not queue.IsEmpty then
       queue <- queue.Tail
     let rec hasToken(readMore, queue') =
-      printfn "hasToken (%A, %A)" readMore queue'
       queue <- queue'
       if (queue.IsEmpty || readMore) && this.enqueue() then
         hasToken (this.OnRead queue)
@@ -1417,7 +1415,7 @@ type private IRReader(reader) =
                                                 (JsonToken.PropertyName, NodeType); (JsonToken.String, nty)]
       | ((JsonToken.StartObject,_)::ts) as ql ->
           match q.Last with
-          | (JsonToken.StartObject, _) -> Deque.length q = 1, ql // Only read more if first token is only StartObject
+          | (JsonToken.StartObject, _) -> Deque.length q = 1, ql // Only read more if first token is the only StartObject
           | _ ->  Deque.length q < 5, ql // We want to read 5 tokens if the start is StartObject so we can check our match cases
       | ql -> false, ql
     readMore, Deque.ofList ql
@@ -1425,11 +1423,7 @@ type private IRReader(reader) =
 type private IRBinder() =
   inherit System.Runtime.Serialization.SerializationBinder()
   override this.BindToType(assemblyName, typeName) =
-    printfn "Bind %s %s" assemblyName typeName
     GetTypeOf typeName
-
-// FIXME for testing only
-let testFile = "/working/part-ii-project/p4_16_samples/json/action_param.p4.json"
 
 type private IRReferenceResolver() =
   member private this.RefLookup : IDictionary<string,Node> = new Dictionary<string,Node>() :> IDictionary<string,Node>
@@ -1438,13 +1432,11 @@ type private IRReferenceResolver() =
       let node = value :?> Node
       this.RefLookup.ContainsKey (string node.Node_ID)
     member this.AddReference(context:obj, reference:string, value:obj) =
-      printfn "AddReference %s" reference
       this.RefLookup.Add(reference, value :?> Node)
     member this.GetReference(context:obj, value:obj) =
       let node = value :?> Node
       string node.Node_ID
     member this.ResolveReference(context:obj, reference:string) =
-      printfn "ResolveReference %s" reference
       let _, node = this.RefLookup.TryGetValue reference
       node :> obj
 
