@@ -5,7 +5,7 @@
 *)
 
 #if !INTERACTIVE
-module P4ToCSharp.App.IR
+module P4ToCSharp.App.IR.JsonTypes
 #endif
 
 #if INTERACTIVE
@@ -1119,7 +1119,7 @@ type IntMod(node_id, node_type, type_, expr, width) =
   inherit Operation_Unary(node_id, node_type, type_, expr)
   member this.width : uint32 = width
 
-let TypeNames =
+let TypeNames = // FIXME Could this be constructed by reflection of all types : Node in this module?
   [|
     ("Node", typeof<Node>);
     ("Vector", typeof<Vector<_>>.GetGenericTypeDefinition());
@@ -1311,18 +1311,11 @@ let TypeNames =
 let TypeLookup = TypeNames |> Map.ofSeq
 let Types = TypeNames |> Seq.map snd |> HashSet
   
-open System.Text.RegularExpressions
-let private regexMatches pattern input =
-  let m = Regex.Match(input, pattern)
-  if m.Success then
-    // The first group is always the whole of the match, not one of the groups
-    [for g in m.Groups -> g.Value] |> List.skip 1
-  else []
-let private (|Match|_|) pattern input =
-  match regexMatches pattern input with
-  | [] -> Option.None
-  | l -> Option.Some l
-let (*private*) splitTypeStrings (s : string) =
+#if INTERACTIVE
+#load "../Regex.fs"
+#endif
+open P4ToCSharp.App.Regex
+let private splitTypeStrings (s : string) =
   let abCount (s:string) = s.ToCharArray() |> Seq.map (fun c -> match c with '<' -> 1 | '>' -> -1 | _ -> 0) |> Seq.sum
   seq {
     let mutable abc = 0
@@ -1334,7 +1327,7 @@ let (*private*) splitTypeStrings (s : string) =
         yield String.concat "" waiting
         waiting.Clear()
   }
-let rec GetTypeOf s : System.Type =
+let rec private GetTypeOf s : System.Type =
   printfn "GetTypeOf %s" s
   match s with
   | Match "^(?<Type>[^\<\>]*)\<(?<GenericParameters>.*)\>$" [t; p] ->
@@ -1357,7 +1350,7 @@ let JID = "$id" :> obj
 let JRef = "$ref" :> obj
 
 open Newtonsoft.Json.Linq
-type IRConverter() =
+type private IRConverter() =
   inherit JsonConverter()
   override this.CanConvert(objectType) =
     // Marker interfaces need to be converted because JSON.NET doesn't even know to read an object
@@ -1375,14 +1368,15 @@ type IRConverter() =
     jo.ToObject(t, serialiser)
 
 open FSharpx.Collections
-type AdvReader(reader, onRead) = 
+type private AdvReader(reader, onRead) = 
   inherit JsonTextReader(reader) 
   let mutable queue = Deque.empty
   member private this.OnRead = onRead
   member private this.enqueue () = let hasToken = base.Read() in printfn "TOKEN %A %A" base.TokenType base.Value; queue <- queue.Conj ((base.TokenType, base.Value)); hasToken
-  override this.TokenType = match queue.TryHead with Option.Some(t,_) -> t | Option.None -> base.TokenType 
-  override this.Value = match queue.TryHead with Option.Some(_,v) -> v | Option.None -> base.Value 
-  override this.Read() = // FIXME presumably we also need to override ReadAsBoolean, etc.
+  override this.TokenType = match queue.TryHead with Option.Some(t,_) -> t | Option.None -> JsonToken.None
+  override this.Value = match queue.TryHead with Option.Some(_,v) -> v | Option.None -> null
+  override this.ValueType = let v = this.Value in if v = null then null else v.GetType()
+  override this.Read() =
     if not queue.IsEmpty then
       queue <- queue.Tail
     let rec hasToken(readMore, queue') =
@@ -1393,9 +1387,17 @@ type AdvReader(reader, onRead) =
       else
         not queue.IsEmpty
     hasToken (false, queue)
-  //override this.ReadAsBoolean() =
+  // It would seem that we don't need to override the ReadAs.. methods for our uses
+  //override this.ReadAsBoolean() = printfn ">>> ReadAsBoolean"; base.ReadAsBoolean()
+  //override this.ReadAsBytes() = printfn ">>> ReadAsBytes"; base.ReadAsBytes()
+  //override this.ReadAsDateTime() = printfn ">>> ReadAsDateTime"; base.ReadAsDateTime()
+  //override this.ReadAsDateTimeOffset() = printfn ">>> ReadAsDateTimeOffset"; base.ReadAsDateTimeOffset()
+  //override this.ReadAsDecimal() = printfn ">>> ReadAsDecimal"; base.ReadAsDecimal()
+  //override this.ReadAsDouble() = printfn ">>> ReadAsDouble"; base.ReadAsDouble()
+  //override this.ReadAsInt32() = printfn ">>> ReadAsInt32"; base.ReadAsInt32()
+  //override this.ReadAsString() = printfn ">>> ReadAsString"; base.ReadAsString()
 
-type IRReader(reader) =
+type private IRReader(reader) =
   inherit AdvReader(reader, IRReader.onRead)
   static member private onRead q =
     let intObjToStrObj (o:obj) = o :?> int64 |> string :> obj // FIXME Integer could also be BigInt
@@ -1420,7 +1422,7 @@ type IRReader(reader) =
       | ql -> false, ql
     readMore, Deque.ofList ql
 
-type IRBinder() =
+type private IRBinder() =
   inherit System.Runtime.Serialization.SerializationBinder()
   override this.BindToType(assemblyName, typeName) =
     printfn "Bind %s %s" assemblyName typeName
@@ -1429,7 +1431,7 @@ type IRBinder() =
 // FIXME for testing only
 let testFile = "/working/part-ii-project/p4_16_samples/json/action_param.p4.json"
 
-type IRReferenceResolver() =
+type private IRReferenceResolver() =
   member private this.RefLookup : IDictionary<string,Node> = new Dictionary<string,Node>() :> IDictionary<string,Node>
   interface Newtonsoft.Json.Serialization.IReferenceResolver with
     member this.IsReferenced(context:obj, value:obj) =
