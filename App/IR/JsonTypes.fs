@@ -558,9 +558,9 @@ type Literal(node_id, node_type, type_) =
 [<Sealed>]
 type Constant(node_id, node_type, type_, value, base_) = 
   inherit Literal(node_id, node_type, type_)
-  member this.value : bigint = value
+  member this.value : int = value // FIXME bigint?
   [<JsonProperty("base")>]
-  member this.base_ : uint32 = base_ // base
+  member this.base_ : uint32 = base_ // base // FIXME how does this interact with the value? Is value actually a string?
 
 [<Sealed>]
 type BoolLiteral(node_id, node_type, type_, value) = 
