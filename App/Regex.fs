@@ -1,7 +1,7 @@
 ﻿namespace P4ToCSharp.App
 
-open System.Text.RegularExpressions
 module Regex =
+  open System.Text.RegularExpressions
   let regexMatches pattern input =
     let m = Regex.Match(input, pattern)
     if m.Success then
