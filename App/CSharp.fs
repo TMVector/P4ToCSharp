@@ -12,26 +12,69 @@ type SF = SyntaxFactory
 type SK = SyntaxKind
 
 open P4ToCSharp.App.IR
-let csTypeOf (ty:JsonTypes.Type) = SF.ParseTypeName("") // FIXME check this, map, etc. + pack bitstrings in headers etc
+open P4ToCSharp.App.CSharpTypes
 
 module Seq =
   let first ls = ls |> Seq.pick Some
 
+let csFieldNameOf p4Name =
+  p4Name // FIXME any changes needed? Illegal chars etc
+let arg x =
+  SF.ArgumentList(SF.SingletonSeparatedList(SF.Argument(x)))
+let bArg x =
+  SF.BracketedArgumentList(SF.SingletonSeparatedList(SF.Argument(x)))
+let argList ls =
+  SF.ArgumentList(SF.SeparatedList(Seq.map SF.Argument ls))
+let bArgList ls =
+  SF.BracketedArgumentList(SF.SeparatedList(Seq.map SF.Argument ls))
+let tArg t =
+  SF.TypeArgumentList(SF.SingletonSeparatedList(t))
+let tArgList (ts : seq<Syntax.TypeSyntax>) =
+  SF.TypeArgumentList(SF.SeparatedList(ts))
+let tokenList =
+  Seq.map SF.Token >> SF.TokenList
+let paramList (arr : Syntax.ParameterSyntax seq) =
+  SF.ParameterList(SF.SeparatedList(arr))
+let eMemberAccess e (ids:seq<string>) =
+  ids
+  |> Seq.map SF.IdentifierName
+  |> Seq.fold (fun cur id -> SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, cur, id) :> Syntax.ExpressionSyntax) e
+let memberAccess (str:string) =
+  let ids = str.Split('.')
+  eMemberAccess (Seq.first ids |> SF.IdentifierName) (Seq.skip 1 ids)
+let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
+  match ty with
+  | :? JsonTypes.Type_Bits as bits ->
+      SF.InvocationExpression(memberAccess "Library.Extract") // FIXME hardcode method names for common sizes
+        .AddArgumentListArguments(SF.Argument(arrExpr),
+                                  SF.Argument(SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(bitOffset))))
+  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name) // FIXME cover more types that are used in headers
+let createWriteExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) fieldExpr =
+  match ty with
+  | :? JsonTypes.Type_Bits as bits ->
+      SF.InvocationExpression(memberAccess "Library.Write") // FIXME hardcode method names for common sizes
+        .AddArgumentListArguments(SF.Argument(arrExpr),
+                                  SF.Argument(SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(bitOffset))),
+                                  SF.Argument(fieldExpr))
+  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name) // FIXME cover more types that are used in headers
+
+// CS types for convenience
 let headerBaseName = SF.QualifiedName(SF.IdentifierName("Library"), SF.IdentifierName("HeaderBase"))
 let headerBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(headerBaseName)
 let voidType : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.VoidKeyword))
 let byteArrayType : Syntax.TypeSyntax = upcast SF.ArrayType(SF.PredefinedType(SF.Token(SK.ByteKeyword)))
 let uint32Type : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.UIntKeyword))
 
-type propertyModifier = Public | Private | Protected | Internal | Static // | Const/Readonly?
-type propertyAccess = Get | GetSet
+let assignment lExpr rExpr =
+  SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, lExpr, rExpr))
+
 type Syntax.PropertyDeclarationSyntax with
   member this.WithAccessors(accessors) =
     let getter = SF.AccessorDeclaration(SK.GetAccessorDeclaration).WithSemicolonToken(SF.Token(SK.SemicolonToken))
     let setter = SF.AccessorDeclaration(SK.SetAccessorDeclaration).WithSemicolonToken(SF.Token(SK.SemicolonToken))
     match accessors with
-    | Get -> this.WithAccessorList(SF.AccessorList(SF.SingletonList(getter)))
-    | GetSet -> this.WithAccessorList(SF.AccessorList(SF.List([| getter; setter |])))
+    | Property.Accessor.Get -> this.WithAccessorList(SF.AccessorList(SF.SingletonList(getter)))
+    | Property.Accessor.GetSet -> this.WithAccessorList(SF.AccessorList(SF.List([| getter; setter |])))
   member this.WithInitialiserExpr(expr) =
     this.WithInitializer(SF.EqualsValueClause(expr))
 
@@ -42,37 +85,44 @@ type Syntax.MethodDeclarationSyntax with
     this.WithBody(SF.Block(statements))
 
 type Syntax.ClassDeclarationSyntax with
+  member this.AddHeaderFields(header : JsonTypes.Type_Header, typeTranslator) =
+    let properties =
+      header.fields.vec
+      |> Seq.map (fun field -> SF.PropertyDeclaration(typeTranslator field.type_, csFieldNameOf field.name)
+                                 .WithModifiers(SF.TokenList(SF.Token(SK.PublicKeyword)))
+                                 .WithAccessors(Property.Accessor.GetSet))
+      |> Seq.cast<Syntax.MemberDeclarationSyntax>
+      |> Seq.toArray
+    this.AddMembers(properties)
   member this.ImplementHeaderBase(header : JsonTypes.Type_Header) =
+    let arrName, offsetName = "data", "offset"
     this.AddMembers(
       SF.MethodDeclaration(voidType, SF.Identifier("Parse"))
-        //.WithExplicitInterfaceSpecifier(SF.ExplicitInterfaceSpecifier(headerBaseName))
+        .WithModifiers(SF.TokenList(SF.Token(SK.OverrideKeyword)))
         .WithParameters(
-          [|  SF.Parameter(SF.Identifier("data")).WithType(byteArrayType);
-              SF.Parameter(SF.Identifier("offset")).WithType(uint32Type); |])
+          [|  SF.Parameter(SF.Identifier(arrName)).WithType(byteArrayType);
+              SF.Parameter(SF.Identifier(offsetName)).WithType(uint32Type); |])
         .WithBlockBody(
-          let a =
-            header.fields.vec
-            |> Seq.map (fun field -> let ty = csTypeOf field.type_ // -> which extract method?
-                                     let name = field.name
-                                     SF.ExpressionStatement(SF.AssignmentExpression()
-          [||])
-      )
+          let extractExprFor = createExtractExpr <| SF.IdentifierName(arrName) <| SF.IdentifierName(offsetName)
+          header.fields.vec
+          |> Seq.map (fun field -> upcast assignment (SF.IdentifierName(csFieldNameOf field.name)) (extractExprFor field.type_  0))))
+      .AddMembers(
+      SF.MethodDeclaration(voidType, SF.Identifier("Deparse"))
+        .WithModifiers(SF.TokenList(SF.Token(SK.OverrideKeyword)))
+        .WithParameters(
+          [|  SF.Parameter(SF.Identifier(arrName)).WithType(byteArrayType);
+              SF.Parameter(SF.Identifier(offsetName)).WithType(uint32Type); |])
+        .WithBlockBody(
+          let writeExprFor = createWriteExpr <| SF.IdentifierName(arrName) <| SF.IdentifierName(offsetName)
+          header.fields.vec
+          |> Seq.map (fun field -> let fieldExpr = SF.IdentifierName(csFieldNameOf field.name)
+                                   upcast assignment fieldExpr (writeExprFor field.type_  0 fieldExpr))))
 
-let arg x = SF.ArgumentList(SF.SingletonSeparatedList(SF.Argument(x)))
-let bArg x = SF.BracketedArgumentList(SF.SingletonSeparatedList(SF.Argument(x)))
-let argList ls = SF.ArgumentList(SF.SeparatedList(Seq.map SF.Argument ls))
-let bArgList ls = SF.BracketedArgumentList(SF.SeparatedList(Seq.map SF.Argument ls))
-let tArg t = SF.TypeArgumentList(SF.SingletonSeparatedList(t))
-let tArgList (ts : seq<Syntax.TypeSyntax>) = SF.TypeArgumentList(SF.SeparatedList(ts))
-let tokenList = Seq.map SF.Token >> SF.TokenList
-let paramList (arr : Syntax.ParameterSyntax seq) = SF.ParameterList(SF.SeparatedList(arr))
-let eMemberAccess e (ids:seq<string>) =
-  ids
-  |> Seq.map SF.IdentifierName
-  |> Seq.fold (fun cur id -> SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, cur, id) :> Syntax.ExpressionSyntax) e
-let memberAccess (str:string) =
-  let ids = str.Split('.')
-  eMemberAccess (Seq.first ids |> SF.IdentifierName) (Seq.skip 1 ids)
+let saveToFile (compilationUnit : Syntax.CompilationUnitSyntax) (filename:string) =
+  let workspace = new Microsoft.CodeAnalysis.AdhocWorkspace()
+  let formattedNode = Microsoft.CodeAnalysis.Formatting.Formatter.Format(compilationUnit, workspace)
+  use writer = new System.IO.StreamWriter(filename)
+  formattedNode.WriteTo(writer)
 
 let rec ofExpr (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
   match e with
@@ -82,7 +132,7 @@ let rec ofExpr (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
       | :? JsonTypes.Cmpl -> upcast SF.PrefixUnaryExpression(SK.BitwiseNotExpression, ofExpr op.expr)
       | :? JsonTypes.LNot -> upcast SF.PrefixUnaryExpression(SK.LogicalNotExpression, ofExpr op.expr)
       | :? JsonTypes.Member as m -> upcast SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, ofExpr op.expr, SF.IdentifierName(m.member_))
-      | :? JsonTypes.Cast as c -> upcast SF.CastExpression(csTypeOf c.destType, ofExpr op.expr) // FIXME this will be more complex...
+      | :? JsonTypes.Cast as c -> upcast SF.CastExpression(ofType c.destType, ofExpr op.expr) // FIXME this will be more complex...
       | :? JsonTypes.IntMod -> failwith "IntMod not supported" // This is only used in BMv2 so shouldn't appear here
       | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Unary: %s" (op.GetType().Name)
   | :? JsonTypes.Operation_Binary as op ->
@@ -166,6 +216,16 @@ let rec ofExpr (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
 
 and ofType (t : JsonTypes.Type) : Syntax.TypeSyntax =
   match t with
+  | :? JsonTypes.Type_Bits as bits ->
+      let sk =
+        match bits.size with
+        | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
+        | s when s <= 8 -> if bits.isSigned then SK.SByteKeyword else SK.ByteKeyword
+        | s when s <= 16 -> if bits.isSigned then SK.ShortKeyword else SK.UShortKeyword
+        | s when s <= 32 -> if bits.isSigned then SK.IntKeyword else SK.UIntKeyword
+        | s when s <= 64 -> if bits.isSigned then SK.LongKeyword else SK.ULongKeyword
+        | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
+      upcast SF.PredefinedType(SF.Token(sk))
   | _ -> failwithf "Unhandled subtype of JsonTypes.Type: %s" (t.GetType().Name)
 
 and ofDeclaration (n : JsonTypes.IDeclaration) : Syntax.MemberDeclarationSyntax =
@@ -178,16 +238,10 @@ and ofDeclaration (n : JsonTypes.IDeclaration) : Syntax.MemberDeclarationSyntax 
           | :? JsonTypes.Type_Struct -> null // FIXME
           | :? JsonTypes.Type_Union -> null // FIXME
           | :? JsonTypes.Type_Header as header ->
-              let properties =
-                header.fields.vec
-                |> Seq.map (fun field -> SF.PropertyDeclaration(ofType field.type_, field.name) // FIXME make sure names are valid in C#
-                                           .WithModifiers(SF.TokenList(SF.Token(SK.PublicKeyword)))
-                                           .WithAccessors(propertyAccess.GetSet))
-                |> Seq.cast<Syntax.MemberDeclarationSyntax>
               upcast SF.ClassDeclaration(header.name)
                         .WithModifiers(tokenList([| SK.PublicKeyword; SK.SealedKeyword |]))
                         .WithBaseList(SF.BaseList(SF.SeparatedList([| headerBaseBaseType |])))
-                        .WithMembers(SF.List(properties))
+                        .AddHeaderFields(header, ofType)
                         .ImplementHeaderBase(header)
           | _ -> failwithf "Unhandled subtype of JsonTypes.Type_StructLike: %s" (structLike.GetType().Name)
       | :? JsonTypes.Type_ArchBlock as archBlock ->
