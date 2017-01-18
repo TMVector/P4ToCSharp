@@ -318,7 +318,7 @@ module JsonTypes =
   type Type_MethodBase(node_id, node_type, typeParameters, returnType, parameters) =
     inherit Type(node_id, node_type)
     member this.typeParameters : TypeParameters = typeParameters
-    member this.returnType : Type = returnType // if != nullptr
+    member this.returnType : Type option = returnType // if != nullptr
     member this.parameters : ParameterList = parameters
 
   [<Sealed>]
@@ -368,8 +368,8 @@ module JsonTypes =
   type Attribute(node_id, node_type, name, declid, type_, locals, optional) =
     inherit Declaration(node_id, node_type, name, declid)
     [<JsonProperty("type")>]
-    member this.type_ : Type = type_ // type; if != nullptr
-    member this.locals : NameList = locals // if != nullptr
+    member this.type_ : Type option = type_ // type; if != nullptr
+    member this.locals : NameList option = locals // if != nullptr
     member this.optional : bool = optional
 
   [<Sealed>]
@@ -597,7 +597,7 @@ module JsonTypes =
     inherit Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
     member this.components : IndexedVector<StatOrDecl> = components
-    member this.selectExpression : Expression = selectExpression // if != nullptr
+    member this.selectExpression : Expression option = selectExpression // if != nullptr
 
   [<Sealed>]
   type P4Parser(node_id, node_type, name, declid, type_, constructorParams, parserLocals, states) =
@@ -674,7 +674,7 @@ module JsonTypes =
     member this.annotations : Annotations = annotations
     [<JsonProperty("type")>]
     member this.type_ : Type = type_ // type
-    member this.initializer : Expression = initializer // if != nullptr
+    member this.initializer : Expression option = initializer // if != nullptr
 
   [<Sealed>]
   type Declaration_Constant(node_id, node_type, name, declid, annotations, type_, initializer) =
@@ -692,7 +692,7 @@ module JsonTypes =
     member this.type_ : Type = type_ // type
     member this.arguments : Vector<Expression> = arguments
     member this.properties : NameMap<Property> = properties
-    member this.initializer : BlockStatement = initializer // if != nullptr
+    member this.initializer : BlockStatement option = initializer // if != nullptr
 
   [<Sealed>]
   type P4Program(node_id, node_type, declarations) =
@@ -706,7 +706,7 @@ module JsonTypes =
   [<Sealed>]
   type ReturnStatement(node_id, node_type, expression) =
     inherit Statement(node_id, node_type)
-    member this.expression : Expression = expression // if != nullptr
+    member this.expression : Expression option = expression // if != nullptr
 
   [<Sealed>]
   type EmptyStatement(node_id, node_type) =
@@ -723,7 +723,7 @@ module JsonTypes =
     inherit Statement(node_id, node_type)
     member this.condition : Expression = condition
     member this.ifTrue : Statement = ifTrue
-    member this.ifFalse : Statement = ifFalse // if != nullptr
+    member this.ifFalse : Statement option = ifFalse // if != nullptr
 
   [<Sealed>]
   type MethodCallStatement(node_id, node_type, methodCall) =
@@ -734,7 +734,7 @@ module JsonTypes =
   type SwitchCase(node_id, node_type, label, statement) =
     inherit Node(node_id, node_type)
     member this.label : Expression = label
-    member this.statement : Statement = statement // if != nullptr
+    member this.statement : Statement option = statement // if != nullptr
 
   [<Sealed>]
   type SwitchStatement(node_id, node_type, expression, cases) =
@@ -831,7 +831,7 @@ module JsonTypes =
     member this.name : ID = name
     member this.annotations : Annotations = annotations
     [<JsonProperty("type")>]
-    member this.type_ : Type_StructLike = type_ // type; if != nullptr
+    member this.type_ : Type_StructLike option = type_ // type; if != nullptr
 
   [<Sealed>]
   type Header(node_id, node_type, type_name, name, annotations, type_) =
@@ -869,8 +869,8 @@ module JsonTypes =
   type If(node_id, node_type, type_, pred, ifTrue, ifFalse) =
     inherit Expression(node_id, node_type, type_)
     member this.pred : Expression = pred
-    member this.ifTrue : Vector<Expression> = ifTrue // if != nullptr
-    member this.ifFalse : Vector<Expression> = ifFalse // if != nullptr
+    member this.ifTrue : Vector<Expression> option = ifTrue // if != nullptr
+    member this.ifFalse : Vector<Expression> option = ifFalse // if != nullptr
 
   [<Sealed>]
   type NamedCond(node_id, node_type, type_, pred, ifTrue, ifFalse, name) =
@@ -901,7 +901,7 @@ module JsonTypes =
   type FieldListCalculation(node_id, node_type, name, input, algorithm, output_width, annotations) =
     inherit Node(node_id, node_type)
     member this.name : ID = name
-    member this.input : NameList = input // if != nullptr
+    member this.input : NameList option = input // if != nullptr
     member this.algorithm : ID = algorithm
     member this.output_width : int = output_width
     member this.annotations : Annotations = annotations
@@ -913,7 +913,7 @@ module JsonTypes =
   [<Sealed>]
   type CalculatedField(node_id, node_type, field, specs, annotations) =
     inherit Node(node_id, node_type)
-    member this.field : Expression = field // if != nullptr
+    member this.field : Expression option = field // if != nullptr
     member this.specs : vector<CalculatedField_update_or_verify> = specs
     member this.annotations : Annotations = annotations
 
@@ -928,8 +928,8 @@ module JsonTypes =
     inherit Node(node_id, node_type)
     member this.name : ID = name
     member this.stmts : Vector<Expression> = stmts
-    member this.select : Vector<Expression> = select // if != nullptr
-    member this.cases : Vector<CaseEntry> = cases // if != nullptr
+    member this.select : Vector<Expression> option = select // if != nullptr
+    member this.cases : Vector<CaseEntry> option = cases // if != nullptr
     member this.default_return : ID = default_return
     member this.parse_error : ID = parse_error
     member this.drop : bool = drop
@@ -968,8 +968,8 @@ module JsonTypes =
   [<Sealed>]
   type  Meter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_, result, pre_color, implementation) =
     inherit CounterOrMeter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_)
-    member this.result : Expression = result // if != nullptr
-    member this.pre_color : Expression = pre_color // if != nullptr
+    member this.result : Expression option = result // if != nullptr
+    member this.pre_color : Expression option = pre_color // if != nullptr
     member this.implementation : ID = implementation
 
   [<Sealed>]
@@ -1019,7 +1019,7 @@ module JsonTypes =
                 default_action, default_action_args, properties, annotations) =
     inherit Node(node_id, node_type)
     member this.name : ID = name
-    member this.reads : Vector<Expression> = reads // if != nullptr
+    member this.reads : Vector<Expression> option = reads // if != nullptr
     member this.reads_types : vector<ID> = reads_types
     member this.min_size : int = min_size
     member this.max_size : int = max_size
@@ -1027,7 +1027,7 @@ module JsonTypes =
     member this.action_profile : ID = action_profile
     member this.actions : vector<ID> = actions
     member this.default_action : ID = default_action
-    member this.default_action_args : Vector<Expression> = default_action_args // if != nullptr
+    member this.default_action_args : Vector<Expression> option = default_action_args // if != nullptr
     member this.properties : TableProperties = properties
     member this.annotations : Annotations = annotations
 
@@ -1048,7 +1048,7 @@ module JsonTypes =
     inherit Node(node_id, node_type)
     member this.name : ID = name
     member this.as_metadata : Type_Struct = as_metadata
-    member this.as_header : Type_Header = as_header // if != nullptr
+    member this.as_header : Type_Header option = as_header // if != nullptr
 
   [<Sealed>]
   type IntMod(node_id, node_type, type_, expr, width) =
