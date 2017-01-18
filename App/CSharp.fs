@@ -31,8 +31,10 @@ let tArg t =
   SF.TypeArgumentList(SF.SingletonSeparatedList(t))
 let tArgList (ts : seq<Syntax.TypeSyntax>) =
   SF.TypeArgumentList(SF.SeparatedList(ts))
-let tokenList =
-  Seq.map SF.Token >> SF.TokenList
+let tokenList (ts:SK seq) =
+  ts
+  |> Seq.map SF.Token
+  |> SF.TokenList
 let paramList (arr : Syntax.ParameterSyntax seq) =
   SF.ParameterList(SF.SeparatedList(arr))
 let eMemberAccess e (ids:seq<string>) =
@@ -47,8 +49,8 @@ let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
   | :? JsonTypes.Type_Bits as bits ->
       SF.InvocationExpression(memberAccess "Library.Extract") // FIXME hardcode method names for common sizes
         .AddArgumentListArguments(SF.Argument(arrExpr),
-                                  SF.Argument(SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(bitOffset))))
-  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name) // FIXME cover more types that are used in headers
+                                  SF.Argument(SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(bitOffset)))) // FIXME types in headers: bit fixed/var + int
+  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name)
 let createWriteExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) fieldExpr =
   match ty with
   | :? JsonTypes.Type_Bits as bits ->
@@ -56,17 +58,38 @@ let createWriteExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) field
         .AddArgumentListArguments(SF.Argument(arrExpr),
                                   SF.Argument(SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(bitOffset))),
                                   SF.Argument(fieldExpr))
-  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name) // FIXME cover more types that are used in headers
+  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name) // FIXME types in headers: bit fixed/var + int
 
 // CS types for convenience
 let headerBaseName = SF.QualifiedName(SF.IdentifierName("Library"), SF.IdentifierName("HeaderBase"))
 let headerBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(headerBaseName)
+let structBaseName = SF.QualifiedName(SF.IdentifierName("Library"), SF.IdentifierName("StructBase"))
+let structBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(structBaseName)
 let voidType : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.VoidKeyword))
 let byteArrayType : Syntax.TypeSyntax = upcast SF.ArrayType(SF.PredefinedType(SF.Token(SK.ByteKeyword)))
 let uint32Type : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.UIntKeyword))
 
 let assignment lExpr rExpr =
   SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, lExpr, rExpr))
+
+let variableDeclaration (name:string) ty (initialiser:Syntax.ExpressionSyntax option) =
+  let declarator = SF.VariableDeclarator(name)
+  let declarator =
+    match initialiser with
+    | Some ini -> declarator.WithInitializer(SF.EqualsValueClause(ini))
+    | None -> declarator 
+  SF.VariableDeclaration(ty)
+    .WithVariables(SF.SingletonSeparatedList(declarator))
+
+type Syntax.ParameterSyntax with
+  member this.WithDirection(direction:JsonTypes.Direction) =
+    let modifiers =
+      match direction with
+      | JsonTypes.Direction.None
+      | JsonTypes.Direction.In -> []
+      | JsonTypes.Direction.InOut -> [SK.RefKeyword]
+      | JsonTypes.Direction.Out -> [SK.OutKeyword] // FIXME C# compiler enforces assignment to this in method body, whereas P4 doesn't?
+    this.WithModifiers(tokenList modifiers)
 
 type Syntax.PropertyDeclarationSyntax with
   member this.WithAccessors(accessors) =
@@ -80,12 +103,12 @@ type Syntax.PropertyDeclarationSyntax with
 
 type Syntax.MethodDeclarationSyntax with
   member this.WithParameters(parameters : Syntax.ParameterSyntax seq) =
-    this.WithParameterList(SF.ParameterList(SF.SeparatedList(parameters)))
+    this.WithParameterList(paramList parameters)
   member this.WithBlockBody(statements : Syntax.StatementSyntax seq) =
     this.WithBody(SF.Block(statements))
 
 type Syntax.ClassDeclarationSyntax with
-  member this.AddHeaderFields(header : JsonTypes.Type_Header, typeTranslator) =
+  member this.AddStructLikeFields(header :# JsonTypes.Type_StructLike, typeTranslator) =
     let properties =
       header.fields.vec
       |> Seq.map (fun field -> SF.PropertyDeclaration(typeTranslator field.type_, csFieldNameOf field.name)
@@ -182,16 +205,16 @@ let rec ofExpr (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
         | :? JsonTypes.StringLiteral as s -> SF.LiteralExpression(SK.StringLiteralExpression, SF.Literal(s.value))
         | _ -> failwithf "Unhandled subtype of JsonTypes.Literal: %s" (lit.GetType().Name) )
   | :? JsonTypes.PathExpression as p -> upcast SF.IdentifierName(p.path.name) // FIXME check this? Are paths always single identifiers? Should we be mapping depending on the scope?
-  | :? JsonTypes.TypeNameExpression as t -> upcast SF.ParseTypeName(t.typeName.path.name) // FIXME no idea if this will work
-  | :? JsonTypes.DefaultExpression -> null // FIXME
-  | :? JsonTypes.This -> null // FIXME is this the same as in C#?
-  | :? JsonTypes.ListExpression -> null // FIXME
-  | :? JsonTypes.SelectExpression -> null // FIXME
+  | :? JsonTypes.TypeNameExpression as t -> upcast SF.ParseTypeName(t.typeName.path.name) // FIXME need to make sure the name is mapped to csharp equiv?
+  | :? JsonTypes.DefaultExpression -> failwith "JsonTypes.DefaultExpression not handled yet" // FIXME
+  | :? JsonTypes.This -> failwith "JsonTypes.this not handled yet" // FIXME is this the same as in C#?
+  | :? JsonTypes.ListExpression -> failwith "JsonTypes.ListExpression not handled yet" // FIXME C# array expression?
+  | :? JsonTypes.SelectExpression -> failwith "JsonTypes.SelectExpression not handled yet" // FIXME
   | :? JsonTypes.MethodCallExpression as mc ->
       let m =
         if Seq.isEmpty mc.typeArguments.vec
         then ofExpr mc.method_
-        else //FIXME this isn't right - you need to somehow use the type args here in the expression for the method.
+        else //FIXME this isn't right - you need to somehow use the type args here in the expression for the method. Presumably the type of the expression returned for the method is limited though?
           let typeArgs = tArgList <| Seq.map ofType mc.typeArguments.vec
           match ofExpr mc.method_ with
           | :? Syntax.MemberAccessExpressionSyntax as ma ->
@@ -202,16 +225,16 @@ let rec ofExpr (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
                        .WithTypeArgumentList(typeArgs)
           | ng -> failwithf "Unhandled type of expression for JsonTypes.MethodCallException: %s" (ng.GetType().Name)
       upcast SF.InvocationExpression(m).WithArgumentList(mc.arguments.vec |> Seq.map ofExpr |> argList)
-  | :? JsonTypes.ConstructorCallExpression -> null // FIXME
+  | :? JsonTypes.ConstructorCallExpression -> failwith "JsonTypes.ConstructorCallExpression not handled yet" // FIXME
   | :? JsonTypes.HeaderRef as hr ->
       match hr with
       | :? JsonTypes.ConcreteHeaderRef -> null // FIXME
       | :? JsonTypes.HeaderStackItemRef -> null // FIXME
       | _ -> failwithf "Unhandled subtype of JsonTypes.HeaderRef: %s" (hr.GetType().Name)
-  | :? JsonTypes.NamedRef -> null // FIXME
-  | :? JsonTypes.If -> null // FIXME not sealed, NamedCond is subtype
-  | :? JsonTypes.Apply -> null // FIXME
-  | :? JsonTypes.ActionArg -> null // FIXME
+  | :? JsonTypes.NamedRef -> failwith "JsonTypes.NamedRef not handled yet" // FIXME
+  | :? JsonTypes.If -> failwith "JsonTypes.If not handled yet" // FIXME not sealed, NamedCond is subtype
+  | :? JsonTypes.Apply -> failwith "JsonTypes.Apply not handled yet" // FIXME presumably arguments won't always correspond 1-to-1? Perhaps this requires inspection of the function expr?
+  | :? JsonTypes.ActionArg -> failwith "JsonTypes.ActionArg not handled yet" // FIXME
   | _ -> failwithf "Unhandled subtype of JsonTypes.Expression: %s" (e.GetType().Name)
 
 and ofType (t : JsonTypes.Type) : Syntax.TypeSyntax =
@@ -226,35 +249,45 @@ and ofType (t : JsonTypes.Type) : Syntax.TypeSyntax =
         | s when s <= 64 -> if bits.isSigned then SK.LongKeyword else SK.ULongKeyword
         | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
       upcast SF.PredefinedType(SF.Token(sk))
-  | _ -> failwithf "Unhandled subtype of JsonTypes.Type: %s" (t.GetType().Name)
+  | _ -> failwithf "Unhandled subtype of JsonTypes.Type: %s" (t.GetType().Name) // FIXME make sure exhaustive in handling of types (note ofDeclaration)
 
-and ofDeclaration (n : JsonTypes.IDeclaration) : Syntax.MemberDeclarationSyntax =
+and ofDeclaration (n : JsonTypes.IDeclaration) : Syntax.MemberDeclarationSyntax = // FIXME why differentiate IDeclaration from ofType?
   match n with
   | :? JsonTypes.Type_Declaration as tyDec->
       match tyDec with
-      | :? JsonTypes.Type_Var -> null // FIXME
+      | :? JsonTypes.Type_Var -> failwith "JsonTypes.Type_Var not handled yet" // FIXME
       | :? JsonTypes.Type_StructLike as structLike ->
           match structLike with
-          | :? JsonTypes.Type_Struct -> null // FIXME
-          | :? JsonTypes.Type_Union -> null // FIXME
+          | :? JsonTypes.Type_Struct as str ->
+              upcast SF.ClassDeclaration(str.name)
+                       .WithModifiers(tokenList [| SK.PublicKeyword; SK.SealedKeyword |])
+                       .WithBaseList(SF.BaseList(SF.SeparatedList([| structBaseBaseType |])))
+                       .AddStructLikeFields(str, ofType)
+          | :? JsonTypes.Type_Union ->
+              // There doesn't seem to be support for this in the current language version?
+              // If support for this is added, make sure to check code which deals with StructLike.
+              failwith "JsonTypes.Type_Union not supported"
           | :? JsonTypes.Type_Header as header ->
               upcast SF.ClassDeclaration(header.name)
                         .WithModifiers(tokenList([| SK.PublicKeyword; SK.SealedKeyword |]))
                         .WithBaseList(SF.BaseList(SF.SeparatedList([| headerBaseBaseType |])))
-                        .AddHeaderFields(header, ofType)
+                        .AddStructLikeFields(header, ofType)
                         .ImplementHeaderBase(header)
           | _ -> failwithf "Unhandled subtype of JsonTypes.Type_StructLike: %s" (structLike.GetType().Name)
       | :? JsonTypes.Type_ArchBlock as archBlock ->
           match archBlock with
-          | :? JsonTypes.Type_Package -> null // FIXME
-          | :? JsonTypes.Type_Parser -> null // FIXME
-          | :? JsonTypes.Type_Control -> null // FIXME
+          | :? JsonTypes.Type_Package -> failwith "JsonTypes.Type_Package not handled yet" // FIXME
+          | :? JsonTypes.Type_Parser -> failwith "JsonTypes.Type_Parser not handled yet" // FIXME
+          | :? JsonTypes.Type_Control -> failwith "JsonTypes.Type_Control not handled yet" // FIXME
           | _ -> failwithf "Unhandled subtype of JsonTypes.Type_ArchBlock: %s" (archBlock.GetType().Name)
-      | :? JsonTypes.Type_Enum -> null // FIXME
-      | :? JsonTypes.Type_Typedef -> null // FIXME
-      | :? JsonTypes.Type_Extern -> null // FIXME
-      | :? JsonTypes.P4Parser -> null // FIXME
-      | :? JsonTypes.P4Control -> null // FIXME
+      | :? JsonTypes.Type_Enum -> failwith "JsonTypes.Type_Enum not handled yet" // FIXME
+      | :? JsonTypes.Type_Typedef -> failwith "JsonTypes.Type_Typedef not handled yet" // FIXME
+      | :? JsonTypes.Type_Extern ->
+          // How are extern types handled? Maybe find the relavant interface in external code and use that
+          null // FIXME
+          //failwith "JsonTypes.Type_Extern not handled yet"
+      | :? JsonTypes.P4Parser -> failwith "JsonTypes.P4Parser not handled yet" // FIXME
+      | :? JsonTypes.P4Control -> failwith "JsonTypes.P4Control not handled yet" // FIXME
       | :? JsonTypes.Type_Error as err ->
           let members =
             err.members.vec
@@ -262,13 +295,82 @@ and ofDeclaration (n : JsonTypes.IDeclaration) : Syntax.MemberDeclarationSyntax 
           upcast SF.EnumDeclaration("Error")
                    .WithMembers(SF.SeparatedList(members))
       | _ -> failwithf "Unhandled subtype of JsonTypes.Type_Declatation: %s" (n.GetType().Name)
-  | :? JsonTypes.Declaration -> null // FIXME NOT not abstract or sealed
-  | :? JsonTypes.ActionListElement -> null // FIXME
-  | _ -> failwithf "Unhandled subtype of JsonTypes.Node: %s" (n.GetType().Name)
+  | :? JsonTypes.Declaration as decl ->
+      match decl with
+      | :? JsonTypes.Parameter as p -> failwith "JsonTypes.Parameter not handled yet" // FIXME
+      | :? JsonTypes.StructField -> failwith "JsonTypes.StructField not handled yet" // FIXME
+      | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
+      | :? JsonTypes.Property -> failwith "JsonTypes.Property not handled yet" // FIXME
+      | :? JsonTypes.P4Table -> failwith "JsonTypes.P4Table not handled yet" // FIXME
+      | :? JsonTypes.Method as m ->
+          // FIXME does this refer to extern methods only?
+          null // FIXME
+          //failwith "JsonTypes.Method not handled yet" // FIXME
+      | :? JsonTypes.Attribute -> failwith "JsonTypes.Attribute not handled yet" // FIXME
+      | :? JsonTypes.ParserState -> failwith "JsonTypes.ParserState not handled yet" // FIXME
+      | :? JsonTypes.P4Action as a ->
+          // FIXME actions shouldn't all be in separate class declarations
+          let parameters =
+            a.parameters.parameters.vec
+            |> Seq.map (fun p -> SF.Parameter(SF.Identifier(p.name)).WithType(ofType p.type_).WithDirection(p.direction))
+          upcast SF.MethodDeclaration(voidType, a.name)
+                   .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword])
+                   .WithParameters(parameters)
+                   .WithBody(ofStatement a.body)
+          //failwith "JsonTypes.P4Action not handled yet" // FIXME
+      | :? JsonTypes.Declaration_Variable -> failwith "JsonTypes.Declaration_Variable not handled yet" // FIXME
+      | :? JsonTypes.Declaration_Constant -> failwith "JsonTypes.Declaration_Constant not handled yet" // FIXME
+      | :? JsonTypes.Declaration_Instance -> failwith "JsonTypes.Declaration_Instance not handled yet" // FIXME
+      | :? JsonTypes.Function -> failwith "JsonTypes.Function not handled yet" // FIXME
+      | _ ->
+          // JsonTypes.Declaration is not abstract or sealed, so it could also be an unimplemented class here
+          if decl.Node_Type <> "Declaration" then failwithf "Node_Type %s (subclass of JsonTypes.Declaration) not handled" decl.Node_Type
+          failwith "JsonTypes.Declaration not handled yet" // FIXME
+  | :? JsonTypes.ActionListElement -> failwith "JsonTypes.ActionListElement not handled yet" // FIXME
+  | _ -> failwithf "Unhandled subtype of JsonTypes.Node: %s" (n.GetType().Name) // FIXME check exhaustive
+and statementOfDeclaration (n : JsonTypes.Declaration) : Syntax.StatementSyntax =
+  match n with
+  | :? JsonTypes.Parameter
+  | :? JsonTypes.StructField
+  | :? JsonTypes.Property
+  | :? JsonTypes.P4Table
+  | :? JsonTypes.Method
+  | :? JsonTypes.Attribute
+  | :? JsonTypes.ParserState
+  | :? JsonTypes.P4Action -> failwithf "Type %s is not valid in statementToDeclaration" (n.GetType().Name)
+  | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
+  | :? JsonTypes.Declaration_Variable as v ->
+      upcast SF.LocalDeclarationStatement(variableDeclaration v.name (ofType v.type_) (v.initializer |> Option.map ofExpr))
+  | :? JsonTypes.Declaration_Constant as c ->
+      // Local constants are just handled like variables
+      upcast SF.LocalDeclarationStatement(variableDeclaration c.name (ofType c.type_) (Some (ofExpr c.initializer)))
+  | :? JsonTypes.Declaration_Instance -> failwith "JsonTypes.Declaration_Instance not handled yet" // FIXME
+  | :? JsonTypes.Function -> failwith "JsonTypes.Function not handled yet" // FIXME
+  | _ ->
+      // JsonTypes.Declaration is not abstract or sealed, so it could also be an unimplemented class here
+      if n.Node_Type <> "Declaration" then failwithf "Node_Type %s (subclass of JsonTypes.Declaration) not handled" n.Node_Type
+      else failwith "JsonTypes.Declaration not handled yet" // FIXME
+and ofStatement (n : JsonTypes.Statement) =
+  match n with
+  | :? JsonTypes.BlockStatement as block ->
+      SF.Block()
+  | :? JsonTypes.ExitStatement ->
+  | :? JsonTypes.ReturnStatement ->
+  | :? JsonTypes.EmptyStatement ->
+  | :? JsonTypes.AssignmentStatement ->
+  | :? JsonTypes.IfStatement ->
+  | :? JsonTypes.MethodCallStatement ->
+  | :? JsonTypes.SwitchStatement ->
+  | _ -> failwithf "Unhandled subtype of JsonTypes.Statement: %s" (n.GetType().Name)
+and ofStatOrDecl (n : JsonTypes.StatOrDecl) =
+  match n with
+  | :? JsonTypes.Statement as statement -> ofStatement statement
+  | :? JsonTypes.Declaration as decl -> ofDeclaration decl
+  | _ -> failwithf "Unhandled subtype of JsonTypes.StatOrDecl: %s" (n.GetType().Name)
 and ofProgram (prog : JsonTypes.P4Program) : Syntax.CompilationUnitSyntax =
   let declarations =
     prog.declarations.vec
-    |> Seq.cast<JsonTypes.IDeclaration>
+    |> Seq.cast<JsonTypes.IDeclaration> // FIXME do we know these are all IDeclaration?
     |> Seq.map ofDeclaration
   SF.CompilationUnit()
     .AddUsings((* FIXME usings here *))
