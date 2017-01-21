@@ -173,6 +173,7 @@ module JsonParsing =
   type private AdvReader(reader, onRead) = 
     inherit JsonTextReader(reader) 
     let mutable queue = Deque.empty
+    let mutable resumeQueue = Deque.empty
     member private this.OnRead = onRead
     member private this.enqueue () = let hasToken = base.Read() in queue <- queue.Conj ((base.TokenType, base.Value)); hasToken
     override this.TokenType = match queue.TryHead with Option.Some(t,_) -> t | Option.None -> JsonToken.None
@@ -181,13 +182,18 @@ module JsonParsing =
     override this.Read() =
       if not queue.IsEmpty then
         queue <- queue.Tail
-      let rec hasToken(readMore, queue') =
+      let rec hasToken(readMore, queue', resumeQueue') =
         queue <- queue'
-        if (queue.IsEmpty || readMore) && this.enqueue() then
+        resumeQueue <- resumeQueue'
+        if queue.IsEmpty && not resumeQueue.IsEmpty then
+          hasToken(this.OnRead resumeQueue)
+        else if (queue.IsEmpty || readMore) && this.enqueue() then
           hasToken (this.OnRead queue)
         else
           not queue.IsEmpty
-      hasToken (false, queue)
+      let rv = hasToken (false, queue, resumeQueue)
+      printf " {%A:%s} " (this.Value) (this.TokenType.ToString())
+      rv
     // It would seem that we don't need to override the ReadAs.. methods for our uses
     //override this.ReadAsBoolean() = printfn ">>> ReadAsBoolean"; base.ReadAsBoolean()
     //override this.ReadAsBytes() = printfn ">>> ReadAsBytes"; base.ReadAsBytes()
@@ -203,12 +209,15 @@ module JsonParsing =
     inherit AdvReader(reader, IRReader.onRead)
     static member private onRead q =
       let intObjToStrObj (o:obj) = o :?> int64 |> string :> obj // FIXME Integer could also be BigInt
-      let readMore, ql =
+      let rec allButLast = function
+        | [] | [_] -> []
+        | x::xs -> x::(allButLast xs)
+      let readMore, ql, resumeQ =
         match Deque.toSeq q |> Seq.toList with
         | [(JsonToken.StartObject, _); (JsonToken.PropertyName, NodeId); (JsonToken.Integer, nid); (JsonToken.EndObject, _)] ->
             // This is a reference to another node - rewrite id to $ref
             let nidStr = intObjToStrObj nid
-            (false, [(JsonToken.StartObject, null); (JsonToken.PropertyName, JRef); (JsonToken.String, nidStr); (JsonToken.EndObject, null)])
+            (false, [(JsonToken.StartObject, null); (JsonToken.PropertyName, JRef); (JsonToken.String, nidStr); (JsonToken.EndObject, null)], [])
         | [(JsonToken.StartObject,_); (JsonToken.PropertyName, NodeId);   (JsonToken.Integer, nid);
                                       (JsonToken.PropertyName, NodeType); (JsonToken.String, nty)] ->
             // This is not a reference, so just copy the id to $id and Node_Type to $type
@@ -216,13 +225,17 @@ module JsonParsing =
             (false, [(JsonToken.StartObject,null); (JsonToken.PropertyName, JType);    (JsonToken.String, nty);
                                                    (JsonToken.PropertyName, JID);      (JsonToken.String, nidStr);
                                                    (JsonToken.PropertyName, NodeId);   (JsonToken.Integer, nid);
-                                                   (JsonToken.PropertyName, NodeType); (JsonToken.String, nty)])
+                                                   (JsonToken.PropertyName, NodeType); (JsonToken.String, nty)], [])
         | ((JsonToken.StartObject,_)::ts) as ql ->
             match q.Last with
-            | (JsonToken.StartObject, _) -> (Deque.length q = 1, ql) // Only read more if the first token is the only StartObject
-            | _ ->  (Deque.length q < 5, ql) // We want to read 5 tokens if the start is StartObject so we can check our match cases
-        | ql -> (false, ql)
-      (readMore, Deque.ofList ql)
+            | (JsonToken.StartObject, _) ->
+                if Deque.length q = 1 then
+                  (true, ql, []) // Only read more if the first token is the only StartObject
+                else
+                  (false, allButLast ql, [(JsonToken.StartObject, null)]) // If we have reached another StartObject, release everything before it
+            | _ ->  (Deque.length q < 5, ql, []) // We want to read 5 tokens if the start is StartObject so we can check our match cases
+        | ql -> (false, ql, [])
+      (readMore, Deque.ofList ql, Deque.ofList resumeQ)
 
   // This type tells JSON.NET how to deserialise nodes based on their Node_Type field (since it is rewritten to $type)
   type private IRBinder() =
