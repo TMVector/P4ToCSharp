@@ -81,6 +81,13 @@ let variableDeclaration (name:string) ty (initialiser:Syntax.ExpressionSyntax op
   SF.VariableDeclaration(ty)
     .WithVariables(SF.SingletonSeparatedList(declarator))
 
+let createEnum (name:string) (members:seq<JsonTypes.Declaration_ID>) =
+  let members =
+    members
+    |> Seq.map (fun memb -> SF.EnumMemberDeclaration(memb.name))
+  SF.EnumDeclaration(name)
+    .WithMembers(SF.SeparatedList(members))
+
 type Syntax.ParameterSyntax with
   member this.WithDirection(direction:JsonTypes.Direction) =
     let modifiers =
@@ -140,6 +147,11 @@ type Syntax.ClassDeclarationSyntax with
           header.fields.vec
           |> Seq.map (fun field -> let fieldExpr = SF.IdentifierName(csFieldNameOf field.name)
                                    upcast assignment fieldExpr (writeExprFor field.type_  0 fieldExpr))))
+                                   
+let inStaticPartialClass (name:string) (node:Syntax.MemberDeclarationSyntax) =
+  SF.ClassDeclaration(name)
+    .WithModifiers(tokenList [ SK.PartialKeyword; SK.StaticKeyword ])
+    .AddMembers(node)
 
 let saveToFile (compilationUnit : Syntax.CompilationUnitSyntax) (filename:string) =
   let workspace = new Microsoft.CodeAnalysis.AdhocWorkspace()
@@ -228,8 +240,8 @@ let rec ofExpr (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
   | :? JsonTypes.ConstructorCallExpression -> failwith "JsonTypes.ConstructorCallExpression not handled yet" // FIXME
   | :? JsonTypes.HeaderRef as hr ->
       match hr with
-      | :? JsonTypes.ConcreteHeaderRef -> null // FIXME
-      | :? JsonTypes.HeaderStackItemRef -> null // FIXME
+      | :? JsonTypes.ConcreteHeaderRef -> failwith "JsonTypes.ConcreterHeaderRef not handled yet" // FIXME
+      | :? JsonTypes.HeaderStackItemRef -> failwith "JsonTypes.HeaderStackItemRef not handled yet" // FIXME
       | _ -> failwithf "Unhandled subtype of JsonTypes.HeaderRef: %s" (hr.GetType().Name)
   | :? JsonTypes.NamedRef -> failwith "JsonTypes.NamedRef not handled yet" // FIXME
   | :? JsonTypes.If -> failwith "JsonTypes.If not handled yet" // FIXME not sealed, NamedCond is subtype
@@ -250,8 +262,49 @@ and ofType (t : JsonTypes.Type) : Syntax.TypeSyntax =
         | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
       upcast SF.PredefinedType(SF.Token(sk))
   | _ -> failwithf "Unhandled subtype of JsonTypes.Type: %s" (t.GetType().Name) // FIXME make sure exhaustive in handling of types (note ofDeclaration)
-
-and ofDeclaration (n : JsonTypes.IDeclaration) : Syntax.MemberDeclarationSyntax = // FIXME why differentiate IDeclaration from ofType?
+and statementOfDeclaration (n : JsonTypes.Declaration) : Syntax.StatementSyntax =
+  match n with
+  | :? JsonTypes.Parameter
+  | :? JsonTypes.StructField
+  | :? JsonTypes.Property
+  | :? JsonTypes.P4Table
+  | :? JsonTypes.Method
+  | :? JsonTypes.Attribute
+  | :? JsonTypes.ParserState
+  | :? JsonTypes.P4Action -> failwithf "Type %s is not valid in statementToDeclaration" (n.GetType().Name)
+  | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
+  | :? JsonTypes.Declaration_Variable as v ->
+      upcast SF.LocalDeclarationStatement(variableDeclaration v.name (ofType v.type_) (v.initializer |> Option.map ofExpr))
+  | :? JsonTypes.Declaration_Constant as c ->
+      // Local constants are just handled like variables
+      upcast SF.LocalDeclarationStatement(variableDeclaration c.name (ofType c.type_) (Some (ofExpr c.initializer)))
+  | :? JsonTypes.Declaration_Instance -> failwith "JsonTypes.Declaration_Instance not handled yet" // FIXME
+  | :? JsonTypes.Function -> failwith "JsonTypes.Function not handled yet" // FIXME
+  | _ ->
+      // JsonTypes.Declaration is not abstract or sealed, so it could also be an unimplemented class here
+      if n.Node_Type <> "Declaration" then failwithf "Node_Type %s (subclass of JsonTypes.Declaration) not handled" n.Node_Type
+      else failwith "JsonTypes.Declaration not handled yet" // FIXME
+and ofBlockStatement (n : JsonTypes.BlockStatement) : Syntax.BlockSyntax =
+  let statements = n.components.vec |> Seq.map ofStatOrDecl
+  SF.Block(statements)
+and ofStatement (n : JsonTypes.Statement) : Syntax.StatementSyntax =
+  match n with
+  | :? JsonTypes.BlockStatement as block -> upcast ofBlockStatement block
+  | :? JsonTypes.ExitStatement -> failwith "JsonTypes.ExitStatement not handled yet" // FIXME
+  | :? JsonTypes.ReturnStatement -> failwith "JsonTypes.ReturnStatement not handled yet" // FIXME
+  | :? JsonTypes.EmptyStatement -> failwith "JsonTypes.EmptyStatement not handled yet" // FIXME
+  | :? JsonTypes.AssignmentStatement as a ->
+      upcast SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, ofExpr a.left, ofExpr a.right))
+  | :? JsonTypes.IfStatement -> failwith "JsonTypes.IfStatement not handled yet" // FIXME
+  | :? JsonTypes.MethodCallStatement -> failwith "JsonTypes.MethodCallStatement not handled yet" // FIXME
+  | :? JsonTypes.SwitchStatement -> failwith "JsonTypes.SwitchStatement not handled yet" // FIXME
+  | _ -> failwithf "Unhandled subtype of JsonTypes.Statement: %s" (n.GetType().Name)
+and ofStatOrDecl (n : JsonTypes.StatOrDecl) =
+  match n with
+  | :? JsonTypes.Statement as statement -> ofStatement statement
+  | :? JsonTypes.Declaration as decl -> statementOfDeclaration decl
+  | _ -> failwithf "Unhandled subtype of JsonTypes.StatOrDecl: %s" (n.GetType().Name)
+and declarationOfNode (n : JsonTypes.Node) : Syntax.MemberDeclarationSyntax =
   match n with
   | :? JsonTypes.Type_Declaration as tyDec->
       match tyDec with
@@ -282,18 +335,15 @@ and ofDeclaration (n : JsonTypes.IDeclaration) : Syntax.MemberDeclarationSyntax 
           | _ -> failwithf "Unhandled subtype of JsonTypes.Type_ArchBlock: %s" (archBlock.GetType().Name)
       | :? JsonTypes.Type_Enum -> failwith "JsonTypes.Type_Enum not handled yet" // FIXME
       | :? JsonTypes.Type_Typedef -> failwith "JsonTypes.Type_Typedef not handled yet" // FIXME
-      | :? JsonTypes.Type_Extern ->
+      | :? JsonTypes.Type_Extern as ext ->
           // How are extern types handled? Maybe find the relavant interface in external code and use that
-          null // FIXME
-          //failwith "JsonTypes.Type_Extern not handled yet"
+          //failwith "JsonTypes.Type_Extern not handled yet" // FIXME
+          // For now just emit a comment to remind me (FIXME can we emit comments on their own?)
+          upcast SF.ClassDeclaration(ext.name).WithKeyword(SF.Token(SF.TriviaList(SF.Comment("// FIXME how are extern types handled?"), SF.LineFeed), SK.ClassKeyword, SF.TriviaList(SF.Space)))
       | :? JsonTypes.P4Parser -> failwith "JsonTypes.P4Parser not handled yet" // FIXME
       | :? JsonTypes.P4Control -> failwith "JsonTypes.P4Control not handled yet" // FIXME
       | :? JsonTypes.Type_Error as err ->
-          let members =
-            err.members.vec
-            |> Seq.map (fun memb -> SF.EnumMemberDeclaration(memb.name))
-          upcast SF.EnumDeclaration("Error")
-                   .WithMembers(SF.SeparatedList(members))
+          upcast createEnum "Error" err.members.vec
       | _ -> failwithf "Unhandled subtype of JsonTypes.Type_Declatation: %s" (n.GetType().Name)
   | :? JsonTypes.Declaration as decl ->
       match decl with
@@ -304,8 +354,9 @@ and ofDeclaration (n : JsonTypes.IDeclaration) : Syntax.MemberDeclarationSyntax 
       | :? JsonTypes.P4Table -> failwith "JsonTypes.P4Table not handled yet" // FIXME
       | :? JsonTypes.Method as m ->
           // FIXME does this refer to extern methods only?
-          null // FIXME
           //failwith "JsonTypes.Method not handled yet" // FIXME
+          // For now just emit a comment to remind me (FIXME can we emit comments on their own?)
+          upcast SF.ClassDeclaration(m.name).WithKeyword(SF.Token(SF.TriviaList(SF.Comment("// FIXME how are extern methods handled?"), SF.LineFeed), SK.ClassKeyword, SF.TriviaList(SF.Space)))
       | :? JsonTypes.Attribute -> failwith "JsonTypes.Attribute not handled yet" // FIXME
       | :? JsonTypes.ParserState -> failwith "JsonTypes.ParserState not handled yet" // FIXME
       | :? JsonTypes.P4Action as a ->
@@ -313,11 +364,11 @@ and ofDeclaration (n : JsonTypes.IDeclaration) : Syntax.MemberDeclarationSyntax 
           let parameters =
             a.parameters.parameters.vec
             |> Seq.map (fun p -> SF.Parameter(SF.Identifier(p.name)).WithType(ofType p.type_).WithDirection(p.direction))
-          upcast SF.MethodDeclaration(voidType, a.name)
-                   .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword])
-                   .WithParameters(parameters)
-                   .WithBody(ofStatement a.body)
-          //failwith "JsonTypes.P4Action not handled yet" // FIXME
+          upcast (SF.MethodDeclaration(voidType, a.name)
+                    .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword])
+                    .WithParameters(parameters)
+                    .WithBody(ofBlockStatement a.body)
+                  |> inStaticPartialClass "Actions")
       | :? JsonTypes.Declaration_Variable -> failwith "JsonTypes.Declaration_Variable not handled yet" // FIXME
       | :? JsonTypes.Declaration_Constant -> failwith "JsonTypes.Declaration_Constant not handled yet" // FIXME
       | :? JsonTypes.Declaration_Instance -> failwith "JsonTypes.Declaration_Instance not handled yet" // FIXME
@@ -327,51 +378,13 @@ and ofDeclaration (n : JsonTypes.IDeclaration) : Syntax.MemberDeclarationSyntax 
           if decl.Node_Type <> "Declaration" then failwithf "Node_Type %s (subclass of JsonTypes.Declaration) not handled" decl.Node_Type
           failwith "JsonTypes.Declaration not handled yet" // FIXME
   | :? JsonTypes.ActionListElement -> failwith "JsonTypes.ActionListElement not handled yet" // FIXME
-  | _ -> failwithf "Unhandled subtype of JsonTypes.Node: %s" (n.GetType().Name) // FIXME check exhaustive
-and statementOfDeclaration (n : JsonTypes.Declaration) : Syntax.StatementSyntax =
-  match n with
-  | :? JsonTypes.Parameter
-  | :? JsonTypes.StructField
-  | :? JsonTypes.Property
-  | :? JsonTypes.P4Table
-  | :? JsonTypes.Method
-  | :? JsonTypes.Attribute
-  | :? JsonTypes.ParserState
-  | :? JsonTypes.P4Action -> failwithf "Type %s is not valid in statementToDeclaration" (n.GetType().Name)
-  | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
-  | :? JsonTypes.Declaration_Variable as v ->
-      upcast SF.LocalDeclarationStatement(variableDeclaration v.name (ofType v.type_) (v.initializer |> Option.map ofExpr))
-  | :? JsonTypes.Declaration_Constant as c ->
-      // Local constants are just handled like variables
-      upcast SF.LocalDeclarationStatement(variableDeclaration c.name (ofType c.type_) (Some (ofExpr c.initializer)))
-  | :? JsonTypes.Declaration_Instance -> failwith "JsonTypes.Declaration_Instance not handled yet" // FIXME
-  | :? JsonTypes.Function -> failwith "JsonTypes.Function not handled yet" // FIXME
-  | _ ->
-      // JsonTypes.Declaration is not abstract or sealed, so it could also be an unimplemented class here
-      if n.Node_Type <> "Declaration" then failwithf "Node_Type %s (subclass of JsonTypes.Declaration) not handled" n.Node_Type
-      else failwith "JsonTypes.Declaration not handled yet" // FIXME
-and ofStatement (n : JsonTypes.Statement) =
-  match n with
-  | :? JsonTypes.BlockStatement as block ->
-      SF.Block()
-  | :? JsonTypes.ExitStatement ->
-  | :? JsonTypes.ReturnStatement ->
-  | :? JsonTypes.EmptyStatement ->
-  | :? JsonTypes.AssignmentStatement ->
-  | :? JsonTypes.IfStatement ->
-  | :? JsonTypes.MethodCallStatement ->
-  | :? JsonTypes.SwitchStatement ->
-  | _ -> failwithf "Unhandled subtype of JsonTypes.Statement: %s" (n.GetType().Name)
-and ofStatOrDecl (n : JsonTypes.StatOrDecl) =
-  match n with
-  | :? JsonTypes.Statement as statement -> ofStatement statement
-  | :? JsonTypes.Declaration as decl -> ofDeclaration decl
-  | _ -> failwithf "Unhandled subtype of JsonTypes.StatOrDecl: %s" (n.GetType().Name)
+  | :? JsonTypes.Declaration_MatchKind as mk ->
+      upcast createEnum "MatchKind" mk.members.vec
+  | _ -> failwithf "Unhandled subtype of JsonTypes.Node in declarationOfNode: %s" (n.GetType().Name) // FIXME check exhaustive
 and ofProgram (prog : JsonTypes.P4Program) : Syntax.CompilationUnitSyntax =
   let declarations =
     prog.declarations.vec
-    |> Seq.cast<JsonTypes.IDeclaration> // FIXME do we know these are all IDeclaration?
-    |> Seq.map ofDeclaration
+    |> Seq.map declarationOfNode
   SF.CompilationUnit()
     .AddUsings((* FIXME usings here *))
     .AddMembers(declarations |> Seq.toArray)
