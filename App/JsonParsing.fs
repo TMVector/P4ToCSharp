@@ -192,7 +192,6 @@ module JsonParsing =
         else
           not queue.IsEmpty
       let rv = hasToken (false, queue, resumeQueue)
-      printf " {%A:%s} " (this.Value) (this.TokenType.ToString())
       rv
     // It would seem that we don't need to override the ReadAs.. methods for our uses
     //override this.ReadAsBoolean() = printfn ">>> ReadAsBoolean"; base.ReadAsBoolean()

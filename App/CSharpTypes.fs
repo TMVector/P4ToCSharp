@@ -11,3 +11,19 @@ module CSharpTypes =
     type Modifier = Public | Private | Protected | Internal | Static // | Const/Readonly?
     type Accessor = Get | GetSet
 
+  module Transformed =
+    open Microsoft.CodeAnalysis
+    open Microsoft.CodeAnalysis.CSharp
+    type Declaration =
+      | Empty
+      | Declaration of Syntax.MemberDeclarationSyntax list
+    let declOf (d :# Syntax.MemberDeclarationSyntax) =
+      Declaration [d]
+    let declarations(decls:Declaration seq) =
+      seq {
+        for d in decls do
+          match d with
+          | Empty -> ()
+          | Declaration(vs) -> yield! vs
+      }
+

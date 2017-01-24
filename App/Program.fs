@@ -23,6 +23,6 @@ module Main =
 
 #if INTERACTIVE
 // FIXME this is testing code only
-let p4file = """C:\temp\core.p4.json"""
+let p4file = """C:\temp\chain.p4.json"""
 Main.convertFile p4file
 #endif
