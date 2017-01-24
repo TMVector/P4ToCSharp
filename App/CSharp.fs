@@ -109,6 +109,14 @@ type Syntax.PropertyDeclarationSyntax with
     | Property.Accessor.GetSet -> this.WithAccessorList(SF.AccessorList(SF.List([| getter; setter |])))
   member this.WithInitialiserExpr(expr) =
     this.WithInitializer(SF.EqualsValueClause(expr))
+    
+type Syntax.InvocationExpressionSyntax with
+  member this.WithArguments(arguments : Syntax.ExpressionSyntax seq) =
+    this.WithArgumentList(argList arguments)
+
+type Syntax.ObjectCreationExpressionSyntax with
+  member this.WithArguments(arguments : Syntax.ExpressionSyntax seq) =
+    this.WithArgumentList(argList arguments)
 
 type Syntax.MethodDeclarationSyntax with
   member this.WithParameters(parameters : Syntax.ParameterSyntax seq) =
@@ -389,29 +397,41 @@ and declarationOfNode (n : JsonTypes.Node) : Transformed.Declaration =
               p.constructorParams.parameters.vec
               |> Seq.map (fun cp -> SF.Parameter(SF.Identifier(cp.name)).WithType(ofType cp.type_)(*NOTE presumably constructor(functor) parameters cannot be out*))
             SF.ConstructorDeclaration(className)
+              .WithModifiers(tokenList [SK.PublicKeyword])
               .WithParameterList(paramList ctorParams)
               .WithBody(SF.Block([ (* FIXME constructor body - set readonly fields and initialise external blocks? *) ]))
           let stateParams =
             p.type_.applyParams.parameters.vec
             |> Seq.map (parameter ofType)
+          let stateArgs =
+            p.type_.applyParams.parameters.vec
+            |> Seq.map (fun param -> SF.IdentifierName(param.name)) |> Seq.cast
           let apply =
             let applyParams =
               p.type_.applyParams.parameters.vec
               |> Seq.map (fun param -> (parameter ofType param).WithDirection(param.direction))
             let applyBody =
               applyParams
-              |> Seq.map (fun param -> assignment (SF.IdentifierName(param.Identifier)) (SF.ObjectCreationExpression(param.Type)))
+              |> Seq.map (fun param -> assignment (SF.IdentifierName(param.Identifier)) (SF.ObjectCreationExpression(param.Type).WithArguments([])))
               |> Seq.append <| [ SF.ExpressionStatement(SF.InvocationExpression(SF.IdentifierName("start")).WithArgumentList(argList (applyParams |> Seq.map (fun param -> SF.IdentifierName(param.Identifier))))) ]
               |> Seq.cast<Syntax.StatementSyntax>
             SF.MethodDeclaration(voidType, "Apply")
               .WithParameters(applyParams)
               .WithBlockBody(applyBody)
+          let selectStatement se : Syntax.StatementSyntax seq =
+            match se with
+            | None -> Seq.empty
+            | Some e ->
+              match ofExpr e with // FIXME handling this one case isn't enough. E.g. switch, or even arbitrary expressions?
+              | :? Syntax.IdentifierNameSyntax as ins -> SF.InvocationExpression(ins).WithArguments(stateArgs) :> Syntax.ExpressionSyntax
+              | expr -> expr
+              |> SF.ExpressionStatement |> Seq.singleton |> Seq.cast
           let states =
             p.states.vec
             |> Seq.map (fun state -> SF.MethodDeclaration(voidType, state.name)
                                        .WithParameters(stateParams)
                                        .WithBlockBody(Seq.map ofStatOrDecl state.components.vec
-                                                      |> Seq.append <| (Option.toList state.selectExpression |> Seq.map (ofExpr >> SF.ExpressionStatement) |> Seq.cast))) // TODO FIXME selectExpression could be just a pathExpression - turn into a method call
+                                                      |> Seq.append <| selectStatement state.selectExpression |> Seq.cast)) // TODO FIXME selectExpression could be just a pathExpression - turn into a method call
           SF.ClassDeclaration(className)
             .WithModifiers(tokenList [ SK.SealedKeyword ])
             .AddMembers(ctor, apply)
