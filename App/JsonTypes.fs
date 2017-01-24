@@ -85,6 +85,7 @@ module JsonTypes =
   [<AbstractClass>]
   type Expression(node_id, node_type, type_) =
     inherit Node(node_id, node_type)
+    [<JsonPropertyAttribute("type")>]
     member this.type_ : Type = type_
 
   [<AbstractClass>]
