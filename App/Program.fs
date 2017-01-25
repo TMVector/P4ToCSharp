@@ -1,7 +1,7 @@
 ﻿#if INTERACTIVE
-#load "Regex.fs"
-#load "JsonTypes.fs"
-#load "JsonParsing.fs"
+//#load "Regex.fs"
+//#load "JsonTypes.fs"
+//#load "JsonParsing.fs"
 #load "CSharpTypes.fs"
 #load "CSharp.fs"
 #else
@@ -23,6 +23,6 @@ module Main =
 
 #if INTERACTIVE
 // FIXME this is testing code only
-let p4file = """C:\temp\chain.p4.json"""
+let p4file = """C:\temp\vss\simple-switch-example.p4.json"""
 Main.convertFile p4file
 #endif

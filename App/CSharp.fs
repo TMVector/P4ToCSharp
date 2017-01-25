@@ -59,6 +59,13 @@ let createWriteExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) field
                                   SF.Argument(SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(bitOffset))),
                                   SF.Argument(fieldExpr))
   | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name) // FIXME types in headers: bit fixed/var + int
+let qualifiedTypeName (name:string) : Syntax.NameSyntax =
+  match name.Split('.') |> Seq.toList with
+  | f::ns ->
+    ns
+    |> Seq.map SF.IdentifierName
+    |> Seq.fold (fun cur id -> upcast SF.QualifiedName(cur, id)) (upcast SF.IdentifierName(f)) // FIXME what about when the last (or any) name is a generic name?
+  | [] -> failwith "qualifiedTypeName received an empty name"
 
 // CS types for convenience
 let headerBaseName = SF.QualifiedName(SF.IdentifierName("Library"), SF.IdentifierName("HeaderBase"))
@@ -74,6 +81,14 @@ let packageBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(packa
 let voidType : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.VoidKeyword))
 let byteArrayType : Syntax.TypeSyntax = upcast SF.ArrayType(SF.PredefinedType(SF.Token(SK.ByteKeyword)))
 let uint32Type : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.UIntKeyword))
+let byteName = qualifiedTypeName "System.Byte"
+let sbyteName = qualifiedTypeName "System.SByte"
+let int16Name = qualifiedTypeName "System.Int16"
+let uint16Name = qualifiedTypeName "System.UInt16"
+let int32Name = qualifiedTypeName "System.Int32"
+let uint32Name = qualifiedTypeName "System.UInt32"
+let int64Name = qualifiedTypeName "System.Int64"
+let uint64Name = qualifiedTypeName "System.UInt64"
 
 let assignment lExpr rExpr =
   SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, lExpr, rExpr))
@@ -295,6 +310,21 @@ and ofType (t : JsonTypes.Type) : Syntax.TypeSyntax =
   | :? JsonTypes.Type_Specialized as ts ->
       upcast SF.GenericName(ts.baseType.path.name).AddTypeArgumentListArguments(ts.arguments.vec |> Seq.map ofType |> Seq.toArray)
   | _ -> failwithf "Unhandled subtype of JsonTypes.Type: %s" (t.GetType().Name) // FIXME make sure exhaustive in handling of types (note ofDeclaration)
+and nameOfType (t : JsonTypes.Type) : Syntax.NameSyntax =
+  match t with
+  | :? JsonTypes.Type_Bits as bits ->
+      match bits.size with
+      | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
+      | s when s <= 8 -> if bits.isSigned then sbyteName else byteName
+      | s when s <= 16 -> if bits.isSigned then int16Name else uint16Name
+      | s when s <= 32 -> if bits.isSigned then int32Name else uint32Name
+      | s when s <= 64 -> if bits.isSigned then int64Name else uint64Name
+      | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
+  | :? JsonTypes.Type_Name as n ->
+      qualifiedTypeName n.path.name
+  | :? JsonTypes.Type_Specialized as ts ->
+      upcast SF.GenericName(ts.baseType.path.name).AddTypeArgumentListArguments(ts.arguments.vec |> Seq.map ofType |> Seq.toArray)
+  | _ -> failwithf "Unhandled subtype of JsonTypes.Type: %s in nameOfType" (t.GetType().Name)
 and statementOfDeclaration (n : JsonTypes.Declaration) : Syntax.StatementSyntax =
   match n with
   | :? JsonTypes.Parameter
@@ -405,7 +435,10 @@ and declarationOfNode (n : JsonTypes.Node) : Transformed.Declaration =
       | :? JsonTypes.Type_Enum as te ->
           createEnum te.name te.members.vec
           |> Transformed.declOf
-      | :? JsonTypes.Type_Typedef -> failwith "JsonTypes.Type_Typedef not handled yet" // FIXME
+      | :? JsonTypes.Type_Typedef as td ->
+          SF.UsingDirective(nameOfType td.type_)
+            .WithAlias(SF.NameEquals(SF.IdentifierName(td.name)))
+          |> Transformed.usingOf
       | :? JsonTypes.Type_Extern as ext ->
           // How are extern types handled? Maybe find the relavant interface in external code and use that
           //failwith "JsonTypes.Type_Extern not handled yet" // FIXME
@@ -479,9 +512,9 @@ and declarationOfNode (n : JsonTypes.Node) : Transformed.Declaration =
               .WithParameters(applyParams)
               .WithBody(ofBlockStatement pc.body)
           let locals =
-            pc.controlLocals.vec
-            |> Seq.map declarationOfNode
-            |> Transformed.declarations
+            let usings, decls = Seq.map declarationOfNode pc.controlLocals.vec |> Transformed.partition
+            if Seq.isEmpty usings |> not then failwithf "Usings declared within P4Control - currently unhandled" // FIXME E.g. Type_Typedef - could be solved by scoping the control in its own namespace?
+            decls
           SF.ClassDeclaration(className)
             .AddBaseListTypes(controlBaseBaseType)
             .WithModifiers(tokenList [ SK.SealedKeyword ])
@@ -498,7 +531,10 @@ and declarationOfNode (n : JsonTypes.Node) : Transformed.Declaration =
       | :? JsonTypes.StructField -> failwith "JsonTypes.StructField not handled yet" // FIXME
       | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
       | :? JsonTypes.Property -> failwith "JsonTypes.Property not handled yet" // FIXME
-      | :? JsonTypes.P4Table as pt -> failwith "JsonTypes.P4Table not handled yet" // FIXME
+      | :? JsonTypes.P4Table as pt ->
+          // TODO FIXME implement tables!
+          SF.ClassDeclaration(pt.name).WithKeyword(SF.Token(SF.TriviaList(SF.Comment("// FIXME Implement tables!"), SF.LineFeed), SK.ClassKeyword, SF.TriviaList(SF.Space)))
+          |> Transformed.declOf
       | :? JsonTypes.Method as m ->
           // FIXME does this refer to extern methods only?
           //failwith "JsonTypes.Method not handled yet" // FIXME
@@ -538,12 +574,12 @@ and declarationOfNode (n : JsonTypes.Node) : Transformed.Declaration =
       |> Transformed.declOf
   | _ -> failwithf "Unhandled subtype of JsonTypes.Node in declarationOfNode: %s" (n.GetType().Name) // FIXME check exhaustive
 and ofProgram (prog : JsonTypes.P4Program) : Syntax.CompilationUnitSyntax =
-  let declarations =
+  let usings, declarations =
     prog.declarations.vec
     |> Seq.map declarationOfNode
-    |> Transformed.declarations
+    |> Transformed.partition
   SF.CompilationUnit()
-    .AddUsings((* FIXME usings here *))
+    .AddUsings(usings |> Seq.toArray)
     .AddMembers(SF.ClassDeclaration("Program")
                   .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword; SK.SealedKeyword])
                   .AddMembers(declarations |> Seq.toArray))

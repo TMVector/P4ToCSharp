@@ -112,31 +112,9 @@ module JsonParsing =
     override this.WriteJson(writer, value, serialiser) =
       writer.WriteValue(DirectionJsonConverter.toString(value :?> JsonTypes.Direction))
 
-  
-  let private splitTypeStrings (s : string) =
-    // Count unpaired angle brackets
-    let angleBracketCountOf (s:string) = s.ToCharArray() |> Seq.map (fun c -> match c with '<' -> 1 | '>' -> -1 | _ -> 0) |> Seq.sum
-    seq {
-      let mutable angleBracketCount = 0
-      let waiting = new System.Collections.Generic.List<string>()
-      for part in s.Split(',') do
-        waiting.Add part
-        angleBracketCount <- angleBracketCount + angleBracketCountOf part
-        if angleBracketCount = 0 then
-          // Only yield strings between commas when the number of left and right angle brackets is matched, so
-          //  that we aren't splitting inside any types e.g. B<C,D>,C -> B<C,D>; C
-          yield String.concat "" waiting
-          waiting.Clear()
-    }
   open P4ToCSharp.App.Regex
-  let rec private GetTypeOf s : System.Type =
-    match s with
-    | Match "^(?<Type>[^\<\>]*)\<(?<GenericParameters>.*)\>$" [t; p] ->
-        let tType = GetTypeOf t
-        let pTypes = splitTypeStrings p |> Seq.map GetTypeOf |> Seq.toArray
-        tType.MakeGenericType pTypes
-    | Match "^(?<Type>[^\<\>]*)$" [t] -> JsonTypes.TypeLookup.[t]
-    | _ -> failwith (sprintf "Invalid Node_Type %s" s)
+  let private GetTypeOf : string -> System.Type =
+    GetTypeOf (fun tyStr -> JsonTypes.TypeLookup.[tyStr]) (fun ty tyParams -> ty.MakeGenericType tyParams)
 
 
   [<Literal>]
