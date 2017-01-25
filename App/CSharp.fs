@@ -328,7 +328,13 @@ and ofStatement (n : JsonTypes.Statement) : Syntax.StatementSyntax =
   | :? JsonTypes.EmptyStatement -> failwith "JsonTypes.EmptyStatement not handled yet" // FIXME
   | :? JsonTypes.AssignmentStatement as a ->
       upcast SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, ofExpr a.left, ofExpr a.right))
-  | :? JsonTypes.IfStatement -> failwith "JsonTypes.IfStatement not handled yet" // FIXME
+  | :? JsonTypes.IfStatement as ifs ->
+      let rv = SF.IfStatement(ofExpr ifs.condition, ofStatement ifs.ifTrue)
+      let rv =
+        match ifs.ifFalse with
+        | Some iff -> rv.WithElse(SF.ElseClause(ofStatement iff))
+        | None -> rv
+      upcast rv
   | :? JsonTypes.MethodCallStatement as mc ->
       upcast SF.ExpressionStatement(SF.InvocationExpression(ofExpr mc.methodCall.method_) // FIXME handle type arguments too
                                       .WithArgumentList(mc.methodCall.arguments.vec |> Seq.map ofExpr |> argList))
