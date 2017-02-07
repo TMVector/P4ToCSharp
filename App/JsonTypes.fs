@@ -109,7 +109,7 @@ module JsonTypes =
     inherit Node(node_id, node_type)
     member this.annotations : Vector<Annotation> = annotations
 
-  type Direction = None | In | Out | InOut
+  type Direction = None | In | Out | InOut (*  NOTE P4 has copy-in/copy-out semantics *)
 
   [<Sealed>]
   type Type_Type(node_id, node_type, type_) =
@@ -285,6 +285,11 @@ module JsonTypes =
   type TableProperties(node_id, node_type, properties) =
     inherit Node(node_id, node_type)
     member this.properties : IndexedVector<Property> = properties
+    member this.GetPropertyByName<'a>(name) =
+      this.properties.vec
+      |> Seq.filter (fun prop -> prop.name = name)
+      |> Seq.cast<'a>
+      |> Seq.tryPick Some
 
   [<Sealed>]
   type P4Table(node_id, node_type, name, declid, annotations, parameters, properties) =

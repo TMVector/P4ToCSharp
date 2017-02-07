@@ -15,7 +15,13 @@ open P4ToCSharp.App.IR
 open P4ToCSharp.App.CSharpTypes
 
 module Seq =
-  let first ls = ls |> Seq.pick Some
+  let first<'a> : seq<'a> -> 'a =
+    Seq.pick Some
+  let tryFirst<'a> : seq<'a> -> 'a option =
+    Seq.tryPick Some
+module Option =
+  let orEmpty<'a> : seq<'a> option -> seq<'a> =
+    Option.toArray >> Seq.concat
 
 let csFieldNameOf p4Name =
   p4Name // FIXME any changes needed? Illegal chars etc
@@ -78,6 +84,7 @@ let controlBaseName = SF.QualifiedName(SF.IdentifierName("Library"), SF.Identifi
 let controlBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(controlBaseName)
 let packageBaseName = SF.QualifiedName(SF.IdentifierName("Library"), SF.IdentifierName("IPackage"))
 let packageBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(packageBaseName)
+let tableType = SF.QualifiedName(SF.IdentifierName("Library"), SF.IdentifierName("LookupTable"))
 let voidType : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.VoidKeyword))
 let byteArrayType : Syntax.TypeSyntax = upcast SF.ArrayType(SF.PredefinedType(SF.Token(SK.ByteKeyword)))
 let uint32Type : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.UIntKeyword))
@@ -107,12 +114,9 @@ let variableDeclaration (name:string) ty (initialiser:Syntax.ExpressionSyntax op
   SF.VariableDeclaration(ty)
     .WithVariables(SF.SingletonSeparatedList(declarator))
 
-let createEnum (name:string) (members:seq<JsonTypes.Declaration_ID>) =
-  let members =
-    members
-    |> Seq.map (fun memb -> SF.EnumMemberDeclaration(memb.name))
+let createEnum (name:string) (members:seq<string>) =
   SF.EnumDeclaration(name)
-    .WithMembers(SF.SeparatedList(members))
+    .WithMembers(SF.SeparatedList(members |> Seq.map SF.EnumMemberDeclaration))
 
 type Syntax.ParameterSyntax with
   member this.WithDirection(direction:JsonTypes.Direction) =
@@ -121,7 +125,7 @@ type Syntax.ParameterSyntax with
       | JsonTypes.Direction.None
       | JsonTypes.Direction.In -> []
       | JsonTypes.Direction.InOut -> [SK.RefKeyword]
-      | JsonTypes.Direction.Out -> [SK.OutKeyword] // FIXME C# compiler enforces assignment to this in method body, whereas P4 doesn't?
+      | JsonTypes.Direction.Out -> [SK.OutKeyword] // FIXME C# compiler enforces assignment to this in method body, whereas P4 doesn't? This could be problematic
     this.WithModifiers(tokenList modifiers)
 
 type Syntax.PropertyDeclarationSyntax with
@@ -186,6 +190,8 @@ type Syntax.ClassDeclarationSyntax with
   member this.WithTypeParameters(tyParams : Syntax.TypeParameterSyntax seq) =
     if Seq.isEmpty tyParams then this
     else this.WithTypeParameterList(SF.TypeParameterList(SF.SeparatedList(tyParams)))
+  member this.WithBaseTypes(tys : seq<Syntax.BaseTypeSyntax>) =
+    this.WithBaseList(SF.BaseList(SF.SeparatedList(tys)))
                                    
 let inStaticPartialClass (name:string) (node:Syntax.MemberDeclarationSyntax) =
   SF.ClassDeclaration(name)
@@ -195,6 +201,14 @@ let field (ty:Syntax.TypeSyntax) (name:string) (v:Syntax.ExpressionSyntax) =
   SF.FieldDeclaration(SF.VariableDeclaration(ty)
                         .AddVariables(SF.VariableDeclarator(name)
                                         .WithInitializer(SF.EqualsValueClause(v))))
+let publicReadOnlyProperty (ty:Syntax.TypeSyntax) (name:string) (v:Syntax.ExpressionSyntax option) =
+  let prop =
+    SF.PropertyDeclaration(ty, name)
+      .WithModifiers(tokenList [ SK.PublicKeyword ])
+      .WithAccessors(Property.Get)
+  match v with
+  | None -> prop
+  | Some v -> prop.WithInitialiserExpr(v)
 
 let saveToFile (compilationUnit : Syntax.CompilationUnitSyntax) (filename:string) =
   let workspace = new Microsoft.CodeAnalysis.AdhocWorkspace()
@@ -266,6 +280,8 @@ let rec ofExpr (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
   | :? JsonTypes.ListExpression -> failwith "JsonTypes.ListExpression not handled yet" // FIXME C# array expression?
   | :? JsonTypes.SelectExpression -> failwith "JsonTypes.SelectExpression not handled yet" // FIXME
   | :? JsonTypes.MethodCallExpression as mc ->
+      // FIXME need to handle copy-in/copy-out semantics in case where a ref arg is also a ref arg to a method call in another arg. See 6.7.
+      // C# handles e.g. arr[a].z, f(ref a) fine already, but not ref a, f(ref a). Could aliasing also be an issue?
       let m =
         if Seq.isEmpty mc.typeArguments.vec
         then ofExpr mc.method_
@@ -433,7 +449,7 @@ and declarationOfNode (n : JsonTypes.Node) : Transformed.Declaration =
               |> Transformed.declOf
           | _ -> failwithf "Unhandled subtype of JsonTypes.Type_ArchBlock: %s" (archBlock.GetType().Name)
       | :? JsonTypes.Type_Enum as te ->
-          createEnum te.name te.members.vec
+          createEnum te.name (te.members.vec |> Seq.map (fun memb -> memb.name))
           |> Transformed.declOf
       | :? JsonTypes.Type_Typedef as td ->
           SF.UsingDirective(nameOfType td.type_)
@@ -522,7 +538,7 @@ and declarationOfNode (n : JsonTypes.Node) : Transformed.Declaration =
             .AddMembers(locals |> Seq.toArray)
           |> Transformed.declOf
       | :? JsonTypes.Type_Error as err ->
-          createEnum "Error" err.members.vec
+          createEnum "Error" (err.members.vec |> Seq.map (fun memb -> memb.name))
           |> Transformed.declOf
       | _ -> failwithf "Unhandled subtype of JsonTypes.Type_Declatation: %s" (n.GetType().Name)
   | :? JsonTypes.Declaration as decl ->
@@ -532,6 +548,38 @@ and declarationOfNode (n : JsonTypes.Node) : Transformed.Declaration =
       | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
       | :? JsonTypes.Property -> failwith "JsonTypes.Property not handled yet" // FIXME
       | :? JsonTypes.P4Table as pt ->
+          let key =
+            pt.properties.GetPropertyByName<JsonTypes.Key>("key")
+            |> Option.map (fun k -> k.keyElements.vec
+                                    |> Seq.map (fun ke -> ke.expression, ke.matchType.path (*FIXME this needs to be resolved to a matchkind*))
+                                    |> Seq.toList)
+          let actionOfExpr a = a // FIXME ?
+          let actions =
+            pt.properties.GetPropertyByName<JsonTypes.ActionList>("actions")
+            |> Option.map (fun al -> al.actionList.vec
+                                     |> Seq.map (fun ale -> ale.expression))
+            |> Option.orEmpty
+            |> Seq.map actionOfExpr
+          let defaultAction =
+            pt.properties.GetPropertyByName<JsonTypes.ExpressionValue>("default_action")
+            |> Option.map (fun da -> actionOfExpr da.expression)
+          let table =
+            field tableType "table" (SF.ObjectCreationExpression(tableType).WithArgumentList(argList []))
+          let actionList =
+            createEnum "ActionList" (actions |> Seq.map (fun a -> "FIXME_GETACTIONNAMEHERE" (*FIXME a.name*)))
+          let actionListType = SF.IdentifierName("ActionList")
+          let apply_result =
+            SF.ClassDeclaration("apply_result")
+              .WithModifiers(tokenList [ SK.PublicKeyword; SK.SealedKeyword ])
+              .WithBaseTypes([ SF.SimpleBaseType(SF.QualifiedName(SF.IdentifierName("Library"), SF.GenericName("apply_result").WithTypeArgumentList(tArg actionListType))) ])
+          let actionBase =
+            SF.ClassDeclaration("ActionBase")
+              .WithModifiers(tokenList [ SK.PrivateKeyword; SK.AbstractKeyword ])
+              .AddMembers(publicReadOnlyProperty actionListType "Action" None)
+              .AddMembers()
+              
+              
+
           // TODO FIXME implement tables!
           SF.ClassDeclaration(pt.name).WithKeyword(SF.Token(SF.TriviaList(SF.Comment("// FIXME Implement tables!"), SF.LineFeed), SK.ClassKeyword, SF.TriviaList(SF.Space)))
           |> Transformed.declOf
@@ -570,7 +618,7 @@ and declarationOfNode (n : JsonTypes.Node) : Transformed.Declaration =
           failwith "JsonTypes.Declaration not handled yet" // FIXME
   | :? JsonTypes.ActionListElement -> failwith "JsonTypes.ActionListElement not handled yet" // FIXME
   | :? JsonTypes.Declaration_MatchKind as mk ->
-      createEnum "MatchKind" mk.members.vec
+      createEnum "MatchKind" (mk.members.vec |> Seq.map (fun memb -> memb.name))
       |> Transformed.declOf
   | _ -> failwithf "Unhandled subtype of JsonTypes.Node in declarationOfNode: %s" (n.GetType().Name) // FIXME check exhaustive
 and ofProgram (prog : JsonTypes.P4Program) : Syntax.CompilationUnitSyntax =

@@ -187,6 +187,37 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
       {
         private Library.LpmTable<IPv4Address> table = new Library.LpmTable<IPv4Address>();
 
+        public enum ActionList
+        {
+          Drop_action,
+          Set_nhop
+        }
+        public class A { } public class B { } public class C { }
+        public class apply_result : Library.apply_result<ActionList> { }
+        private abstract class ActionBase
+        {
+          public ActionList Action { get; }
+          protected readonly A inField1;
+          public ActionBase(ActionList action, A inField1)
+          {
+            this.Action = action;
+            this.inField1 = inField1;
+          }
+          public abstract apply_result apply(out C outField1);
+          public sealed class Drop_action : ActionBase
+          {
+            private B directionlessField1;
+            public Drop_action(A inField1, B directionlessField1) : base(ActionList.Drop_action, inField1)
+            {
+              this.directionlessField1 = directionlessField1;
+            }
+            public override apply_result apply(out C outField1)
+            {
+
+            }
+          }
+        }
+
         public int Size { get; } = 1024;
         public void DefaultAction { get; } = Drop_action;
 
