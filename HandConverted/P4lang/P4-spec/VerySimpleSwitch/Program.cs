@@ -193,7 +193,10 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
           Set_nhop
         }
         public class A { } public class B { } public class C { }
-        public class apply_result : Library.apply_result<ActionList> { }
+        public class apply_result : Library.apply_result<ActionList>
+        {
+          public apply_result(bool hit, ActionList action) : base(hit, action) { }
+        }
         private abstract class ActionBase
         {
           public ActionList Action { get; }
@@ -213,7 +216,6 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
             }
             public override apply_result apply(out C outField1)
             {
-
             }
           }
         }
@@ -221,13 +223,28 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
         public int Size { get; } = 1024;
         public void DefaultAction { get; } = Drop_action;
 
-        public void GetKey(Parsed_packet p)
+        public void buildKey(Parsed_packet p)
         {
           return p.ip.dstAddr;
         }
 
         public void Apply(Parsed_packet headers, Core.Error parseError, InControl inCtrl, OutControl outCtrl, out IPv4Address nextHop)
         {
+          // FIXME sort out copy-semantics for args
+
+          apply_result result;
+
+          var lookupKey = buildKey(args);
+          ActionBase RA = table.Lookup(lookupKey);
+          if (RA == null)
+          {
+            result.hit = false;
+            RA = DefaultAction;
+          }
+          else
+          {
+            result.hit = true;
+          }
 
         }
       }

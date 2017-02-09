@@ -87,6 +87,7 @@ let packageBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(packa
 let tableType = SF.QualifiedName(SF.IdentifierName("Library"), SF.IdentifierName("LookupTable"))
 let voidType : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.VoidKeyword))
 let byteArrayType : Syntax.TypeSyntax = upcast SF.ArrayType(SF.PredefinedType(SF.Token(SK.ByteKeyword)))
+let boolType : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.BoolKeyword))
 let uint32Type : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.UIntKeyword))
 let byteName = qualifiedTypeName "System.Byte"
 let sbyteName = qualifiedTypeName "System.SByte"
@@ -151,8 +152,12 @@ type Syntax.MethodDeclarationSyntax with
 type Syntax.ConstructorDeclarationSyntax with
   member this.WithParameters(parameters : Syntax.ParameterSyntax seq) =
     this.WithParameterList(paramList parameters)
+  member this.WithParameters(parameters : (string * Syntax.TypeSyntax) seq) =
+    this.WithParameters(Seq.map (fun (name, ty) -> SF.Parameter(SF.Identifier(name)).WithType(ty)) parameters)
   member this.WithBlockBody(statements : Syntax.StatementSyntax seq) =
     this.WithBody(SF.Block(statements))
+  member this.WithBase(args : Syntax.ExpressionSyntax seq) =
+    this.WithInitializer(SF.ConstructorInitializer(SK.BaseConstructorInitializer, argList args))
 
 type Syntax.ClassDeclarationSyntax with
   member this.AddStructLikeFields(header :# JsonTypes.Type_StructLike, typeTranslator) =
@@ -567,16 +572,30 @@ and declarationOfNode (n : JsonTypes.Node) : Transformed.Declaration =
             field tableType "table" (SF.ObjectCreationExpression(tableType).WithArgumentList(argList []))
           let actionList =
             createEnum "ActionList" (actions |> Seq.map (fun a -> "FIXME_GETACTIONNAMEHERE" (*FIXME a.name*)))
-          let actionListType = SF.IdentifierName("ActionList")
+          let actionListType = SF.IdentifierName("ActionList") :> Syntax.TypeSyntax
           let apply_result =
             SF.ClassDeclaration("apply_result")
               .WithModifiers(tokenList [ SK.PublicKeyword; SK.SealedKeyword ])
               .WithBaseTypes([ SF.SimpleBaseType(SF.QualifiedName(SF.IdentifierName("Library"), SF.GenericName("apply_result").WithTypeArgumentList(tArg actionListType))) ])
+              .AddMembers(SF.ConstructorDeclaration("apply_result")
+                            .WithModifiers(tokenList [ SK.PublicKeyword ])
+                            .WithParameters([ ("hit", boolType); ("action_run", actionListType) ])
+                            .WithBase([ SF.IdentifierName("hit"); SF.IdentifierName("action_run") ])
+                            .WithBlockBody([]))
           let actionBase =
             SF.ClassDeclaration("ActionBase")
               .WithModifiers(tokenList [ SK.PrivateKeyword; SK.AbstractKeyword ])
               .AddMembers(publicReadOnlyProperty actionListType "Action" None)
-              .AddMembers()
+              .AddMembers((*In fields?*))
+              .AddMembers(SF.ConstructorDeclaration("ActionBase")
+                            .WithModifiers(tokenList [ SK.ProtectedKeyword ])
+                            .WithParameters([ ("action", actionListType); (* FIXME TODO other in parameters?*) ])
+                            .WithBlockBody([ assignment (SF.IdentifierName("Action")) (SF.IdentifierName("action"));
+                                             (* FIXME TODO other in parameters? *) ]))
+              .AddMembers(actionList.Members
+                          |> Seq.map (fun m -> m.Identifier.Text)
+                          |> Seq.map (fun m -> null)
+                          |> Seq.toArray)
               
               
 
