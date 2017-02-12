@@ -1,3 +1,19 @@
+/*
+Copyright 2013-present Barefoot Networks, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 #include <core.p4>
 
 // include the very simple switch declaration from the previous section
@@ -18,7 +34,7 @@ header Ethernet_h {
 }
 
 // IPv4 header without options
-header IPv4_h {
+header Ipv4_h {
     bit<4>       version;
     bit<4>       ihl;
     bit<8>       diffserv;
@@ -45,16 +61,16 @@ error {
 // List of all recognized headers
 struct Parsed_packet {
     Ethernet_h ethernet;
-    IPv4_h     ip;
+    Ipv4_h     ip;
 }
 
 parser TopParser(packet_in b, out Parsed_packet p) {
-    Checksum16() ck;  // instantiate checksum unit
+    Ck16() ck;  // instantiate checksum unit
 
     state start {
         b.extract(p.ethernet);
         transition select(p.ethernet.etherType) {
-            0x0800: parse_ipv4;
+            0x0800 : parse_ipv4;
             // no default rule: all other packets rejected
         }
     }
@@ -72,16 +88,17 @@ parser TopParser(packet_in b, out Parsed_packet p) {
 }
 
 // match-action pipeline section
+
 control TopPipe(inout Parsed_packet headers,
-                in error parseError,// parser error
-                in InControl inCtrl,// input port
+                in error parseError, // parser error
+                in InControl inCtrl, // input port
                 out OutControl outCtrl) {
      /**
       * Indicates that a packet is dropped by setting the
       * output port to the DROP_PORT
       */
       action Drop_action()
-      { outCtrl.port = DROP_PORT; }
+      { outCtrl.outputPort = DROP_PORT; }
 
      /**
       * Set the next hop and the output port.
@@ -93,18 +110,18 @@ control TopPipe(inout Parsed_packet headers,
                       IPv4Address ipv4_dest,
                       PortId port) {
           nextHop = ipv4_dest;
-          headers.ip.ttl = headers.ip.ttl - 1;
+          headers.ip.ttl = headers.ip.ttl-1;
           outCtrl.outputPort = port;
       }
 
      /**
-      * Computes address of next IPv4 hop and output port
-      * based on the IPv4 destination of the current packet.
-      * Decrements packet IPv4 TTL.
-      * @param nextHop IPv4 address of next hop
+      * Computes address of next Ipv4 hop and output port
+      * based on the Ipv4 destination of the current packet.
+      * Decrements packet Ipv4 TTL.
+      * @param nextHop Ipv4 address of next hop
       */
      table ipv4_match(out IPv4Address nextHop) {
-         key = { headers.ip.dstAddr: lpm; }  // longest-prefix match
+         key = { headers.ip.dstAddr : lpm; }
          actions = {
               Drop_action;
               Set_nhop(nextHop);
@@ -124,7 +141,7 @@ control TopPipe(inout Parsed_packet headers,
       * Check packet TTL and send to CPU if expired.
       */
      table check_ttl() {
-         key = { headers.ip.ttl: exact; }
+         key = { headers.ip.ttl : exact; }
          actions = { Send_to_cpu; NoAction; }
          const default_action = NoAction; // defined in core.p4
      }
@@ -138,10 +155,10 @@ control TopPipe(inout Parsed_packet headers,
      /**
       * Set the destination Ethernet address of the packet
       * based on the next hop IP address.
-      * @param nextHop IPv4 address of next hop.
+      * @param nextHop Ipv4 address of next hop.
       */
       table dmac(in IPv4Address nextHop) {
-          key = { nextHop: exact; }
+          key = { nextHop : exact; }
           actions = {
                Drop_action;
                Set_dmac;
@@ -161,9 +178,9 @@ control TopPipe(inout Parsed_packet headers,
        * Set the source mac address based on the output port.
        */
       table smac() {
-           key = { outCtrl.outputPort: exact; }
+           key = { outCtrl.outputPort : exact; }
            actions = {
-                Drop_action
+                Drop_action;
                 Set_smac;
           }
           size = 16;
@@ -174,8 +191,8 @@ control TopPipe(inout Parsed_packet headers,
           IPv4Address nextHop; // temporary variable
 
           if (parseError != error.NoError) {
-              Drop_action();  // invoke drop directly
-              return;
+               Drop_action();  // invoke drop directly
+               return;
           }
 
           ipv4_match.apply(nextHop); // Match result will go into nextHop
@@ -193,13 +210,13 @@ control TopPipe(inout Parsed_packet headers,
 
 // deparser section
 control TopDeparser(inout Parsed_packet p, packet_out b) {
-    Checksum16() ck;
+    Ck16() ck;
     apply {
         b.emit(p.ethernet);
         if (p.ip.isValid()) {
-            ck.clear();              // prepare checksum unit
-            p.ip.hdrChecksum = 16w0; // clear checksum
-            ck.update(p.ip);         // compute new checksum.
+            ck.clear();                // prepare checksum unit
+            p.ip.hdrChecksum = 16w0;   // clear checksum
+            ck.update(p.ip);           // compute new checksum.
             p.ip.hdrChecksum = ck.get();
         }
         b.emit(p.ip);

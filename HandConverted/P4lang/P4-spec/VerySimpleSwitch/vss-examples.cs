@@ -4,11 +4,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static HandConverted.Core;
-using static HandConverted.P4lang.P4_spec.VerySimpleSwitch.Architecture;
+using static HandConverted.core;
+using static HandConverted.P4lang.P4_spec.VerySimpleSwitch.very_simple_model;
 
-using EthernetAddress = System.UInt64;//HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library.BitString; // FIXME no size connotations...
-using IPv4Address = System.UInt32;
+// NOTE that the type name here has to be globally(?) qualified
+using EthernetAddress = HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library.bit48;
+using IPv4Address = HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library.bit32;
+
+// NOTE copied forward typedefs from separate file - won't be neccesary if all in the same file
+using PortId = HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library.bit4;
 
 
 namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
@@ -16,14 +20,15 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
   public static class Program
   {
     // standard Ethernet header
-    sealed class Ethernet_h : HeaderBase
+    public sealed class Ethernet_h : HeaderBase
     {
-      public readonly uint length = 12;
+      public readonly uint length = 12; // FIXME should this be a abstract property in HeaderBase? (it doesn't come from the P4 source)
 
-      public EthernetAddress dstAddr;     // width 48
-      public EthernetAddress srcAddr;     // width 48
-      public ushort etherType;  // width 16
+      public EthernetAddress dstAddr;
+      public EthernetAddress srcAddr;
+      public bit16 etherType;
 
+      // NOTE these methods aren't in the P4 - they are generated to help packet_in, etc.
       public override void Extract(byte[] data, uint offset)
       {
         dstAddr = BitHelper.Extract48(data, offset);
@@ -38,26 +43,24 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
         BitHelper.Write16(data, offset + 10, etherType);
       }
     }
-
-    // IPv4 header without options
-    sealed class IPv4_h : HeaderBase
+    
+    public sealed class IPv4_h : HeaderBase
     {
-      public uint offset;
+      public bit4 version;
+      public bit4 ihl;
+      public bit8 diffserv;
+      public bit16 totalLen;
+      public bit16 identification;
+      public bit3 flags; // FIXME which bitN's should be generated, and which should be already in Library? Or should there be a dynamic type for some N's? But then how can we constrain the length?
+      public bit13 fragOffset;
+      public bit8 ttl;
+      public bit8 protocol;
+      public bit16 hdrChecksum;
+      public IPv4Address srcAddr;
+      public IPv4Address dstAddr;
 
-      public byte version;          // width 4
-      public byte ihl;              // width 4
-      public byte diffserv;         // width 8
-      public ushort totalLen;       // width 16
-      public ushort identification; // width 16
-      public byte flags;            // width 3
-      public ushort fragOffset;     // width 13
-      public byte ttl;              // width 8
-      public byte protocol;         // width 8
-      public ushort hdrChecksum;    // width 16
-      public IPv4Address srcAddr;          // width 32
-      public IPv4Address dstAddr;          // width 32
-
-      public uint length { get { return ((uint)ihl & 0xF) * 4; } }
+      // FIXME what other properties does header have? Check these are in the spec
+      public uint length { get { return ((uint)ihl.Value & 0xF) * 4; } } // NOTE this is NOT in the current P4 source!
       public const uint max_length = 60;
 
       public override void Extract(byte[] arr, uint offset)
@@ -78,8 +81,8 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
 
       public override void Write(byte[] arr, uint offset)
       {
-        BitHelper.WriteBits(arr, offset * 8, 4, version);
-        BitHelper.WriteBits(arr, offset * 8 + 4, 4, ihl);
+        BitHelper.WriteBits(arr, offset * 8, 4, version.Value); // NOTE will need to handle these as special cases?
+        BitHelper.WriteBits(arr, offset * 8 + 4, 4, ihl.Value);
         BitHelper.Write8(arr, offset + 1, diffserv);
         BitHelper.Write16(arr, offset + 2, totalLen);
         BitHelper.Write16(arr, offset + 4, identification);
@@ -92,100 +95,86 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
         BitHelper.Write32(arr, offset + 16, dstAddr);
       }
     }
-
-    // Declare user-defined errors that may be signaled during parsing
-    public sealed class IPv4OptionsNotSupported : Error { }
-    public sealed class IPv4IncorrectVersion : Error { }
-    public sealed class IPv4ChecksumError : Error { }
-
-    // List of all recognized headers
-    sealed class Parsed_packet
+    
+    // NOTE in reality these would have been collated with core error by p4c
+    public sealed class IPv4OptionsNotSupported : error { }
+    public sealed class IPv4IncorrectVersion : error { }
+    public sealed class IPv4ChecksumError : error { }
+    
+    public sealed class Parsed_packet : IStruct
     {
       public Ethernet_h ethernet;
       public IPv4_h ip;
     }
 
-    sealed class TopParser : Architecture.Parser<Parsed_packet>
+    public sealed class TopParser : IParser, very_simple_model.Parser<Parsed_packet> // NOTE this interface would actually be an external one, and found by searching for matches
     {
-      private Error error = 0;
-      private Checksum16 ck;
+      // parserLocals
+      private Ck16 ck;
 
-      public void Apply(Packet_in b, out Parsed_packet p)
+      public void apply(packet_in b, out Parsed_packet p)
       {
-        ck = new Checksum16();  // instantiate checksum unit
+        ck = new Ck16();  // FIXME how are we handling instantiation of externs?
 
         p = new Parsed_packet();
-        Start(b, p);
+        start(b, p);
       }
 
-      private void Start(Packet_in b, Parsed_packet p)
+      private void start(packet_in b, Parsed_packet p)
       {
-        b.Extract(out p.ethernet);
-        switch (p.ethernet.etherType)
+        // NOTE type unknown and no type arg specified
+        b.extract(out p.ethernet); // NOTE P4 doesn't specify direction of argument, only of parameter at declaration (i.e. not at call site)
+        switch (p.ethernet.etherType.Value) // NOTE P4 doesn't specify value
         {
-          case 0x0800:
-            Parse_ipv4(b, p);
+          case 0x0800: // InfInt
+            parse_ipv4(b, p); // NOTE P4 just gives us parse_ipv4 - could it also give us more args?
             break;
-          // no default rule: all other packets rejected
+          // no default rule: all other packets rejected FIXME do we need to generate code for this?
         }
       }
 
-      private void Parse_ipv4(Packet_in b, Parsed_packet p)
+      private void parse_ipv4(packet_in b, Parsed_packet p)
       {
-        b.Extract(out p.ip);
-        if (p.ip.version == 4)
-        {
-          error = Error.IPv4IncorrectVersion;
-          return;
-        }
-        if (p.ip.ihl == 5)
-        {
-          error = Error.IPv4OptionsNotSupported;
-          return;
-        }
-        ck.Clear();
-        ck.Update(p.ip);
-        // Verify that packet checksum is zero
-        if (ck.Get() == 0)
-        {
-          error = Error.IPv4ChecksumError;
-          return;
-        }
-        // Accept
+        b.extract(out p.ip);
+        verify.apply(p.ip.version == 4, new IPv4IncorrectVersion()); // FIXME how are we handling errors? D: NOTE P4 gives it as error.IPV4IncorrectVersion
+        verify.apply(p.ip.ihl == 5, new IPv4OptionsNotSupported());
+        ck.clear();
+        ck.update(p.ip);
+        verify.apply(ck.get() == new bit16(0), new IPv4ChecksumError());
+        // transition accept
       }
     }
 
-    // match-action pipeline section
-    sealed class TopPipe : Architecture.Pipe<Parsed_packet>
+    public sealed class TopPipe : IControl, very_simple_model.Pipe<Parsed_packet>
     {
-      /**
-       * Indicates that a packet is dropped by setting the
-       * output port to the DROP_PORT
-       */
-      void Drop_action(Parsed_packet headers, Core.Error parseError, InControl inCtrl, OutControl outCtrl)
+      public sealed class Drop_action : IAction
       {
-        outCtrl.outputPort = DROP_PORT;
+        public void apply(ref Parsed_packet headers, error parseError, InControl inCtrl, ref OutControl outCtrl) // NOTE these params are ALL from TopPipe, not the action itself...
+        {
+          outCtrl.outputPort = DROP_PORT;
+        }
       }
 
-      /**
-       * Set the next hop and the output port.
-       * Decrements ipv4 ttl field.
-       * @param ivp4_dest ipv4 address of next hop
-       * @param port output port
-       */
-      void Set_nhop(Parsed_packet headers, Core.Error parseError, InControl inCtrl, OutControl outCtrl,
-                    out IPv4Address nextHop,
-                    IPv4Address ipv4_dest,
-                    PortId_t port)
+      public sealed class Set_nhop : IAction
       {
-        nextHop = ipv4_dest;
-        headers.ip.ttl = (byte)(headers.ip.ttl - 1);
-        outCtrl.outputPort = port;
+        void apply(Parsed_packet headers, core.error parseError, InControl inCtrl, ref OutControl outCtrl, // NOTE out param outCtrl -> ref for the action
+                   out IPv4Address nextHop,
+                   IPv4Address ipv4_dest,
+                   PortId port)
+        {
+          nextHop = ipv4_dest;
+          headers.ip.ttl = new bit8((byte)(headers.ip.ttl.Value - 1));
+          outCtrl.outputPort = port;
+        }
       }
 
-      sealed class Ipv4_match : ITable
+      ///////////////////////////////////////////////////////
+      // GOT THIS FAR
+      //////////////////////////////////////////////////////
+
+      public sealed class ipv4_match : ITable
       {
-        private Library.LpmTable<IPv4Address> table = new Library.LpmTable<IPv4Address>();
+        private Library.Table<IPv4Address> table = new Library.LpmTable<IPv4Address>();
 
         public enum ActionList
         {
@@ -228,7 +217,7 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
           return p.ip.dstAddr;
         }
 
-        public void Apply(Parsed_packet headers, Core.Error parseError, InControl inCtrl, OutControl outCtrl, out IPv4Address nextHop)
+        public void apply(ref Parsed_packet headers, error parseError, InControl inCtrl, out OutControl outCtrl)
         {
           // FIXME sort out copy-semantics for args
 
@@ -322,8 +311,8 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
       }
 
 
-      public void Apply(ref Parsed_packet headers,
-                        Core.Error parseError, // parser error
+      public void apply(ref Parsed_packet headers,
+                        core.error parseError, // parser error
                         InControl inCtrl, // input port
                         out OutControl outCtrl)
       {
@@ -331,7 +320,7 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
 
         IPv4Address nextHop; // temporary variable
 
-        if (parseError != Error.NoError)
+        if (parseError != error.NoError)
         {
           Drop_action(headers, parseError, inCtrl, outCtrl);  // invoke drop directly
           return;
