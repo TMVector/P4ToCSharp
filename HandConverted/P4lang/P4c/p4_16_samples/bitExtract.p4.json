@@ -1,0 +1,130 @@
+{
+  "Node_ID" : 22, 
+  "Node_Type" : "P4Program",
+  "declarations" : {
+    "Node_ID" : 5, 
+    "Node_Type" : "IndexedVector<Node>",
+    "vec" : [
+      {
+        "Node_ID" : 9, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "b",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 2, 
+          "Node_Type" : "Annotations",
+          "annotations" : {
+            "Node_ID" : 3, 
+            "Node_Type" : "Vector<Annotation>",
+            "vec" : []
+          }
+        },
+        "type" : {
+          "Node_ID" : 4, 
+          "Node_Type" : "Type_Bits",
+          "size" : 32,
+          "isSigned" : false
+        },
+        "initializer" : {
+          "Node_ID" : 8, 
+          "Node_Type" : "Constant",
+          "type" : {
+            "Node_ID" : 4
+          },
+          "value" : 699050,
+          "base" : 16
+        }
+      },
+      {
+        "Node_ID" : 21, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "c",
+        "declid" : 1,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 12, 
+          "Node_Type" : "Type_Bits",
+          "size" : 2,
+          "isSigned" : false
+        },
+        "initializer" : {
+          "Node_ID" : 20, 
+          "Node_Type" : "Slice",
+          "type" : {
+            "Node_ID" : 12
+          },
+          "e0" : {
+            "Node_ID" : 13, 
+            "Node_Type" : "PathExpression",
+            "type" : {
+              "Node_ID" : 14, 
+              "Node_Type" : "Type_Unknown"
+            },
+            "path" : {
+              "Node_ID" : 15, 
+              "Node_Type" : "Path",
+              "name" : "b",
+              "absolute" : false
+            }
+          },
+          "e1" : {
+            "Node_ID" : 17, 
+            "Node_Type" : "Constant",
+            "type" : {
+              "Node_ID" : 16, 
+              "Node_Type" : "Type_InfInt",
+              "declid" : 2
+            },
+            "value" : 3,
+            "base" : 10
+          },
+          "e2" : {
+            "Node_ID" : 19, 
+            "Node_Type" : "Constant",
+            "type" : {
+              "Node_ID" : 18, 
+              "Node_Type" : "Type_InfInt",
+              "declid" : 3
+            },
+            "value" : 2,
+            "base" : 10
+          }
+        }
+      }
+    ],
+    "declarations" : {
+      "b" : {
+        "Node_ID" : 9, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "b",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 8
+        }
+      },
+      "c" : {
+        "Node_ID" : 21, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "c",
+        "declid" : 1,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 12
+        },
+        "initializer" : {
+          "Node_ID" : 20
+        }
+      }
+    }
+  }
+}

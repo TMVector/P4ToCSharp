@@ -1,0 +1,939 @@
+{
+  "Node_ID" : 124, 
+  "Node_Type" : "P4Program",
+  "declarations" : {
+    "Node_ID" : 5, 
+    "Node_Type" : "IndexedVector<Node>",
+    "vec" : [
+      {
+        "Node_ID" : 9, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "zero",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 2, 
+          "Node_Type" : "Annotations",
+          "annotations" : {
+            "Node_ID" : 3, 
+            "Node_Type" : "Vector<Annotation>",
+            "vec" : []
+          }
+        },
+        "type" : {
+          "Node_ID" : 4, 
+          "Node_Type" : "Type_Bits",
+          "size" : 32,
+          "isSigned" : false
+        },
+        "initializer" : {
+          "Node_ID" : 8, 
+          "Node_Type" : "Constant",
+          "type" : {
+            "Node_ID" : 4
+          },
+          "value" : 0,
+          "base" : 10
+        }
+      },
+      {
+        "Node_ID" : 14, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "tooLarge",
+        "declid" : 1,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 12, 
+          "Node_Type" : "Type_Bits",
+          "size" : 48,
+          "isSigned" : false
+        },
+        "initializer" : {
+          "Node_ID" : 13, 
+          "Node_Type" : "Constant",
+          "type" : {
+            "Node_ID" : 12
+          },
+          "value" : 206488571150080,
+          "base" : 16
+        }
+      },
+      {
+        "Node_ID" : 18, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "one",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 17, 
+          "Node_Type" : "Constant",
+          "type" : {
+            "Node_ID" : 4
+          },
+          "value" : 1,
+          "base" : 10
+        }
+      },
+      {
+        "Node_ID" : 22, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "max",
+        "declid" : 3,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 21, 
+          "Node_Type" : "Constant",
+          "type" : {
+            "Node_ID" : 4
+          },
+          "value" : 4294967295,
+          "base" : 16
+        }
+      },
+      {
+        "Node_ID" : 27, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "z",
+        "declid" : 4,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 26, 
+          "Node_Type" : "Constant",
+          "type" : {
+            "Node_ID" : 25, 
+            "Node_Type" : "Type_Bits",
+            "size" : 1,
+            "isSigned" : false
+          },
+          "value" : 1,
+          "base" : 10
+        }
+      },
+      {
+        "Node_ID" : 35, 
+        "Node_Type" : "Type_Struct",
+        "name" : "S",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "fields" : {
+          "Node_ID" : 28, 
+          "Node_Type" : "IndexedVector<StructField>",
+          "vec" : [
+            {
+              "Node_ID" : 31, 
+              "Node_Type" : "StructField",
+              "name" : "a",
+              "declid" : 5,
+              "annotations" : {
+                "Node_ID" : 2
+              },
+              "type" : {
+                "Node_ID" : 4
+              }
+            },
+            {
+              "Node_ID" : 34, 
+              "Node_Type" : "StructField",
+              "name" : "b",
+              "declid" : 6,
+              "annotations" : {
+                "Node_ID" : 2
+              },
+              "type" : {
+                "Node_ID" : 4
+              }
+            }
+          ],
+          "declarations" : {
+            "a" : {
+              "Node_ID" : 31, 
+              "Node_Type" : "StructField",
+              "name" : "a",
+              "declid" : 5,
+              "annotations" : {
+                "Node_ID" : 2
+              },
+              "type" : {
+                "Node_ID" : 4
+              }
+            },
+            "b" : {
+              "Node_ID" : 34, 
+              "Node_Type" : "StructField",
+              "name" : "b",
+              "declid" : 6,
+              "annotations" : {
+                "Node_ID" : 2
+              },
+              "type" : {
+                "Node_ID" : 4
+              }
+            }
+          }
+        }
+      },
+      {
+        "Node_ID" : 47, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "v",
+        "declid" : 7,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 37, 
+          "Node_Type" : "Type_Name",
+          "path" : {
+            "Node_ID" : 36, 
+            "Node_Type" : "Path",
+            "name" : "S",
+            "absolute" : false
+          }
+        },
+        "initializer" : {
+          "Node_ID" : 46, 
+          "Node_Type" : "ListExpression",
+          "type" : {
+            "Node_ID" : 43, 
+            "Node_Type" : "Type_Unknown"
+          },
+          "components" : {
+            "Node_ID" : 39, 
+            "Node_Type" : "Vector<Expression>",
+            "vec" : [
+              {
+                "Node_ID" : 38, 
+                "Node_Type" : "Constant",
+                "type" : {
+                  "Node_ID" : 4
+                },
+                "value" : 3,
+                "base" : 10
+              },
+              {
+                "Node_ID" : 45, 
+                "Node_Type" : "Cast",
+                "type" : {
+                  "Node_ID" : 4
+                },
+                "expr" : {
+                  "Node_ID" : 42, 
+                  "Node_Type" : "PathExpression",
+                  "type" : {
+                    "Node_ID" : 43
+                  },
+                  "path" : {
+                    "Node_ID" : 44, 
+                    "Node_Type" : "Path",
+                    "name" : "z",
+                    "absolute" : false
+                  }
+                },
+                "destType" : {
+                  "Node_ID" : 4
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "Node_ID" : 51, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "two",
+        "declid" : 8,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 50, 
+          "Node_Type" : "Constant",
+          "type" : {
+            "Node_ID" : 4
+          },
+          "value" : 2,
+          "base" : 10
+        }
+      },
+      {
+        "Node_ID" : 60, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "twotwo",
+        "declid" : 9,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 54, 
+          "Node_Type" : "Type_Bits",
+          "size" : 32,
+          "isSigned" : true
+        },
+        "initializer" : {
+          "Node_ID" : 59, 
+          "Node_Type" : "Cast",
+          "type" : {
+            "Node_ID" : 54
+          },
+          "expr" : {
+            "Node_ID" : 57, 
+            "Node_Type" : "PathExpression",
+            "type" : {
+              "Node_ID" : 43
+            },
+            "path" : {
+              "Node_ID" : 58, 
+              "Node_Type" : "Path",
+              "name" : "two",
+              "absolute" : false
+            }
+          },
+          "destType" : {
+            "Node_ID" : 54
+          }
+        }
+      },
+      {
+        "Node_ID" : 68, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "twothree",
+        "declid" : 10,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 67, 
+          "Node_Type" : "Cast",
+          "type" : {
+            "Node_ID" : 4
+          },
+          "expr" : {
+            "Node_ID" : 65, 
+            "Node_Type" : "PathExpression",
+            "type" : {
+              "Node_ID" : 43
+            },
+            "path" : {
+              "Node_ID" : 66, 
+              "Node_Type" : "Path",
+              "name" : "twotwo",
+              "absolute" : false
+            }
+          },
+          "destType" : {
+            "Node_ID" : 4
+          }
+        }
+      },
+      {
+        "Node_ID" : 83, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "twofour",
+        "declid" : 11,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 71, 
+          "Node_Type" : "Type_Bits",
+          "size" : 6,
+          "isSigned" : false
+        },
+        "initializer" : {
+          "Node_ID" : 82, 
+          "Node_Type" : "Cast",
+          "type" : {
+            "Node_ID" : 71
+          },
+          "expr" : {
+            "Node_ID" : 81, 
+            "Node_Type" : "Cast",
+            "type" : {
+              "Node_ID" : 4
+            },
+            "expr" : {
+              "Node_ID" : 80, 
+              "Node_Type" : "Cast",
+              "type" : {
+                "Node_ID" : 54
+              },
+              "expr" : {
+                "Node_ID" : 78, 
+                "Node_Type" : "PathExpression",
+                "type" : {
+                  "Node_ID" : 43
+                },
+                "path" : {
+                  "Node_ID" : 79, 
+                  "Node_Type" : "Path",
+                  "name" : "two",
+                  "absolute" : false
+                }
+              },
+              "destType" : {
+                "Node_ID" : 54
+              }
+            },
+            "destType" : {
+              "Node_ID" : 4
+            }
+          },
+          "destType" : {
+            "Node_ID" : 71
+          }
+        }
+      },
+      {
+        "Node_ID" : 91, 
+        "Node_Type" : "Type_Struct",
+        "name" : "T",
+        "declid" : 1,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "fields" : {
+          "Node_ID" : 84, 
+          "Node_Type" : "IndexedVector<StructField>",
+          "vec" : [
+            {
+              "Node_ID" : 87, 
+              "Node_Type" : "StructField",
+              "name" : "a",
+              "declid" : 12,
+              "annotations" : {
+                "Node_ID" : 2
+              },
+              "type" : {
+                "Node_ID" : 86, 
+                "Node_Type" : "Type_Name",
+                "path" : {
+                  "Node_ID" : 85, 
+                  "Node_Type" : "Path",
+                  "name" : "S",
+                  "absolute" : false
+                }
+              }
+            },
+            {
+              "Node_ID" : 90, 
+              "Node_Type" : "StructField",
+              "name" : "b",
+              "declid" : 13,
+              "annotations" : {
+                "Node_ID" : 2
+              },
+              "type" : {
+                "Node_ID" : 89, 
+                "Node_Type" : "Type_Name",
+                "path" : {
+                  "Node_ID" : 88, 
+                  "Node_Type" : "Path",
+                  "name" : "S",
+                  "absolute" : false
+                }
+              }
+            }
+          ],
+          "declarations" : {
+            "a" : {
+              "Node_ID" : 87, 
+              "Node_Type" : "StructField",
+              "name" : "a",
+              "declid" : 12,
+              "annotations" : {
+                "Node_ID" : 2
+              },
+              "type" : {
+                "Node_ID" : 86
+              }
+            },
+            "b" : {
+              "Node_ID" : 90, 
+              "Node_Type" : "StructField",
+              "name" : "b",
+              "declid" : 13,
+              "annotations" : {
+                "Node_ID" : 2
+              },
+              "type" : {
+                "Node_ID" : 89
+              }
+            }
+          }
+        }
+      },
+      {
+        "Node_ID" : 104, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "zz",
+        "declid" : 14,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 93, 
+          "Node_Type" : "Type_Name",
+          "path" : {
+            "Node_ID" : 92, 
+            "Node_Type" : "Path",
+            "name" : "T",
+            "absolute" : false
+          }
+        },
+        "initializer" : {
+          "Node_ID" : 103, 
+          "Node_Type" : "ListExpression",
+          "type" : {
+            "Node_ID" : 43
+          },
+          "components" : {
+            "Node_ID" : 98, 
+            "Node_Type" : "Vector<Expression>",
+            "vec" : [
+              {
+                "Node_ID" : 97, 
+                "Node_Type" : "ListExpression",
+                "type" : {
+                  "Node_ID" : 43
+                },
+                "components" : {
+                  "Node_ID" : 95, 
+                  "Node_Type" : "Vector<Expression>",
+                  "vec" : [
+                    {
+                      "Node_ID" : 94, 
+                      "Node_Type" : "Constant",
+                      "type" : {
+                        "Node_ID" : 4
+                      },
+                      "value" : 0,
+                      "base" : 10
+                    },
+                    {
+                      "Node_ID" : 96, 
+                      "Node_Type" : "Constant",
+                      "type" : {
+                        "Node_ID" : 4
+                      },
+                      "value" : 1,
+                      "base" : 10
+                    }
+                  ]
+                }
+              },
+              {
+                "Node_ID" : 102, 
+                "Node_Type" : "ListExpression",
+                "type" : {
+                  "Node_ID" : 43
+                },
+                "components" : {
+                  "Node_ID" : 100, 
+                  "Node_Type" : "Vector<Expression>",
+                  "vec" : [
+                    {
+                      "Node_ID" : 99, 
+                      "Node_Type" : "Constant",
+                      "type" : {
+                        "Node_ID" : 4
+                      },
+                      "value" : 2,
+                      "base" : 10
+                    },
+                    {
+                      "Node_ID" : 101, 
+                      "Node_Type" : "Constant",
+                      "type" : {
+                        "Node_ID" : 4
+                      },
+                      "value" : 3,
+                      "base" : 10
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "Node_ID" : 108, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "x",
+        "declid" : 15,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 107, 
+          "Node_Type" : "Constant",
+          "type" : {
+            "Node_ID" : 4
+          },
+          "value" : 0,
+          "base" : 10
+        }
+      },
+      {
+        "Node_ID" : 113, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "x1",
+        "declid" : 16,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 112, 
+          "Node_Type" : "Cmpl",
+          "type" : {
+            "Node_ID" : 4
+          },
+          "expr" : {
+            "Node_ID" : 111, 
+            "Node_Type" : "Constant",
+            "type" : {
+              "Node_ID" : 4
+            },
+            "value" : 0,
+            "base" : 10
+          }
+        }
+      },
+      {
+        "Node_ID" : 116, 
+        "Node_Type" : "Type_Typedef",
+        "name" : "int32",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 54
+        }
+      },
+      {
+        "Node_ID" : 123, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "izero",
+        "declid" : 17,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 118, 
+          "Node_Type" : "Type_Name",
+          "path" : {
+            "Node_ID" : 117, 
+            "Node_Type" : "Path",
+            "name" : "int32",
+            "absolute" : false
+          }
+        },
+        "initializer" : {
+          "Node_ID" : 122, 
+          "Node_Type" : "Cast",
+          "type" : {
+            "Node_ID" : 120, 
+            "Node_Type" : "Type_Name",
+            "path" : {
+              "Node_ID" : 119, 
+              "Node_Type" : "Path",
+              "name" : "int32",
+              "absolute" : false
+            }
+          },
+          "expr" : {
+            "Node_ID" : 121, 
+            "Node_Type" : "Constant",
+            "type" : {
+              "Node_ID" : 4
+            },
+            "value" : 0,
+            "base" : 10
+          },
+          "destType" : {
+            "Node_ID" : 120
+          }
+        }
+      }
+    ],
+    "declarations" : {
+      "zero" : {
+        "Node_ID" : 9, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "zero",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 8
+        }
+      },
+      "tooLarge" : {
+        "Node_ID" : 14, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "tooLarge",
+        "declid" : 1,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 12
+        },
+        "initializer" : {
+          "Node_ID" : 13
+        }
+      },
+      "one" : {
+        "Node_ID" : 18, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "one",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 17
+        }
+      },
+      "max" : {
+        "Node_ID" : 22, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "max",
+        "declid" : 3,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 21
+        }
+      },
+      "z" : {
+        "Node_ID" : 27, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "z",
+        "declid" : 4,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 26
+        }
+      },
+      "S" : {
+        "Node_ID" : 35, 
+        "Node_Type" : "Type_Struct",
+        "name" : "S",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "fields" : {
+          "Node_ID" : 28
+        }
+      },
+      "v" : {
+        "Node_ID" : 47, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "v",
+        "declid" : 7,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 37
+        },
+        "initializer" : {
+          "Node_ID" : 46
+        }
+      },
+      "two" : {
+        "Node_ID" : 51, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "two",
+        "declid" : 8,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 50
+        }
+      },
+      "twotwo" : {
+        "Node_ID" : 60, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "twotwo",
+        "declid" : 9,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 54
+        },
+        "initializer" : {
+          "Node_ID" : 59
+        }
+      },
+      "twothree" : {
+        "Node_ID" : 68, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "twothree",
+        "declid" : 10,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 67
+        }
+      },
+      "twofour" : {
+        "Node_ID" : 83, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "twofour",
+        "declid" : 11,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 71
+        },
+        "initializer" : {
+          "Node_ID" : 82
+        }
+      },
+      "T" : {
+        "Node_ID" : 91, 
+        "Node_Type" : "Type_Struct",
+        "name" : "T",
+        "declid" : 1,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "fields" : {
+          "Node_ID" : 84
+        }
+      },
+      "zz" : {
+        "Node_ID" : 104, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "zz",
+        "declid" : 14,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 93
+        },
+        "initializer" : {
+          "Node_ID" : 103
+        }
+      },
+      "x" : {
+        "Node_ID" : 108, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "x",
+        "declid" : 15,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 107
+        }
+      },
+      "x1" : {
+        "Node_ID" : 113, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "x1",
+        "declid" : 16,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 4
+        },
+        "initializer" : {
+          "Node_ID" : 112
+        }
+      },
+      "int32" : {
+        "Node_ID" : 116, 
+        "Node_Type" : "Type_Typedef",
+        "name" : "int32",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 54
+        }
+      },
+      "izero" : {
+        "Node_ID" : 123, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "izero",
+        "declid" : 17,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "type" : {
+          "Node_ID" : 118
+        },
+        "initializer" : {
+          "Node_ID" : 122
+        }
+      }
+    }
+  }
+}
