@@ -17,7 +17,7 @@ using PortId = HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library.bit4;
 
 namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
 {
-  public sealed class Program : Library.P4Program
+  public sealed class Program
   {
     // standard Ethernet header
     public sealed class Ethernet_h : HeaderBase
@@ -580,9 +580,11 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
       }
     }
 
-    public sealed class Vss_Example : very_simple_model.VSS<Parsed_packet>
+    public sealed class Vss_Example : very_simple_model.VSS<Parsed_packet> // This inherits the PAX interface, and will be used as a packet processor
     {
-
+      public Vss_Example() : base(new TopParser(), new TopPipe(), new TopDeparser())
+      {
+      }
     }
   }
 }

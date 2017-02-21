@@ -77,16 +77,24 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
     
     public class Ck16 : IExternObject // User must provide implementations of IExternObjects
     {
-      // FIXME the P4 gives the signature of the constructor, so we need to use a concrete type or DI?
-      Ck16();
+      public Ck16()
+      {
+        throw new NotImplementedException();
+      }
       
-      void clear();
+      void clear()
+      {
+        throw new NotImplementedException();
+      }
 
       // FIXME checksum unit handles both bitstrings and headers - perhaps a common interface could help? Or let overrides and generics match?
       void update(HeaderBase dt);
       void update(IBitString dt);
       
-      bit16 get();
+      bit16 get()
+      {
+        throw new NotImplementedException();
+      }
     }
   }
 }
