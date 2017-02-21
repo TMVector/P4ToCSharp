@@ -35,6 +35,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Pax">
+      <HintPath>..\..\..\pax\Bin\Pax.exe</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -43,15 +46,6 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
-    <Reference Include="Pax">
-      <HintPath>..\..\pax\Bin\Pax.exe</HintPath>
-    </Reference>
-    <Reference Include="SharpPcap">
-      <HintPath>..\..\pax\Bin\SharpPcap.dll</HintPath>
-    </Reference>
-    <Reference Include="PacketDotNet">
-      <HintPath>..\..\pax\Bin\PacketDotNet.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DataEntryPoint.cs" />
@@ -71,11 +65,13 @@
     <Compile Include="P4lang\P4-spec\Mtag-example\Parser\ParsedRepresentation.cs" />
     <Compile Include="P4lang\P4-spec\Mtag-example\Parser\Parser.cs" />
     <Compile Include="P4lang\P4-spec\Mtag-example\Headers\vlan_t.cs" />
+    <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\apply_result.cs" />
     <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\bit.cs" />
     <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\BitHelper.cs" />
     <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\BitString.cs" />
     <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\HeaderBase.cs" />
     <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\MarkerInterfaces.cs" />
+    <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\P4Program.cs" />
     <Compile Include="P4lang\P4-spec\VerySimpleSwitch\Library\Table.cs" />
     <Compile Include="P4lang\P4-spec\VerySimpleSwitch\vss-examples.cs" />
     <Compile Include="Program.cs" />

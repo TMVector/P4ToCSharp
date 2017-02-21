@@ -43,11 +43,8 @@ namespace HandConverted
       void apply(bool check, error toSignal); // NOTE only directionless parameters
     }
     public static verify_t verify = null; // NOTE need global, static instance of this
-
-    public sealed class NoAction : IAction // FIXME are we going with custom function objects?
-    {
-      public void apply() { }
-    }
+    
+    public static void NoAction() { }
 
     public enum match_kind
     {

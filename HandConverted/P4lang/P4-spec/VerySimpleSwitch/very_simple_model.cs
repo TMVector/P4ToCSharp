@@ -55,16 +55,27 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
                  packet_out b);
     }
     
-    public interface VSS<H> : IPackage
+    public abstract class VSS<H> : Library.P4Program, IPackage // User must provide implementation of IPackages (should the skeletons be generated as separate source?)
     {
-      // NOTE these are declared in P4 as parameters. The idea is to generate an object that provides
-      //      each of the fields, and give it to the runtime.
       Parser<H> p { get; }
       Pipe<H> map { get; }
       Deparser<H> d { get; }
+      protected VSS(Parser<H> p,
+                    Pipe<H> map,
+                    Deparser<H> d)
+      {
+        this.p = p;
+        this.map = map;
+        this.d = d;
+      }
+
+      public override void process_packet(int in_port, byte[] packet)
+      {
+        throw new NotImplementedException();
+      }
     }
     
-    public interface Ck16 : IExternObject
+    public class Ck16 : IExternObject // User must provide implementations of IExternObjects
     {
       // FIXME the P4 gives the signature of the constructor, so we need to use a concrete type or DI?
       Ck16();

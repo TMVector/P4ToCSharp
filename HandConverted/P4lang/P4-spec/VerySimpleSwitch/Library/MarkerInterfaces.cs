@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 
 namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library
 {
-  public interface IAction { }
   public interface ITable { }
   public interface IExternObject { }
   public interface IExternFunction { }

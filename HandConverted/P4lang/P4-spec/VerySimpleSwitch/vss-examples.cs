@@ -17,7 +17,7 @@ using PortId = HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library.bit4;
 
 namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
 {
-  public static class Program
+  public sealed class Program : Library.P4Program
   {
     // standard Ethernet header
     public sealed class Ethernet_h : HeaderBase
@@ -147,168 +147,387 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
 
     public sealed class TopPipe : IControl, very_simple_model.Pipe<Parsed_packet>
     {
-      public sealed class Drop_action : IAction
+      // You can kind of think of this like a closure for the apply method
+      private sealed class TopPipe_Args
       {
-        public void apply(ref Parsed_packet headers, error parseError, InControl inCtrl, ref OutControl outCtrl) // NOTE these params are ALL from TopPipe, not the action itself...
+        public Parsed_packet headers { get; set; } // inout
+        public error parseError { get; }
+        public InControl inCtrl { get; }
+        public OutControl outCtrl { get; set; } // out
+        
+        public TopPipe_Args(Parsed_packet headers, core.error parseError, InControl inCtrl, OutControl outCtrl)
         {
-          outCtrl.outputPort = DROP_PORT;
+          this.headers = headers;
+          this.parseError = parseError;
+          this.inCtrl = inCtrl;
+          this.outCtrl = outCtrl;
         }
       }
 
-      public sealed class Set_nhop : IAction
+      //action Drop_action()
+      //{ outCtrl.outputPort = DROP_PORT; }
+      private static void Drop_action(TopPipe_Args args) // NOTE these params are ALL from TopPipe, not the action itself...
       {
-        void apply(Parsed_packet headers, core.error parseError, InControl inCtrl, ref OutControl outCtrl, // NOTE out param outCtrl -> ref for the action
-                   out IPv4Address nextHop,
-                   IPv4Address ipv4_dest,
-                   PortId port)
-        {
-          nextHop = ipv4_dest;
-          headers.ip.ttl = new bit8((byte)(headers.ip.ttl.Value - 1));
-          outCtrl.outputPort = port;
-        }
+        args.outCtrl.outputPort = DROP_PORT; // NOTE will need to add `arg.` to relevant identifiers
+      }
+
+      //action Set_nhop(out IPv4Address nextHop, // NOTE directioned parameters must be bound in the actions list specification (so not by api?)
+      //                IPv4Address ipv4_dest, // NOTE directionless parameters bound by control plane
+      //                PortId port)
+      //{
+      //  nextHop = ipv4_dest;
+      //  headers.ip.ttl = headers.ip.ttl - 1;
+      //  outCtrl.outputPort = port;
+      //}
+      private static void Set_nhop(TopPipe_Args args,
+                        ref IPv4Address nextHop,
+                        IPv4Address ipv4_dest,
+                        PortId port)
+      {
+        nextHop = ipv4_dest;
+        args.headers.ip.ttl = new bit8((byte)(args.headers.ip.ttl.Value - 1));
+        args.outCtrl.outputPort = port;
       }
 
       ///////////////////////////////////////////////////////
       // GOT THIS FAR
       //////////////////////////////////////////////////////
 
-      public sealed class ipv4_match : ITable
+      //table ipv4_match(out IPv4Address nextHop)
+      //{
+      //  key = { headers.ip.dstAddr : lpm; }
+      //  actions = {
+      //    Drop_action;
+      //    Set_nhop(nextHop); // NOTE arguments specified in action list are not evaluated until the action's execution
+      //  }
+      //  size = 1024;
+      //  default_action = Drop_action; // NOTE initial value. Can also be declared const.
+      //  // NOTE must it must be *exactly* identical inc. params, but directionless params must be specified
+      //}
+      private sealed class ipv4_match_t : ITable
       {
-        private Library.Table<IPv4Address> table = new Library.LpmTable<IPv4Address>();
+        // If there were multiple fields, then lookup would return table for lookup of next field (could combine same lookup types)
+        private Library.LpmTable<IPv4Address, ActionBase> table = new Library.LpmTable<IPv4Address, ActionBase>();
 
-        public enum ActionList
+        public enum action_list
         {
           Drop_action,
           Set_nhop
         }
-        public class A { } public class B { } public class C { }
-        public class apply_result : Library.apply_result<ActionList>
+        public sealed class apply_result : Library.apply_result<action_list>
         {
-          public apply_result(bool hit, ActionList action) : base(hit, action) { }
+          public apply_result(bool hit, action_list action_run) : base(hit, action_run) { }
         }
+        // This class is what is returned from the final table lookup. So directionless (control plane) args should be bound as instance fields, and directioned args should be passed in OnApply
         private abstract class ActionBase
         {
-          public ActionList Action { get; }
-          protected readonly A inField1;
-          public ActionBase(ActionList action, A inField1)
+          public action_list Action { get; }
+          public ActionBase(action_list action)
           {
             this.Action = action;
-            this.inField1 = inField1;
           }
-          public abstract apply_result apply(out C outField1);
-          public sealed class Drop_action : ActionBase
+          public abstract void OnApply(TopPipe_Args args, ref IPv4Address nextHop);
+          public sealed class Drop_action_Action : ActionBase // NOTE this class is different from Drop_action because it holds any parameters set by API/action-list
           {
-            private B directionlessField1;
-            public Drop_action(A inField1, B directionlessField1) : base(ActionList.Drop_action, inField1)
+            public Drop_action_Action() : base(action_list.Drop_action)
             {
-              this.directionlessField1 = directionlessField1;
             }
-            public override apply_result apply(out C outField1)
+            public override void OnApply(TopPipe_Args args, ref IPv4Address nextHop)
             {
+              // FIXME this action doesn't actually set the out param - how do we handle that?
+              Drop_action(args);
+            }
+          }
+          public sealed class Set_nhop_Action : ActionBase
+          {
+            readonly IPv4Address ipv4_dest;
+            readonly PortId port;
+            public Set_nhop_Action(IPv4Address ipv4_dest, PortId port) : base(action_list.Set_nhop)
+            {
+              this.ipv4_dest = ipv4_dest;
+              this.port = port;
+            }
+            public override void OnApply(TopPipe_Args args, ref IPv4Address nextHop) // FIXME need to bind parameters from control plane...
+            {
+              Set_nhop(args, ref nextHop, ipv4_dest, port);
             }
           }
         }
 
-        public int Size { get; } = 1024;
-        public void DefaultAction { get; } = Drop_action;
+        private int size { get; } = 1024;
+        private ActionBase default_action { get; } = new ActionBase.Drop_action_Action();
 
-        public void buildKey(Parsed_packet p)
-        {
-          return p.ip.dstAddr;
-        }
-
-        public void apply(ref Parsed_packet headers, error parseError, InControl inCtrl, out OutControl outCtrl)
+        public apply_result apply(TopPipe_Args args, ref IPv4Address nextHop)
         {
           // FIXME sort out copy-semantics for args
 
           apply_result result;
-
-          var lookupKey = buildKey(args);
-          ActionBase RA = table.Lookup(lookupKey);
+          
+          // Would chain lookups here if multiple fields
+          ActionBase RA = table.Lookup(args.headers.ip.dstAddr);
           if (RA == null)
           {
-            result.hit = false;
-            RA = DefaultAction;
+            result = new apply_result(false, default_action.Action);
           }
           else
           {
-            result.hit = true;
+            result = new apply_result(true, RA.Action);
           }
-
+          //evaluate_and_copy_in_RA_args(RA);
+          //execute(RA);
+          //copy_out_RA_args(RA);
+          //copy_out_table_args(args);
+          RA.OnApply(args, ref nextHop);
+          return result;
         }
       }
-     /**
-      * Computes address of next IPv4 hop and output port
-      * based on the IPv4 destination of the current packet.
-      * Decrements packet IPv4 TTL.
-      * @param nextHop IPv4 address of next hop
-      */
-     table ipv4_match(out IPv4Address nextHop) {
-        key = { headers.ip.dstAddr: lpm; }  // longest-prefix match
-        actions = {
-          Drop_action;
-          Set_nhop(nextHop);
+      private ipv4_match_t ipv4_match { get; } = new ipv4_match_t();
+
+      //action Send_to_cpu()
+      //    { outCtrl.outputPort = CPU_OUT_PORT; }
+      private static void Send_to_cpu(TopPipe_Args args)
+      {
+        args.outCtrl.outputPort = CPU_OUT_PORT;
+      }
+
+      //table check_ttl() {
+      //  key = { headers.ip.ttl: exact; }
+      //  actions = { Send_to_cpu; NoAction; }
+      //  const default_action = NoAction; // defined in core.p4
+      //}
+      private sealed class check_ttl_t
+      {
+        private Library.ExactTable<bit8, ActionBase> table = new Library.ExactTable<bit8, ActionBase>();
+
+        public enum action_list
+        {
+          Send_to_cpu,
+          NoAction
+        }
+        public sealed class apply_result : Library.apply_result<action_list>
+        {
+          public apply_result(bool hit, action_list action_run) : base(hit, action_run) { }
+        }
+        public abstract class ActionBase
+        {
+          public action_list Action { get; }
+          public ActionBase(action_list action)
+          {
+            this.Action = action;
+          }
+          public abstract void OnApply(TopPipe_Args args);
+          public sealed class Send_to_cpu_Action : ActionBase
+          {
+            public Send_to_cpu_Action() : base(action_list.Send_to_cpu) { }
+            public override void OnApply(TopPipe_Args args)
+            {
+              Send_to_cpu(args);
+            }
+          }
+          public sealed class NoAction_Action : ActionBase
+          {
+            public NoAction_Action() : base(action_list.NoAction) { }
+            public override void OnApply(TopPipe_Args args)
+            {
+              NoAction(); // NOTE external action, so doesn't take TopPipe `args`
+            }
+          }
+        }
+        
+        private ActionBase default_action { get; } = new ActionBase.NoAction_Action();
+
+        public apply_result apply(TopPipe_Args args)
+        {
+          apply_result result;
+          
+          ActionBase RA = table.Lookup(args.headers.ip.ttl);
+          if (RA == null)
+          {
+            result = new apply_result(false, default_action.Action);
+          }
+          else
+          {
+            result = new apply_result(true, RA.Action);
+          }
+          //evaluate_and_copy_in_RA_args(RA);
+          //execute(RA);
+          //copy_out_RA_args(RA);
+          //copy_out_table_args(args);
+          RA.OnApply(args);
+          return result;
+        }
+      }
+      private check_ttl_t check_ttl = new check_ttl_t();
+
+      //action Set_dmac(EthernetAddress dmac)
+      //{ headers.ethernet.dstAddr = dmac; }
+      private static void Set_dmac(TopPipe_Args args, EthernetAddress dmac)
+      {
+        args.headers.ethernet.dstAddr = dmac;
+      }
+
+      //table dmac(in IPv4Address nextHop) {
+      //  key = { nextHop: exact; }
+      //  actions = {
+      //    Drop_action;
+      //    Set_dmac;
+      //  }
+      //  size = 1024;
+      //  default_action = Drop_action;
+      //}
+      private sealed class dmac_t
+      {
+        private Library.ExactTable<IPv4Address, ActionBase> table = new Library.ExactTable<IPv4Address, ActionBase>();
+
+        public enum action_list
+        {
+          Drop_action,
+          Set_dmac
+        }
+        public sealed class apply_result : Library.apply_result<action_list>
+        {
+          public apply_result(bool hit, action_list action_run) : base(hit, action_run) { }
+        }
+        public abstract class ActionBase
+        {
+          public action_list Action { get; }
+          public ActionBase(action_list action)
+          {
+            this.Action = action;
+          }
+          public abstract void OnApply(TopPipe_Args args);
+          public sealed class Drop_action_Action : ActionBase
+          {
+            public Drop_action_Action() : base(action_list.Drop_action) { }
+            public override void OnApply(TopPipe_Args args)
+            {
+              Drop_action(args);
+            }
+          }
+          public sealed class Set_dmac_Action : ActionBase
+          {
+            readonly EthernetAddress dmac;
+            public Set_dmac_Action(EthernetAddress dmac) : base(action_list.Set_dmac)
+            {
+              this.dmac = dmac;
+            }
+            public override void OnApply(TopPipe_Args args)
+            {
+              Set_dmac(args, dmac);
+            }
+          }
         }
 
-        size = 1024;
-        default_action = Drop_action;
-      }
+        private int size { get; } = 1024;
+        private ActionBase default_action { get; } = new ActionBase.Drop_action_Action();
 
-      /**
-       * Send the packet to the CPU port
-       */
-      action Send_to_cpu()
-          { outCtrl.outputPort = CPU_OUT_PORT; }
+        public apply_result apply(TopPipe_Args args, IPv4Address nextHop)
+        {
+          apply_result result;
 
-      /**
-       * Check packet TTL and send to CPU if expired.
-       */
-      table check_ttl() {
-        key = { headers.ip.ttl: exact; }
-        actions = { Send_to_cpu; NoAction; }
-        const default_action = NoAction; // defined in core.p4
-      }
-
-      /**
-       * Set the destination MAC address of the packet
-       * @param dmac destination MAC address.
-       */
-      action Set_dmac(EthernetAddress dmac)
-      { headers.ethernet.dstAddr = dmac; }
-      /**
-       * Set the destination Ethernet address of the packet
-       * based on the next hop IP address.
-       * @param nextHop IPv4 address of next hop.
-       */
-      table dmac(in IPv4Address nextHop) {
-        key = { nextHop: exact; }
-        actions = {
-          Drop_action;
-          Set_dmac;
+          ActionBase RA = table.Lookup(nextHop);
+          if (RA == null)
+          {
+            result = new apply_result(false, default_action.Action);
+          }
+          else
+          {
+            result = new apply_result(true, RA.Action);
+          }
+          //evaluate_and_copy_in_RA_args(RA);
+          //execute(RA);
+          //copy_out_RA_args(RA);
+          //copy_out_table_args(args);
+          RA.OnApply(args);
+          return result;
         }
-        size = 1024;
-        default_action = Drop_action;
+      }
+      private dmac_t dmac = new dmac_t();
+
+      //action Set_smac(EthernetAddress smac)
+      // { headers.ethernet.srcAddr = smac; }
+      private static void Set_smac(TopPipe_Args args, EthernetAddress smac)
+      {
+        args.headers.ethernet.srcAddr = smac;
       }
 
-      /**
-       * Set the source MAC address.
-       * @param smac: source MAC address to use
-       */
-      action Set_smac(EthernetAddress smac)
-       { headers.ethernet.srcAddr = smac; }
+      //table smac() {
+      //  key = { outCtrl.outputPort: exact; }
+      //  actions = {
+      //    Drop_action
+      //    Set_smac;
+      //  }
+      //  size = 16;
+      //  default_action = Drop_action;
+      //}
+      private sealed class smac_t
+      {
+        private Library.ExactTable<PortId, ActionBase> table = new Library.ExactTable<PortId, ActionBase>();
 
-      /**
-       * Set the source mac address based on the output port.
-       */
-      table smac() {
-        key = { outCtrl.outputPort: exact; }
-        actions = {
-          Drop_action
-          Set_smac;
+        public enum action_list
+        {
+          Drop_action,
+          Set_smac
         }
-        size = 16;
-        default_action = Drop_action;
+        public sealed class apply_result : Library.apply_result<action_list>
+        {
+          public apply_result(bool hit, action_list action_run) : base(hit, action_run) { }
+        }
+        public abstract class ActionBase
+        {
+          public action_list Action { get; }
+          public ActionBase(action_list action)
+          {
+            this.Action = action;
+          }
+          public abstract void OnApply(TopPipe_Args args);
+          public sealed class Drop_action_Action : ActionBase
+          {
+            public Drop_action_Action() : base(action_list.Drop_action) { }
+            public override void OnApply(TopPipe_Args args)
+            {
+              Drop_action(args);
+            }
+          }
+          public sealed class Set_smac_Action : ActionBase
+          {
+            readonly EthernetAddress smac;
+            public Set_smac_Action(EthernetAddress smac) : base(action_list.Set_smac)
+            {
+              this.smac = smac;
+            }
+            public override void OnApply(TopPipe_Args args)
+            {
+              Set_smac(args, smac);
+            }
+          }
+        }
+
+        private int size { get; } = 16;
+        private ActionBase default_action { get; } = new ActionBase.Drop_action_Action();
+
+        public apply_result apply(TopPipe_Args args)
+        {
+          apply_result result;
+
+          ActionBase RA = table.Lookup(args.outCtrl.outputPort);
+          if (RA == null)
+          {
+            result = new apply_result(false, default_action.Action);
+          }
+          else
+          {
+            result = new apply_result(true, RA.Action);
+          }
+          //evaluate_and_copy_in_RA_args(RA);
+          //execute(RA);
+          //copy_out_RA_args(RA);
+          //copy_out_table_args(args);
+          RA.OnApply(args);
+          return result;
+        }
       }
+      private smac_t smac = new smac_t();
 
 
       public void apply(ref Parsed_packet headers,
@@ -316,27 +535,54 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
                         InControl inCtrl, // input port
                         out OutControl outCtrl)
       {
-        outCtrl = new OutControl();
+        outCtrl = new OutControl(); // NOTE instantiate all out params to satisfy csc
+        TopPipe_Args args = new TopPipe_Args(headers, parseError, inCtrl, outCtrl);
 
-        IPv4Address nextHop; // temporary variable
+        IPv4Address nextHop = new IPv4Address(); // Have to instantiate ref params, more compact than using out params and instantiating at bottom
 
         if (parseError != error.NoError)
         {
-          Drop_action(headers, parseError, inCtrl, outCtrl);  // invoke drop directly
+          Drop_action(args);
           return;
         }
 
-        ipv4_match.Apply(headers, parseError, inCtrl, outCtrl, out nextHop); // Match result will go into nextHop
-        if (outCtrl.outputPort == DROP_PORT) return;
+        ipv4_match.apply(args, ref nextHop);
+        if (args.outCtrl.outputPort == DROP_PORT) return;
 
-        check_ttl.Apply(headers, parseError, inCtrl, outCtrl);
-        if (outCtrl.outputPort == CPU_OUT_PORT) return;
+        check_ttl.apply(args);
+        if (args.outCtrl.outputPort == CPU_OUT_PORT) return;
 
-        dmac.Apply(headers, parseError, inCtrl, outCtrl, nextHop);
-        if (outCtrl.outputPort == DROP_PORT) return;
+        dmac.apply(args, nextHop);
+        if (args.outCtrl.outputPort == DROP_PORT) return;
 
-        smac.Apply(headers, parseError, inCtrl, outCtrl);
+        smac.apply(args);
+
+        // Copy params back out
+        headers = args.headers;
+        outCtrl = args.outCtrl;
       }
+    }
+
+    public sealed class TopDeparser : IControl, very_simple_model.Deparser<Parsed_packet>
+    {
+      Ck16 ck = new Ck16();
+      public void apply(ref Parsed_packet p, packet_out b)
+      {
+        b.emit(p.ethernet);
+        if (p.ip.isValid())
+        {
+          ck.clear();
+          p.ip.hdrChecksum = new bit16(0);
+          ck.update(p.ip);
+          p.ip.hdrChecksum = ck.get();
+        }
+        b.emit(p.ip);
+      }
+    }
+
+    public sealed class Vss_Example : very_simple_model.VSS<Parsed_packet>
+    {
+
     }
   }
 }
