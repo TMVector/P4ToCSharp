@@ -11,12 +11,15 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library
     private TKey[] Keys;
     private TResult[] Values;
 
-    public TResult this[TKey key]
+    public TResult Lookup(TKey key)
     {
-      get
-      {
+    }
+  }
+  public sealed class ExactTable<TKey, TResult>
+  {
+    public TResult Lookup(TKey key)
+    {
 
-      }
     }
   }
 }

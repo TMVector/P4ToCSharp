@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,14 +10,21 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library
   // FIXME make all these consistent and handle weird sizes either dynamically or by generating another struct type
   // FIXME is arithmetic defined for bit<N>? vss-example does ttl-1
 
-  public struct bit1
+  public interface IBitString
+  {
+    int BitWidth { get; }
+  }
+
+  public struct bit1 : IBitString
   {
     public const int BitWidth = 1;
+    int IBitString.BitWidth { get { return BitWidth; } }
 
 #if KIWI
     [Kiwi.HwWidth(BitWidth)]
 #endif
     public Byte Value { get; }
+
 
     public bit1(Byte val)
     {
@@ -33,10 +41,11 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library
     }
   }
 
-  public struct bit4
+  public struct bit4 : IBitString
   {
     public const int BitWidth = 4;
-    
+    int IBitString.BitWidth { get { return BitWidth; } }
+
 #if KIWI
     [Kiwi.HwWidth(BitWidth)]
 #endif
@@ -56,16 +65,26 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library
       return !(a == b);
     }
 
-    public static implicit operator bit4(int v) // FIXME is this the best way to handle InfInt conversion?
+    public static explicit operator bit4(uint v) // FIXME is this the best way to handle InfInt conversion?
     {
-      throw new NotImplementedException(); // FIXME implement
+      Debug.Assert(v < (1u << BitWidth));
+
+      return new bit4((byte)(v & ~(~1u << BitWidth)));
+    }
+    public static explicit operator bit4(int v) { return (bit4)(uint)v; }
+    public static explicit operator bit4(ushort v) { return (bit4)(uint)v; }
+
+    public static explicit operator int(bit4 v)
+    {
+      return v.Value;
     }
   }
 
-  public struct bit8
+  public struct bit8 : IBitString
   {
     public const int BitWidth = 8;
-    
+    int IBitString.BitWidth { get { return BitWidth; } }
+
     public Byte Value { get; }
 
     public bit8(Byte val)
@@ -83,10 +102,11 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library
     }
   }
 
-  public struct bit16
+  public struct bit16 : IBitString
   {
     public const int BitWidth = 16;
-    
+    int IBitString.BitWidth { get { return BitWidth; } }
+
     public UInt16 Value { get; }
 
     public bit16(UInt16 val)
@@ -102,12 +122,17 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library
     {
       return !(a == b);
     }
+
+    public static explicit operator bit16(int v)
+    {
+    }
   }
 
-  public struct bit32
+  public struct bit32 : IBitString
   {
     public const int BitWidth = 32;
-    
+    int IBitString.BitWidth { get { return BitWidth; } }
+
     public UInt32 Value { get; }
 
     public bit32(UInt32 val)
@@ -125,10 +150,11 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library
     }
   }
 
-  public struct bit48
+  public struct bit48 : IBitString
   {
     public const int BitWidth = 48;
-    
+    int IBitString.BitWidth { get { return BitWidth; } }
+
 #if KIWI
     [Kiwi.HwWidth(BitWidth)]
 #endif
@@ -149,10 +175,11 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch.Library
     }
   }
 
-  public struct bit64
+  public struct bit64 : IBitString
   {
     public const int BitWidth = 64;
-    
+    int IBitString.BitWidth { get { return BitWidth; } }
+
     public UInt64 Value { get; }
 
     public bit64(UInt64 val)

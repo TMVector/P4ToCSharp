@@ -18,20 +18,20 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
       public PortId inputPort;
     }
     
-    public static readonly PortId RECIRCULATE_INPUT_PORT = 0xD; // NOTE literal is InfInt, v=13, base=16
+    public static readonly PortId RECIRCULATE_INPUT_PORT = (PortId)0xD; // NOTE literal is InfInt, v=13, base=16
 
-    public static readonly PortId CPU_INPUT_PORT = 0xE;
+    public static readonly PortId CPU_INPUT_PORT = (PortId)0xE;
     
     public sealed class OutControl : IStruct
     {
       public PortId outputPort;
     }
     
-    public static readonly PortId DROP_PORT = 0xF;
+    public static readonly PortId DROP_PORT = (PortId)0xF;
 
-    public static readonly PortId CPU_OUT_PORT = 0xE;
+    public static readonly PortId CPU_OUT_PORT = (PortId)0xE;
 
-    public static readonly PortId RECIRCULATE_OUT_PORT = 0xD;
+    public static readonly PortId RECIRCULATE_OUT_PORT = (PortId)0xD;
     
     // NOTE as with externs, these interfaces won't be generated, they will be found in a referenced DLL and used.
     // However, for parser, controls, packages, P4 doesn't use explicit implements, so we need to check every definition against the relevant declarations and explicitly implement in C#
@@ -55,7 +55,7 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
                  packet_out b);
     }
     
-    public abstract class VSS<H> : Library.P4Program, IPackage // User must provide implementation of IPackages (should the skeletons be generated as separate source?)
+    public abstract class VSS<H> : Library.P4Program, IPackage where H : class // User must provide implementation of IPackages (should the skeletons be generated as separate source?)
     {
       Parser<H> p { get; }
       Pipe<H> map { get; }
@@ -69,9 +69,26 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
         this.d = d;
       }
 
-      public override void process_packet(int in_port, byte[] packet)
+      public override void process_packet(int in_port, byte[] packet_data)
       {
-        throw new NotImplementedException();
+        // Provided by the user - NOT generated
+        var inCtrl = new InControl() { inputPort = (PortId)in_port };
+        var outCtrl = new OutControl();
+        packet_in packetIn = new packet_in(packet_data);
+        H headers = null; // FIXME is this okay?
+        error err = error.NoError;
+        try
+        {
+          p.apply(packetIn, out headers); // FIXME where does the error come from? Catch?
+        } catch (error ex)
+        {
+          err = ex;
+        }
+        map.apply(ref headers, err, inCtrl, out outCtrl);
+        packet_out packetOut = new packet_out();
+        d.apply(ref headers, packetOut);
+
+        this.send_packet((int)outCtrl.outputPort, packetOut.RawData, packetOut.Length);
       }
     }
     
@@ -82,16 +99,16 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
         throw new NotImplementedException();
       }
       
-      void clear()
+      public void clear()
       {
         throw new NotImplementedException();
       }
 
       // FIXME checksum unit handles both bitstrings and headers - perhaps a common interface could help? Or let overrides and generics match?
-      void update(HeaderBase dt);
-      void update(IBitString dt);
+      public void update(HeaderBase dt);
+      public void update(IBitString dt);
       
-      bit16 get()
+      public bit16 get()
       {
         throw new NotImplementedException();
       }

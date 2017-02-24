@@ -19,22 +19,33 @@ namespace HandConverted
 
     // NOTE this isn't generated, this should be checked against a DLL (exists, matches) and that type should be used throughout generated code
     // extern
-    public interface packet_in : IExternObject
+    public class packet_in : IExternObject
     {
+      public readonly byte[] RawData;
+      public readonly int Length;
+
+      public packet_in(byte[] data)
+      {
+        RawData = data;
+      }
+      
       // FIXME can this also be used with structs?
       // NOTE should set validy=true if succeeds
-      void extract<T>(out T hdr) where T : HeaderBase; // NOTE this constraint on T is not in the JSON - will this need to be a special case in the matching?
-      void extract<T>(out T variableSizeHeader, bit32 variableFieldSizeInBits) where T : HeaderBase;
-      T lookahead<T>() where T : HeaderBase;
-      void advance(bit32 sizeInBits);
-      bit32 length();
+      public void extract<T>(out T hdr) where T : HeaderBase; // NOTE this constraint on T is not in the JSON - will this need to be a special case in the matching? (this is in an extern object, so user can specifiy?)
+      public void extract<T>(out T variableSizeHeader, bit32 variableFieldSizeInBits) where T : HeaderBase;
+      public T lookahead<T>() where T : HeaderBase;
+      public void advance(bit32 sizeInBits);
+      public bit32 length() { return new bit32((uint)Length); }
     }
 
     // extern
-    public interface packet_out : IExternObject
+    public class packet_out : IExternObject // FIXME because this is an extern object, are its copy semantics C# like?
     {
-      void emit<T>(T hdr) where T : HeaderBase;
-      void emit<T>(bool condition, T data) where T : HeaderBase;
+      public byte[] RawData;
+      public int Length;
+
+      public void emit<T>(T hdr) where T : HeaderBase;
+      public void emit<T>(bool condition, T data) where T : HeaderBase;
     }
 
     // extern

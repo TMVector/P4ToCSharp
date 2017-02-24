@@ -65,12 +65,12 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
 
       public override void Extract(byte[] arr, uint offset)
       {
-        version = (byte)BitHelper.ExtractBits(arr, offset * 8, 4);
-        ihl = (byte)BitHelper.ExtractBits(arr, offset * 8 + 4, 4);
+        version = (PortId)BitHelper.ExtractBits(arr, offset * 8, 4);
+        ihl = (PortId)BitHelper.ExtractBits(arr, offset * 8 + 4, 4);
         diffserv = BitHelper.Extract8(arr, offset + 1);
         totalLen = BitHelper.Extract16(arr, offset + 2);
         identification = BitHelper.Extract16(arr, offset + 4);
-        flags = (byte)BitHelper.ExtractBits(arr, offset + 48, 3);
+        flags = (bit3)BitHelper.ExtractBits(arr, offset + 48, 3);
         fragOffset = BitHelper.ExtractBits(arr, offset + 51, 13);
         ttl = BitHelper.Extract8(arr, offset + 8);
         protocol = BitHelper.Extract8(arr, offset + 9);
@@ -136,11 +136,11 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
       private void parse_ipv4(packet_in b, Parsed_packet p)
       {
         b.extract(out p.ip);
-        verify.apply(p.ip.version == 4, new IPv4IncorrectVersion()); // FIXME how are we handling errors? D: NOTE P4 gives it as error.IPV4IncorrectVersion
-        verify.apply(p.ip.ihl == 5, new IPv4OptionsNotSupported());
+        verify.apply(p.ip.version == (bit4)4, new IPv4IncorrectVersion()); // FIXME how are we handling errors? D: NOTE P4 gives it as error.IPV4IncorrectVersion
+        verify.apply(p.ip.ihl == (bit4)5, new IPv4OptionsNotSupported());
         ck.clear();
         ck.update(p.ip);
-        verify.apply(ck.get() == new bit16(0), new IPv4ChecksumError());
+        verify.apply(ck.get() == (bit16)0, new IPv4ChecksumError());
         // transition accept
       }
     }
@@ -572,7 +572,7 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
         if (p.ip.isValid())
         {
           ck.clear();
-          p.ip.hdrChecksum = new bit16(0);
+          p.ip.hdrChecksum = (bit16)0;
           ck.update(p.ip);
           p.ip.hdrChecksum = ck.get();
         }
