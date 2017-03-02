@@ -17,6 +17,10 @@ module JsonTypes =
   // Original IR uses a struct with original name and source info, but only name is serialised
   type ID = string
 
+  // Helpful interfaces
+  type INamed =
+    abstract member Name : ID
+
   // Marker interfaces
   type INode = interface end
   type IDeclaration = inherit INode
@@ -74,6 +78,8 @@ module JsonTypes =
     interface IDeclaration
     member this.name : ID = name
     member this.declid : int = declid
+    interface INamed with
+      member this.Name = this.name
 
   [<AbstractClass>]
   type Type_Declaration(node_id, node_type, name, declid) =
@@ -81,6 +87,8 @@ module JsonTypes =
     interface IDeclaration
     member this.name : ID = name
     member this.declid : int = declid
+    interface INamed with
+      member this.Name = this.name
 
   [<AbstractClass>]
   type Expression(node_id, node_type, type_) =
@@ -97,12 +105,16 @@ module JsonTypes =
     inherit Node(node_id, node_type)
     member this.name : ID = name
     member this.absolute : bool = absolute
+    interface INamed with
+      member this.Name = this.name
 
   [<Sealed>]
   type Annotation(node_id, node_type, name, expr) =
     inherit Node(node_id, node_type)
     member this.name : ID = name
     member this.expr : Vector<Expression> = expr
+    interface INamed with
+      member this.Name = this.name
 
   [<Sealed>]
   type Annotations(node_id, node_type, annotations) =
@@ -838,6 +850,8 @@ module JsonTypes =
     member this.annotations : Annotations = annotations
     [<JsonProperty("type")>]
     member this.type_ : Type_StructLike option = type_ // type; if != nullptr
+    interface INamed with
+      member this.Name = this.name
 
   [<Sealed>]
   type Header(node_id, node_type, type_name, name, annotations, type_) =
@@ -871,6 +885,8 @@ module JsonTypes =
   type NamedRef(node_id, node_type, type_, name) =
     inherit Expression(node_id, node_type, type_)
     member this.name : ID = name
+    interface INamed with
+      member this.Name = this.name
 
   type If(node_id, node_type, type_, pred, ifTrue, ifFalse) =
     inherit Expression(node_id, node_type, type_)
@@ -882,18 +898,24 @@ module JsonTypes =
   type NamedCond(node_id, node_type, type_, pred, ifTrue, ifFalse, name) =
     inherit If(node_id, node_type, type_, pred, ifTrue, ifFalse)
     member this.name : string = name
+    interface INamed with
+      member this.Name = this.name
 
   [<Sealed>]
   type Apply(node_id, node_type, type_, name, actions) =
     inherit Expression(node_id, node_type, type_)
     member this.name : ID = name
     member this.actions : NameMap<Vector<Expression>> = actions
+    interface INamed with
+      member this.Name = this.name
 
   [<Sealed>]
   type Primitive(node_id, node_type, type_, name, operands) =
     inherit Operation(node_id, node_type, type_)
     member this.name : string = name
     member this.operands : Vector<Expression> = operands
+    interface INamed with
+      member this.Name = this.name
 
   [<Sealed>]
   type FieldList(node_id, node_type, name, payload, annotations, fields) =
@@ -902,6 +924,8 @@ module JsonTypes =
     member this.payload : bool = payload
     member this.annotations : Annotations = annotations
     member this.fields : Vector<Expression> = fields
+    interface INamed with
+      member this.Name = this.name
 
   [<Sealed>]
   type FieldListCalculation(node_id, node_type, name, input, algorithm, output_width, annotations) =
@@ -911,6 +935,8 @@ module JsonTypes =
     member this.algorithm : ID = algorithm
     member this.output_width : int = output_width
     member this.annotations : Annotations = annotations
+    interface INamed with
+      member this.Name = this.name
 
   type CalculatedField_update_or_verify =
     { update : bool;
@@ -940,6 +966,8 @@ module JsonTypes =
     member this.parse_error : ID = parse_error
     member this.drop : bool = drop
     member this.annotations : Annotations = annotations
+    interface INamed with
+      member this.Name = this.name
 
   [<Sealed>]
   type ParserException(node_id, node_type) =
@@ -950,6 +978,8 @@ module JsonTypes =
     inherit Node(node_id, node_type)
     member this.name : ID = name
     member this.annotations : Annotations = annotations
+    interface INamed with
+      member this.Name = this.name
 
   [<AbstractClass>]
   type Stateful(node_id, node_type, name, annotations, table, direct, saturating, instance_count) =
@@ -996,6 +1026,8 @@ module JsonTypes =
     member this.name : ID = name
     member this.read : bool = read
     member this.write : bool = write
+    interface INamed with
+      member this.Name = this.name
 
   [<Sealed>]
   type ActionFunction(node_id, node_type, name, action, args, annotations) =
@@ -1004,6 +1036,8 @@ module JsonTypes =
     member this.action : Vector<Primitive> = action
     member this.args : vector<ActionArg> = args
     member this.annotations : Annotations = annotations
+    interface INamed with
+      member this.Name = this.name
 
   [<Sealed>]
   type ActionProfile(node_id, node_type, name, annotations, selector, actions, size) =
@@ -1036,6 +1070,8 @@ module JsonTypes =
     member this.default_action_args : Vector<Expression> option = default_action_args // if != nullptr
     member this.properties : TableProperties = properties
     member this.annotations : Annotations = annotations
+    interface INamed with
+      member this.Name = this.name
 
   [<Sealed>]
   type V1Control(node_id, node_type, name, code, annotations) =
@@ -1043,6 +1079,8 @@ module JsonTypes =
     member this.name : ID = name
     member this.code : Vector<Expression> = code
     member this.annotations : Annotations = annotations
+    interface INamed with
+      member this.Name = this.name
 
   [<Sealed>]
   type V1Program(node_id, node_type, scope) =
@@ -1055,6 +1093,8 @@ module JsonTypes =
     member this.name : ID = name
     member this.as_metadata : Type_Struct = as_metadata
     member this.as_header : Type_Header option = as_header // if != nullptr
+    interface INamed with
+      member this.Name = this.name
 
   [<Sealed>]
   type IntMod(node_id, node_type, type_, expr, width) =
