@@ -166,9 +166,9 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
 
       //action Drop_action()
       //{ outCtrl.outputPort = DROP_PORT; }
-      private static void Drop_action(TopPipe_Args args) // NOTE these params are ALL from TopPipe, not the action itself...
+      private static void Drop_action(TopPipe_Args TopPipe_Args) // NOTE these params are ALL from TopPipe, not the action itself...
       {
-        args.outCtrl.outputPort = DROP_PORT; // NOTE will need to add `arg.` to relevant identifiers
+        TopPipe_Args.outCtrl.outputPort = DROP_PORT; // NOTE will need to add `arg.` to relevant identifiers
       }
 
       //action Set_nhop(out IPv4Address nextHop, // NOTE directioned parameters must be bound in the actions list specification (so not by api?)
