@@ -15,10 +15,24 @@ open P4ToCSharp.App.IR
 open P4ToCSharp.App.CSharpTypes
 open P4ToCSharp.App.Util
 
-type variableMap = { ArgsParameter : Syntax.ParameterSyntax option;
-                     Map : Map<JsonTypes.ID, Syntax.ExpressionSyntax> }
-  with
-  static member empty = { ArgsParameter=None; Map=Map.empty }
+// This allows us to do name resolution for items not in the currently considered AST item
+type ScopeInfo =
+  { GetExprForName : JsonTypes.ID -> Syntax.ExpressionSyntax option; // For custom name resolution
+    GetP4ForName : JsonTypes.ID -> JsonTypes.Node option; // For type inference, etc. FIXME would access to C#AST be better? harder though...
+    ScopeParameterList : Syntax.ParameterSyntax seq; // This is for parameters that are effectively closures of control block arguments
+    GlobalScope : ScopeInfo option } with
+  member this.GetExprForPath(path : JsonTypes.Path) =
+    match (path.absolute, this.GlobalScope) with
+    | true, Some globalScope -> globalScope.GetExprForName path.name
+    | false, _ -> this.GetExprForName path.name
+    | true, None -> failwith "No global scope available" // We don't return None if no global scope - this is an error
+  member this.GetP4ForPath(path : JsonTypes.Path) =
+    match (path.absolute, this.GlobalScope) with
+    | true, Some globalScope -> globalScope.GetP4ForName path.name
+    | false, _ -> this.GetP4ForName path.name
+    | true, None -> failwith "No global scope available" // We don't return None if no global scope - this is an error
+  member this.AppendScopeParameters([<System.ParamArray>] parameters : Syntax.ParameterSyntax[]) =
+    { this with ScopeParameterList=Seq.append this.ScopeParameterList parameters}
 
 let csFieldNameOf p4Name =
   p4Name // FIXME any changes needed? Illegal chars etc
@@ -40,6 +54,10 @@ let tokenList (ts:SK seq) =
   |> SF.TokenList
 let paramList (arr : Syntax.ParameterSyntax seq) =
   SF.ParameterList(SF.SeparatedList(arr))
+let idMemberAccess e (ids:seq<SyntaxToken>) =
+  ids
+  |> Seq.map SF.IdentifierName
+  |> Seq.fold (fun cur id -> SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, cur, id) :> Syntax.ExpressionSyntax) e
 let eMemberAccess e (ids:seq<string>) =
   ids
   |> Seq.map SF.IdentifierName
@@ -252,8 +270,8 @@ let saveToFile (compilationUnit : Syntax.CompilationUnitSyntax) (filename:string
   use writer = new System.IO.StreamWriter(filename)
   formattedNode.WriteTo(writer)
 
-let rec ofExpr (varMap:variableMap) (expectedType : JsonTypes.Type option) (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
-  let ofExpr = ofExpr varMap
+let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : JsonTypes.Type option) (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
+  let ofExpr = ofExpr scopeInfo
   match e with
   | :? JsonTypes.Operation_Unary as op ->
       match op with
@@ -316,11 +334,9 @@ let rec ofExpr (varMap:variableMap) (expectedType : JsonTypes.Type option) (e : 
       | :? JsonTypes.StringLiteral as s -> upcast SF.LiteralExpression(SK.StringLiteralExpression, SF.Literal(s.value))
       | _ -> failwithf "Unhandled subtype of JsonTypes.Literal: %s" (lit.GetType().Name)
   | :? JsonTypes.PathExpression as p ->
-      let varName = p.path.name
-      if varMap.Map.ContainsKey varName then // Check if we should use the property of the closure class instead of just the unqualified variable name
-        upcast varMap.Map.[varName]
-      else
-        upcast SF.IdentifierName(varName)
+      match scopeInfo.GetExprForPath p.path with
+      | Some expr -> expr
+      | None -> upcast SF.IdentifierName(p.path.name) // Try just the name, so we don't have to add trivial mappings to the scopeInfo
   | :? JsonTypes.TypeNameExpression as t -> upcast SF.ParseTypeName(t.typeName.path.name) // FIXME need to make sure the name is mapped to csharp equiv?
   | :? JsonTypes.DefaultExpression -> failwith "JsonTypes.DefaultExpression not handled yet" // FIXME
   | :? JsonTypes.This -> failwith "JsonTypes.this not handled yet" // FIXME is this the same as in C#?
@@ -377,7 +393,7 @@ and nameOfType (t : JsonTypes.Type) : Syntax.NameSyntax =
   | :? JsonTypes.Type_Specialized as ts ->
       upcast SF.GenericName(ts.baseType.path.name).AddTypeArgumentListArguments(ts.arguments.vec |> Seq.map ofType |> Seq.toArray)
   | _ -> failwithf "Unhandled subtype of JsonTypes.Type: %s in nameOfType" (t.GetType().Name)
-and statementOfDeclaration (varMap:variableMap) (n : JsonTypes.Declaration) : Syntax.StatementSyntax =
+and statementOfDeclaration (scopeInfo:ScopeInfo) (n : JsonTypes.Declaration) : Syntax.StatementSyntax =
   match n with
   | :? JsonTypes.Parameter
   | :? JsonTypes.StructField
@@ -389,46 +405,46 @@ and statementOfDeclaration (varMap:variableMap) (n : JsonTypes.Declaration) : Sy
   | :? JsonTypes.P4Action -> failwithf "Type %s is not valid in statementToDeclaration" (n.GetType().Name)
   | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
   | :? JsonTypes.Declaration_Variable as v ->
-      upcast SF.LocalDeclarationStatement(variableDeclaration v.name (ofType v.type_) (v.initializer |> Option.map (ofExpr varMap (Some v.type_))))
+      upcast SF.LocalDeclarationStatement(variableDeclaration v.name (ofType v.type_) (v.initializer |> Option.map (ofExpr scopeInfo (Some v.type_))))
   | :? JsonTypes.Declaration_Constant as c ->
       // Local constants are just handled like variables
-      upcast SF.LocalDeclarationStatement(variableDeclaration c.name (ofType c.type_) (Some (ofExpr varMap (Some c.type_) c.initializer)))
+      upcast SF.LocalDeclarationStatement(variableDeclaration c.name (ofType c.type_) (Some (ofExpr scopeInfo (Some c.type_) c.initializer)))
   | :? JsonTypes.Declaration_Instance -> failwith "JsonTypes.Declaration_Instance not handled yet" // FIXME
   | :? JsonTypes.Function -> failwith "JsonTypes.Function not handled yet" // FIXME
   | _ ->
       // JsonTypes.Declaration is not abstract or sealed, so it could also be an unimplemented class here
       if n.Node_Type <> "Declaration" then failwithf "Node_Type %s (subclass of JsonTypes.Declaration) not handled" n.Node_Type
       else failwith "JsonTypes.Declaration not handled yet" // FIXME
-and ofBlockStatement (varMap:variableMap) (n : JsonTypes.BlockStatement) : Syntax.BlockSyntax =
+and ofBlockStatement (scopeInfo:ScopeInfo) (n : JsonTypes.BlockStatement) : Syntax.BlockSyntax =
   // If we are given a closureClass, prefer to use variables from that argument, though they won't yet be qualified as such
-  let statements = n.components.vec |> Seq.map (ofStatOrDecl varMap)
+  let statements = n.components.vec |> Seq.map (ofStatOrDecl scopeInfo)
   SF.Block(statements)
-and ofStatement (varMap:variableMap) (n : JsonTypes.Statement) : Syntax.StatementSyntax =
-  let ofExpr = ofExpr varMap
+and ofStatement (scopeInfo:ScopeInfo) (n : JsonTypes.Statement) : Syntax.StatementSyntax =
+  let ofExpr = ofExpr scopeInfo
   match n with
-  | :? JsonTypes.BlockStatement as block -> upcast ofBlockStatement varMap block
+  | :? JsonTypes.BlockStatement as block -> upcast ofBlockStatement scopeInfo block
   | :? JsonTypes.ExitStatement -> failwith "JsonTypes.ExitStatement not handled yet" // FIXME
   | :? JsonTypes.ReturnStatement -> failwith "JsonTypes.ReturnStatement not handled yet" // FIXME
   | :? JsonTypes.EmptyStatement -> failwith "JsonTypes.EmptyStatement not handled yet" // FIXME
   | :? JsonTypes.AssignmentStatement as a ->
       upcast SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, ofExpr None a.left, ofExpr None a.right))
   | :? JsonTypes.IfStatement as ifs ->
-      let rv = SF.IfStatement(ofExpr None ifs.condition, ofStatement varMap ifs.ifTrue)
+      let rv = SF.IfStatement(ofExpr None ifs.condition, ofStatement scopeInfo ifs.ifTrue)
       let rv =
         match ifs.ifFalse with
-        | Some iff -> rv.WithElse(SF.ElseClause(ofStatement varMap iff))
+        | Some iff -> rv.WithElse(SF.ElseClause(ofStatement scopeInfo iff))
         | None -> rv
       upcast rv
   | :? JsonTypes.MethodCallStatement as mc ->
       upcast SF.ExpressionStatement(ofExpr None (mc.methodCall))
   | :? JsonTypes.SwitchStatement -> failwith "JsonTypes.SwitchStatement not handled yet" // FIXME handle switch statements
   | _ -> failwithf "Unhandled subtype of JsonTypes.Statement: %s" (n.GetType().Name)
-and ofStatOrDecl (varMap:variableMap) (n : JsonTypes.StatOrDecl) =
+and ofStatOrDecl (scopeInfo:ScopeInfo) (n : JsonTypes.StatOrDecl) =
   match n with
-  | :? JsonTypes.Statement as statement -> ofStatement varMap statement
-  | :? JsonTypes.Declaration as decl -> statementOfDeclaration varMap decl
+  | :? JsonTypes.Statement as statement -> ofStatement scopeInfo statement
+  | :? JsonTypes.Declaration as decl -> statementOfDeclaration scopeInfo decl
   | _ -> failwithf "Unhandled subtype of JsonTypes.StatOrDecl: %s" (n.GetType().Name)
-and declarationOfNode (varMap:variableMap) (n : JsonTypes.Node) : Transformed.Declaration =
+and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Declaration =
   match n with
   | :? JsonTypes.Type_Declaration as tyDec->
       match tyDec with
@@ -531,7 +547,7 @@ and declarationOfNode (varMap:variableMap) (n : JsonTypes.Node) : Transformed.De
             match se with
             | None -> Seq.empty
             | Some e ->
-              match ofExpr varMap None e with // FIXME handling this one case isn't enough. E.g. switch, or even arbitrary expressions?
+              match ofExpr scopeInfo None e with // FIXME handling this one case isn't enough. E.g. switch, or even arbitrary expressions?
               | :? Syntax.IdentifierNameSyntax as ins -> SF.InvocationExpression(ins).WithArguments(stateArgs) :> Syntax.ExpressionSyntax
               | expr -> expr
               |> SF.ExpressionStatement |> Seq.singleton |> Seq.cast
@@ -539,7 +555,7 @@ and declarationOfNode (varMap:variableMap) (n : JsonTypes.Node) : Transformed.De
             p.states.vec
             |> Seq.map (fun state -> SF.MethodDeclaration(voidType, state.name)
                                        .WithParameters(stateParams)
-                                       .WithBlockBody(Seq.map (ofStatOrDecl varMap) state.components.vec
+                                       .WithBlockBody(Seq.map (ofStatOrDecl scopeInfo) state.components.vec
                                                       |> Seq.append <| selectStatement state.selectExpression |> Seq.cast)) // TODO FIXME selectExpression could be just a pathExpression - turn into a method call
           SF.ClassDeclaration(className)
             .AddBaseListTypes(parserBaseBaseType)
@@ -563,7 +579,7 @@ and declarationOfNode (varMap:variableMap) (n : JsonTypes.Node) : Transformed.De
               |> Seq.map (fun cp -> SF.PropertyDeclaration(cp.Type, cp.Identifier).WithAccessors(Property.Get))
               |> Seq.cast |> Seq.toArray
             ctor, ctorParamProperties
-          let apply, argsClass, argsVariableMap =
+          let apply, argsClass, thisScope =
             let applyParams =
               pc.type_.applyParams.parameters.vec
               |> Seq.map (fun param -> (param, (parameter ofType param).WithDirection(param.direction)))
@@ -585,18 +601,21 @@ and declarationOfNode (varMap:variableMap) (n : JsonTypes.Node) : Transformed.De
               SF.ClassDeclaration(argsClassName)
                 .AddMembers(properties)
                 .AddMembers(ctor)
-            let argsVariableMap : variableMap =
+            let thisScope : ScopeInfo =
               let map =
                 applyParams // FIXME is it really okay to use the args closure type name as the param name too?
-                |> Seq.map (fun (p,cp) -> (p.name, SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, SF.IdentifierName(argsClass.Identifier), SF.IdentifierName(cp.Identifier)) :> Syntax.ExpressionSyntax))
+                |> Seq.map (fun (p,cp) -> (p.name, idMemberAccess (SF.IdentifierName(argsClass.Identifier)) [cp.Identifier]))
                 |> Map.ofSeq
-              { ArgsParameter=(Some <| SF.Parameter(argsClass.Identifier).WithType(SF.IdentifierName(argsClass.Identifier))); Map=map }
+              let getExpr name =
+                if map.ContainsKey name then Some map.[name] else scopeInfo.GetExprForName name // FIXME could move explicit parent check to helper scope building method
+              let argsParam = SF.Parameter(argsClass.Identifier).WithType(SF.IdentifierName(argsClass.Identifier))
+              { scopeInfo.AppendScopeParameters(argsParam) with GetExprForName=getExpr }
             let apply = SF.MethodDeclaration(voidType, "apply")
                           .WithParameters(applyParams |> Seq.map snd)
-                          .WithBody(ofBlockStatement argsVariableMap pc.body) // We need to explicitly pass argsClass closure to all actions, etc.
-            apply, argsClass, argsVariableMap
+                          .WithBody(ofBlockStatement thisScope pc.body) // We need to explicitly pass argsClass closure to all actions, etc.
+            apply, argsClass, thisScope
           let locals = // NOTE locals can access ctor params through properties, and apply args through the argsClass which is passed to each action, etc.
-            let usings, decls = pc.controlLocals.vec |> Seq.map (declarationOfNode argsVariableMap) |> Transformed.partition
+            let usings, decls = pc.controlLocals.vec |> Seq.map (declarationOfNode thisScope) |> Transformed.partition
             if Seq.isEmpty usings |> not then failwithf "Usings declared within P4Control - currently unhandled" // FIXME E.g. Type_Typedef - could be solved by scoping the control in its own namespace?
             decls |> Seq.toArray
           SF.ClassDeclaration(className)
@@ -649,10 +668,10 @@ and declarationOfNode (varMap:variableMap) (n : JsonTypes.Node) : Transformed.De
             key
             |> Seq.mapi (fun i (lutTy, kExpr) -> field lutTy (sprintf "table%d" i) (SF.ObjectCreationExpression(lutTy)))
           let actionOfExpr (a:JsonTypes.Expression) =
-            let expr = ofExpr varMap None a
-            let name = expr.ToString().Replace('.', '_')
-            assert not (name.Contains(".") || name.Contains("-") || name.Contains("(") || name.Contains(")") || name.Contains("<") || name.Contains(">"))
-            (name, expr) // FIXME get a name usable in class names/enum; get a cs expression for the method
+            let expr = ofExpr scopeInfo None a // get a cs expression for the method
+            let name = expr.ToString().Replace('.', '_') // get a name usable in class names/enum
+            assert not (name.Contains(".") || name.Contains("-") || name.Contains("(") || name.Contains(")") || name.Contains("<") || name.Contains(">") || name.Contains(" "))
+            (name, expr)
           let actions =
             pt.properties.GetPropertyByName<JsonTypes.ActionList>("actions")
             |> Option.map (fun al -> al.actionList.vec |> Seq.map (fun ale -> ale.expression))
@@ -683,7 +702,7 @@ and declarationOfNode (varMap:variableMap) (n : JsonTypes.Node) : Transformed.De
                             .WithBlockBody([])) // FIXME set readonly fields
               .AddMembers(SF.MethodDeclaration(voidType, "OnApply")
                             .WithModifiers(tokenList [SK.PublicKeyword; SK.OverrideKeyword])
-                            .WithParameters(Seq.append (Option.toArray varMap.ArgsParameter) outParams)
+                            .WithParameters(Seq.append scopeInfo.ScopeParameterList outParams) // Add args closure parameter if needed, e.g. for accessing a control block's arguments
                             .WithBlockBody([SF.ExpressionStatement(SF.InvocationExpression(expr, argList []))])) // TODO FIXME call the method with all its parameters                  
           let actionBase =
             SF.ClassDeclaration("ActionBase")
@@ -695,12 +714,12 @@ and declarationOfNode (varMap:variableMap) (n : JsonTypes.Node) : Transformed.De
                             .WithBlockBody([ assignment (thisAccess "Action") (SF.IdentifierName("action")); ]))
               .AddMembers(SF.MethodDeclaration(voidType, "OnApply")
                             .WithModifiers(tokenList [SK.PublicKeyword; SK.AbstractKeyword])
-                            .WithParameters(Seq.append (Option.toArray varMap.ArgsParameter) outParams)
+                            .WithParameters(Seq.append scopeInfo.ScopeParameterList outParams) // Add args closure parameter if needed, e.g. for accessing a control block's arguments
                             .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
               .AddMembers(actions |> Seq.map actionClassOf |> Seq.cast |> Seq.toArray)
           let size =
             pt.properties.GetPropertyByName<JsonTypes.ExpressionValue>("size")
-            |> Option.map (fun size -> field int32Name "size" (ofExpr varMap (Some int32Name) size.expression))
+            |> Option.map (fun size -> field int32Name "size" (ofExpr scopeInfo (Some int32Name) size.expression))
           let defaultAction =
             pt.properties.GetPropertyByName<JsonTypes.ExpressionValue>("default_action")
             |> Option.map (fun da -> actionOfExpr da.expression)
@@ -729,11 +748,11 @@ and declarationOfNode (varMap:variableMap) (n : JsonTypes.Node) : Transformed.De
             let parameters =
               a.parameters.parameters.vec
               |> Seq.map (fun p -> SF.Parameter(SF.Identifier(p.name)).WithType(ofType p.type_).WithDirection(p.direction))
-            Seq.append (Option.toArray varMap.ArgsParameter) parameters // Add args closure parameter if needed
+            Seq.append scopeInfo.ScopeParameterList parameters // Add args closure parameters if needed, e.g. for accessing a control block's arguments
           SF.MethodDeclaration(voidType, a.name)
             .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword])
             .WithParameters(parameters)
-            .WithBody(ofBlockStatement varMap a.body)
+            .WithBody(ofBlockStatement scopeInfo a.body)
           |> Transformed.declOf
       | :? JsonTypes.Declaration_Variable -> failwith "JsonTypes.Declaration_Variable not handled yet" // FIXME
       | :? JsonTypes.Declaration_Constant -> failwith "JsonTypes.Declaration_Constant not handled yet" // FIXME
@@ -741,7 +760,7 @@ and declarationOfNode (varMap:variableMap) (n : JsonTypes.Node) : Transformed.De
           // TODO FIXME How to handle this? Is this where we need to start interacting with the device? Are these always packages?
           // FIXME handle initialiser
           let ty = ofType di.type_
-          field ty (csFieldNameOf di.name) (constructorCall ty (Seq.map (ofExpr varMap None) di.arguments.vec))
+          field ty (csFieldNameOf di.name) (constructorCall ty (Seq.map (ofExpr scopeInfo None) di.arguments.vec))
           //failwith "JsonTypes.Declaration_Instance not handled yet" // FIXME
           |> Transformed.declOf
       | :? JsonTypes.Function -> failwith "JsonTypes.Function not handled yet" // FIXME
@@ -755,9 +774,17 @@ and declarationOfNode (varMap:variableMap) (n : JsonTypes.Node) : Transformed.De
       |> Transformed.declOf
   | _ -> failwithf "Unhandled subtype of JsonTypes.Node in declarationOfNode: %s" (n.GetType().Name) // FIXME check exhaustive
 and ofProgram (prog : JsonTypes.P4Program) : Syntax.CompilationUnitSyntax =
+  let scope : ScopeInfo =
+    let map = Map.ofSeq prog.declarations.declarations
+    let globalScope =
+      { GetExprForName=(fun name -> None);  // TODO FIXME how are we going to generate expressions for global scope? D: NEED TO DO THIS
+        GetP4ForName=(map.TryFind >> Option.cast);
+        ScopeParameterList=Array.empty;
+        GlobalScope=None; }
+    { globalScope with GlobalScope = Some globalScope }
   let usings, declarations =
     prog.declarations.vec
-    |> Seq.map (declarationOfNode variableMap.empty)
+    |> Seq.map (declarationOfNode scope)
     |> Transformed.partition
   SF.CompilationUnit()
     .AddUsings(usings |> Seq.toArray)
