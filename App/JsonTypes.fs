@@ -43,6 +43,8 @@ module JsonTypes =
     interface INode
     member this.Node_ID : int = node_id
     member this.Node_Type : string = node_type
+    abstract member NamedChild : string -> Node option
+    default this.NamedChild(name) = None
 
   type Vector<'T>(node_id, node_type, vec) =
     inherit Node(node_id, node_type)
@@ -52,6 +54,9 @@ module JsonTypes =
   type IndexedVector<'T>(node_id, node_type, vec, declarations) =
     inherit Vector<'T>(node_id, node_type, vec)
     member this.declarations : OrderedMap<string, IDeclaration> = declarations // value is json dictionary
+    member this.declarationsMap = declarations |> Map.ofSeq
+    override this.NamedChild(name) =
+      this.declarationsMap.TryFind name |> Option.cast
 
   [<Sealed>]
   type NameMap<'T>(node_id, node_type, symbols) =
@@ -302,6 +307,8 @@ module JsonTypes =
       |> Seq.filter (fun prop -> prop.name = name)
       |> Seq.cast<'a>
       |> Seq.tryPick Some
+    override this.NamedChild(name) =
+      this.properties.NamedChild(name)
 
   [<Sealed>]
   type P4Table(node_id, node_type, name, declid, annotations, parameters, properties) =
@@ -309,6 +316,8 @@ module JsonTypes =
     member this.annotations : Annotations = annotations
     member this.parameters : ParameterList = parameters
     member this.properties : TableProperties = properties
+    override this.NamedChild(a) =
+      this.properties.NamedChild(a)
 
   [<Sealed>]
   type Type_Table(node_id, node_type, table) =
@@ -646,6 +655,8 @@ module JsonTypes =
     member this.constructorParams : ParameterList = constructorParams
     member this.controlLocals : IndexedVector<Declaration> = controlLocals
     member this.body : BlockStatement = body
+    override this.NamedChild(a) =
+      this.controlLocals.NamedChild(a)
 
   [<Sealed>]
   type P4Action(node_id, node_type, name, declid, annotations, parameters, body) =
@@ -716,6 +727,8 @@ module JsonTypes =
   type P4Program(node_id, node_type, declarations) =
     inherit Node(node_id, node_type)
     member this.declarations : IndexedVector<Node> = declarations
+    override this.NamedChild(a) =
+      this.declarations.NamedChild(a)
 
   [<Sealed>]
   type ExitStatement(node_id, node_type) =
