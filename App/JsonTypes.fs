@@ -625,7 +625,7 @@ module JsonTypes =
   type ParserState(node_id, node_type, name, declid, annotations, components, selectExpression) = 
     inherit Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
-    member this.components : IndexedVector<StatOrDecl> = components
+    member this.components : IndexedVector<StatOrDecl> = components // NOTE parser internals are not publically visible?
     member this.selectExpression : Expression option = selectExpression // if != nullptr
 
   [<Sealed>]
@@ -635,7 +635,7 @@ module JsonTypes =
     [<JsonProperty("type")>]
     member this.type_ : Type_Parser = type_ // type
     member this.constructorParams : ParameterList = constructorParams
-    member this.parserLocals : IndexedVector<Declaration> = parserLocals
+    member this.parserLocals : IndexedVector<Declaration> = parserLocals // NOTE parser internals are not publically visible?
     member this.states : IndexedVector<ParserState> = states
 
   [<AbstractClass>]
@@ -974,7 +974,7 @@ module JsonTypes =
   type V1Parser(node_id, node_type, name, stmts, select, cases, default_return, parse_error, drop, annotations) =
     inherit Node(node_id, node_type)
     member this.name : ID = name
-    member this.stmts : Vector<Expression> = stmts
+    member this.stmts : Vector<Expression> = stmts  // NOTE parser internals are not publically visible?
     member this.select : Vector<Expression> option = select // if != nullptr
     member this.cases : Vector<CaseEntry> option = cases // if != nullptr
     member this.default_return : ID = default_return
