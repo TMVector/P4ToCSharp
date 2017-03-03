@@ -13,20 +13,12 @@ type SK = SyntaxKind
 
 open P4ToCSharp.App.IR
 open P4ToCSharp.App.CSharpTypes
+open P4ToCSharp.App.Util
 
 type variableMap = { ArgsParameter : Syntax.ParameterSyntax option;
                      Map : Map<JsonTypes.ID, Syntax.ExpressionSyntax> }
   with
   static member empty = { ArgsParameter=None; Map=Map.empty }
-
-module Seq =
-  let first<'a> : seq<'a> -> 'a =
-    Seq.pick Some
-  let tryFirst<'a> : seq<'a> -> 'a option =
-    Seq.tryPick Some
-module Option =
-  let orEmpty<'a> : seq<'a> option -> seq<'a> =
-    Option.toArray >> Seq.concat
 
 let csFieldNameOf p4Name =
   p4Name // FIXME any changes needed? Illegal chars etc

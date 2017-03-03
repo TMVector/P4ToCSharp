@@ -8,6 +8,8 @@ namespace P4ToCSharp.App.IR
 
 open Newtonsoft.Json // For attributes
 
+open P4ToCSharp.App.Util
+
 module JsonTypes =
   type IDictionary<'K,'V> = System.Collections.Generic.IDictionary<'K,'V>
   type Dictionary<'K,'V> = System.Collections.Generic.Dictionary<'K,'V>
