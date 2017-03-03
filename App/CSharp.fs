@@ -31,6 +31,23 @@ type ScopeInfo =
     | true, Some globalScope -> globalScope.GetP4ForName path.name
     | false, _ -> this.GetP4ForName path.name
     | true, None -> failwith "No global scope available" // We don't return None if no global scope - this is an error
+  member this.GetP4ForNameExpr(nameExpr : JsonTypes.Expression) : JsonTypes.Node option list =
+    let rec getP4For (nameExpr : JsonTypes.Expression) =
+      match nameExpr with
+      | :? JsonTypes.PathExpression as pathExpr -> [this.GetP4ForPath pathExpr.path]
+      | :? JsonTypes.Member as m ->
+          let ancestors = getP4For m.expr
+          match ancestors with
+          | (Some parent)::_ ->
+              match parent with
+              //| :? JsonTypes.Type_Enum as e -> Some parent // We want to return the enum itself, not the unhelpful Declaration_ID member
+              | _ -> 
+                let childName = m.member_
+                (parent.NamedChild(childName))::ancestors
+          | None::_ -> None::ancestors // cannot find a named child of None, so fill place with None
+          | [] -> failwith "getP4For should never return an empty list"
+      | _ -> failwith "Tried to follow a name expression that wasn't a valid name expression"
+    getP4For nameExpr
   member this.AppendScopeParameters([<System.ParamArray>] parameters : Syntax.ParameterSyntax[]) =
     { this with ScopeParameterList=Seq.append this.ScopeParameterList parameters}
 
