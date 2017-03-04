@@ -313,22 +313,22 @@ let saveToFile (compilationUnit : Syntax.CompilationUnitSyntax) (filename:string
   use writer = new System.IO.StreamWriter(filename)
   formattedNode.WriteTo(writer)
 
-let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : JsonTypes.Type option) (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
+let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
   let ofExpr = ofExpr scopeInfo
   match e with
   | :? JsonTypes.Operation_Unary as op ->
       match op with
-      | :? JsonTypes.Neg -> upcast SF.PrefixUnaryExpression(SK.UnaryMinusExpression, ofExpr None op.expr)
-      | :? JsonTypes.Cmpl -> upcast SF.PrefixUnaryExpression(SK.BitwiseNotExpression, ofExpr None op.expr)
-      | :? JsonTypes.LNot -> upcast SF.PrefixUnaryExpression(SK.LogicalNotExpression, ofExpr None op.expr)
+      | :? JsonTypes.Neg -> upcast SF.PrefixUnaryExpression(SK.UnaryMinusExpression, ofExpr UnknownType op.expr)
+      | :? JsonTypes.Cmpl -> upcast SF.PrefixUnaryExpression(SK.BitwiseNotExpression, ofExpr UnknownType op.expr)
+      | :? JsonTypes.LNot -> upcast SF.PrefixUnaryExpression(SK.LogicalNotExpression, ofExpr UnknownType op.expr)
       | :? JsonTypes.Member as m ->
-        upcast SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, ofExpr None op.expr, SF.IdentifierName(m.member_))
-      | :? JsonTypes.Cast as c -> upcast SF.CastExpression(ofType c.destType, ofExpr None op.expr) // FIXME this will be more complex...
+        upcast SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, ofExpr UnknownType op.expr, SF.IdentifierName(m.member_))
+      | :? JsonTypes.Cast as c -> upcast SF.CastExpression(ofType c.destType, ofExpr UnknownType op.expr) // FIXME this will be more complex...
       | :? JsonTypes.IntMod -> failwith "IntMod not supported" // This is only used in BMv2 so shouldn't appear here
       | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Unary: %s" (op.GetType().Name)
-  | :? JsonTypes.Operation_Binary as op ->
-      let lExpr = ofExpr None op.left
-      let rExpr = ofExpr None op.right
+  | :? JsonTypes.Operation_Binary as op -> // FIXME what about when the operands are of different type?
+      let lExpr = ofExpr UnknownType op.left
+      let rExpr = ofExpr UnknownType op.right
       match op with
       | :? JsonTypes.Mul -> upcast SF.BinaryExpression(SK.MultiplyExpression, lExpr, rExpr)
       | :? JsonTypes.Div -> upcast SF.BinaryExpression(SK.DivideExpression, lExpr, rExpr)
@@ -357,9 +357,9 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : JsonTypes.Type option) (e :
       | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Binary: %s" (op.GetType().Name)
   | :? JsonTypes.Operation_Ternary as op ->
       match op with
-      | :? JsonTypes.Slice -> upcast SF.InvocationExpression(eMemberAccess (ofExpr None op.e0) [|"Slice"|])
-                                       .WithArgumentList(argList [| ofExpr None op.e1; ofExpr None op.e2 |]) // FIXME slice method okay?
-      | :? JsonTypes.Mux -> upcast SF.ConditionalExpression(ofExpr None op.e0, ofExpr None op.e1, ofExpr None op.e2)
+      | :? JsonTypes.Slice -> upcast SF.InvocationExpression(eMemberAccess (ofExpr UnknownType op.e0) [|"Slice"|])
+                                       .WithArgumentList(argList [| ofExpr UnknownType op.e1; ofExpr UnknownType op.e2 |]) // FIXME slice method okay?
+      | :? JsonTypes.Mux -> upcast SF.ConditionalExpression(ofExpr UnknownType op.e0, ofExpr UnknownType op.e1, ofExpr UnknownType op.e2)
       | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Ternary: %s" (op.GetType().Name)
   | :? JsonTypes.Literal as lit ->
       match lit with
@@ -371,8 +371,9 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : JsonTypes.Type option) (e :
             | _ -> failwithf "Unhandled base %d for JsonTypes.Constant" c.base_ // FIXME don't need to fail, just generate in hex instead
           let expr = SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(str, c.value))
           match expectedType with
-          | None -> upcast expr
-          | Some ty -> upcast SF.CastExpression(ofType ty, expr) // E.g. (bit4)0x0D
+          | UnknownType -> upcast expr
+          | JsonType ty -> upcast SF.CastExpression(ofType ty, expr) // E.g. (bit4)0x0D
+          | CsType ty -> upcast SF.CastExpression(ty, expr) // E.g. (int32)0x0D
       | :? JsonTypes.BoolLiteral as b -> upcast SF.LiteralExpression(if b.value then SK.TrueLiteralExpression else SK.FalseLiteralExpression)
       | :? JsonTypes.StringLiteral as s -> upcast SF.LiteralExpression(SK.StringLiteralExpression, SF.Literal(s.value))
       | _ -> failwithf "Unhandled subtype of JsonTypes.Literal: %s" (lit.GetType().Name)
@@ -390,10 +391,10 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : JsonTypes.Type option) (e :
       // C# handles e.g. arr[a].z, f(ref a) fine already, but not ref a, f(ref a). Could aliasing also be an issue?
       let m =
         if Seq.isEmpty mc.typeArguments.vec
-        then ofExpr None mc.method_
+        then ofExpr UnknownType mc.method_
         else //FIXME this isn't right - you need to somehow use the type args here in the expression for the method. Presumably the type of the expression returned for the method is limited though?
           let typeArgs = tArgList <| Seq.map ofType mc.typeArguments.vec
-          match ofExpr None mc.method_ with
+          match ofExpr UnknownType mc.method_ with
           | :? Syntax.MemberAccessExpressionSyntax as ma ->
               upcast SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, ma.Expression, SF.GenericName(ma.Name.Identifier)
                        .WithTypeArgumentList(typeArgs))
@@ -401,9 +402,9 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : JsonTypes.Type option) (e :
               upcast SF.GenericName(n.Identifier)
                        .WithTypeArgumentList(typeArgs)
           | ng -> failwithf "Unhandled type of expression for JsonTypes.MethodCallException: %s" (ng.GetType().Name)
-      upcast SF.InvocationExpression(m).WithArgumentList(mc.arguments.vec |> Seq.map (ofExpr None) |> argList)
+      upcast SF.InvocationExpression(m).WithArgumentList(mc.arguments.vec |> Seq.map (ofExpr UnknownType) |> argList)
   | :? JsonTypes.ConstructorCallExpression as cce ->
-      upcast constructorCall (ofType cce.constructedType) (Seq.map (ofExpr None) cce.arguments.vec)
+      upcast constructorCall (ofType cce.constructedType) (Seq.map (ofExpr UnknownType) cce.arguments.vec)
   | :? JsonTypes.HeaderRef as hr ->
       match hr with
       | :? JsonTypes.ConcreteHeaderRef -> failwith "JsonTypes.ConcreterHeaderRef not handled yet" // FIXME
@@ -448,10 +449,10 @@ and statementOfDeclaration (scopeInfo:ScopeInfo) (n : JsonTypes.Declaration) : S
   | :? JsonTypes.P4Action -> failwithf "Type %s is not valid in statementToDeclaration" (n.GetType().Name)
   | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
   | :? JsonTypes.Declaration_Variable as v ->
-      upcast SF.LocalDeclarationStatement(variableDeclaration v.name (ofType v.type_) (v.initializer |> Option.map (ofExpr scopeInfo (Some v.type_))))
+      upcast SF.LocalDeclarationStatement(variableDeclaration v.name (ofType v.type_) (v.initializer |> Option.map (ofExpr scopeInfo (JsonType v.type_))))
   | :? JsonTypes.Declaration_Constant as c ->
       // Local constants are just handled like variables
-      upcast SF.LocalDeclarationStatement(variableDeclaration c.name (ofType c.type_) (Some (ofExpr scopeInfo (Some c.type_) c.initializer)))
+      upcast SF.LocalDeclarationStatement(variableDeclaration c.name (ofType c.type_) (Some (ofExpr scopeInfo (JsonType c.type_) c.initializer)))
   | :? JsonTypes.Declaration_Instance -> failwith "JsonTypes.Declaration_Instance not handled yet" // FIXME
   | :? JsonTypes.Function -> failwith "JsonTypes.Function not handled yet" // FIXME
   | _ ->
@@ -470,16 +471,16 @@ and ofStatement (scopeInfo:ScopeInfo) (n : JsonTypes.Statement) : Syntax.Stateme
   | :? JsonTypes.ReturnStatement -> failwith "JsonTypes.ReturnStatement not handled yet" // FIXME
   | :? JsonTypes.EmptyStatement -> failwith "JsonTypes.EmptyStatement not handled yet" // FIXME
   | :? JsonTypes.AssignmentStatement as a ->
-      upcast SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, ofExpr None a.left, ofExpr None a.right))
+      upcast SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, ofExpr UnknownType a.left, ofExpr UnknownType a.right))
   | :? JsonTypes.IfStatement as ifs ->
-      let rv = SF.IfStatement(ofExpr None ifs.condition, ofStatement scopeInfo ifs.ifTrue)
+      let rv = SF.IfStatement(ofExpr UnknownType ifs.condition, ofStatement scopeInfo ifs.ifTrue)
       let rv =
         match ifs.ifFalse with
         | Some iff -> rv.WithElse(SF.ElseClause(ofStatement scopeInfo iff))
         | None -> rv
       upcast rv
   | :? JsonTypes.MethodCallStatement as mc ->
-      upcast SF.ExpressionStatement(ofExpr None (mc.methodCall))
+      upcast SF.ExpressionStatement(ofExpr UnknownType (mc.methodCall))
   | :? JsonTypes.SwitchStatement -> failwith "JsonTypes.SwitchStatement not handled yet" // FIXME handle switch statements
   | _ -> failwithf "Unhandled subtype of JsonTypes.Statement: %s" (n.GetType().Name)
 and ofStatOrDecl (scopeInfo:ScopeInfo) (n : JsonTypes.StatOrDecl) =
@@ -590,7 +591,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             match se with
             | None -> Seq.empty
             | Some e ->
-              match ofExpr scopeInfo None e with // FIXME handling this one case isn't enough. E.g. switch, or even arbitrary expressions?
+              match ofExpr scopeInfo UnknownType e with // FIXME handling this one case isn't enough. E.g. switch, or even arbitrary expressions?
               | :? Syntax.IdentifierNameSyntax as ins -> SF.InvocationExpression(ins).WithArguments(stateArgs) :> Syntax.ExpressionSyntax
               | expr -> expr
               |> SF.ExpressionStatement |> Seq.singleton |> Seq.cast
@@ -694,10 +695,6 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             | [] -> failwith "Expected out parameter(s) on table %s" pt.name
             | [ty] -> ofType ty
             | types -> tupleTypeOf (Seq.map ofType types)
-          let outParams =
-            pt.parameters.parameters.vec
-            |> Seq.filter (fun p -> p.direction = JsonTypes.Direction.Out) // FIXME what about inout?
-            |> Seq.map (parameter ofType)
           let key =
             let lutTypeFor (path:JsonTypes.PathExpression) keyType resultType : Syntax.TypeSyntax =
               let matchKindName = path.path.name
@@ -715,7 +712,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             key
             |> Seq.mapi (fun i (lutTy, kExpr) -> field lutTy (sprintf "table%d" i) (SF.ObjectCreationExpression(lutTy)))
           let actionOfExpr (a:JsonTypes.Expression) =
-            let expr = ofExpr scopeInfo None a // get a cs expression for the method
+            let expr = ofExpr scopeInfo UnknownType a // get a cs expression for the method
             let name = expr.ToString().Replace('.', '_') // get a name usable in class names/enum
             assert not (name.Contains(".") || name.Contains("-") || name.Contains("(") || name.Contains(")") || name.Contains("<") || name.Contains(">") || name.Contains(" "))
             let p4action =
@@ -746,15 +743,22 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                             .WithBase([ SF.IdentifierName("hit"); SF.IdentifierName("action_run") ])
                             .WithBlockBody([]))
           let actionBaseType = SF.IdentifierName("ActionBase")
+          let directedParams =
+            pt.parameters.parameters.vec
+            |> Seq.filter (fun p -> p.direction <> JsonTypes.Direction.None)
+            |> Seq.map (parameter ofType)
           let onApply =
             SF.MethodDeclaration(voidType, "OnApply")
               .WithModifiers(tokenList [SK.PublicKeyword; SK.OverrideKeyword])
-              .WithParameters(Seq.append scopeInfo.ScopeParameterList outParams)
+              .WithParameters(Seq.append scopeInfo.ScopeParameterList directedParams)
           let actionClassOf (name:string, expr:Syntax.ExpressionSyntax, p4action:JsonTypes.P4Action) =
             let className = sprintf "%s_Action" name
             let directionlessParams =
               p4action.parameters.parameters.vec
               |> Seq.filter (fun p -> p.direction = JsonTypes.Direction.None)
+            let actionArgs =
+              p4action.parameters.parameters.vec
+              |> Seq.map (fun p -> SF.IdentifierName(p.name)) // FIXME are parameters guaranteed to be named the same way in this scope? Need to add out/ref keyword to those parameters...
             SF.ClassDeclaration(className)
               .WithModifiers(tokenList [SK.PublicKeyword; SK.SealedKeyword])
               .WithBaseTypes([actionBaseType])
@@ -768,7 +772,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                             .WithBlockBody(directionlessParams // Set readonly fields
                                            |> Seq.map (fun p -> assignment (thisAccess p.name) (SF.IdentifierName(p.name)))
                                            |> Seq.cast))
-              .AddMembers(onApply.WithBlockBody([SF.ExpressionStatement(SF.InvocationExpression(expr, argList []))])) // TODO FIXME call the method with all its parameters                  
+              .AddMembers(onApply.WithBlockBody([SF.ExpressionStatement(SF.InvocationExpression(expr, argList actionArgs))])) // TODO FIXME call the method with all its parameters                  
           let actionBase =
             SF.ClassDeclaration("ActionBase")
               .WithModifiers(tokenList [ SK.PrivateKeyword; SK.AbstractKeyword ])
@@ -782,7 +786,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
               .AddMembers(actions |> Seq.map actionClassOf |> Seq.cast |> Seq.toArray)
           let size =
             pt.properties.GetPropertyByName<JsonTypes.ExpressionValue>("size")
-            |> Option.map (fun size -> field int32Name "size" (ofExpr scopeInfo (Some int32Name) size.expression))
+            |> Option.map (fun size -> field int32Name "size" (ofExpr scopeInfo (CsType int32Name) size.expression)) // FIXME using InfInt to mean int32...
           let defaultAction =
             pt.properties.GetPropertyByName<JsonTypes.ExpressionValue>("default_action")
             |> Option.map (fun da -> actionOfExpr da.expression)
@@ -824,7 +828,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           // TODO FIXME How to handle this? Is this where we need to start interacting with the device? Are these always packages?
           // FIXME handle initialiser
           let ty = ofType di.type_
-          field ty (csFieldNameOf di.name) (constructorCall ty (Seq.map (ofExpr scopeInfo None) di.arguments.vec))
+          field ty (csFieldNameOf di.name) (constructorCall ty (Seq.map (ofExpr scopeInfo UnknownType) di.arguments.vec))
           //failwith "JsonTypes.Declaration_Instance not handled yet" // FIXME
           |> Transformed.declOf
       | :? JsonTypes.Function -> failwith "JsonTypes.Function not handled yet" // FIXME

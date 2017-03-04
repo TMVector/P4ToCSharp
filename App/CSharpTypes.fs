@@ -10,6 +10,13 @@ module CSharpTypes =
   module Property =
     type Modifier = Public | Private | Protected | Internal | Static // | Const/Readonly?
     type Accessor = Get | GetSet
+    
+  open P4ToCSharp.App.IR
+  open Microsoft.CodeAnalysis.CSharp
+  type CJType =
+    | JsonType of JsonTypes.Type
+    | CsType of Syntax.TypeSyntax
+    | UnknownType
 
   module Transformed =
     open Microsoft.CodeAnalysis
