@@ -841,10 +841,10 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       createEnum "MatchKind" (mk.members.vec |> Seq.map (fun memb -> memb.name))
       |> Transformed.declOf
   | _ -> failwithf "Unhandled subtype of JsonTypes.Node in declarationOfNode: %s" (n.GetType().Name) // FIXME check exhaustive
-and ofProgram (prog : JsonTypes.P4Program) : Syntax.CompilationUnitSyntax =
+and ofProgram (program : JsonTypes.Program) : Syntax.CompilationUnitSyntax =
   let scope : ScopeInfo =
     let p4Paths =
-      prog.declarations.declarations
+      program.P4.declarations.declarations
       |> Seq.map (fun (name,node) -> (name, [node :?> JsonTypes.Node]))
       |> Seq.toList
     let globalScope =
@@ -855,7 +855,7 @@ and ofProgram (prog : JsonTypes.P4Program) : Syntax.CompilationUnitSyntax =
         GlobalScope=None; }
     { globalScope with GlobalScope = Some globalScope }
   let usings, declarations =
-    prog.declarations.vec
+    program.P4.declarations.vec
     |> Seq.map (declarationOfNode scope)
     |> Transformed.partition
   SF.CompilationUnit()

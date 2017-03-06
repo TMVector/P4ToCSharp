@@ -1308,3 +1308,20 @@ module JsonTypes =
         ("IntMod", typeof<IntMod>);
       |]
     (TypeNames |> Map.ofSeq, TypeNames |> Seq.map snd |> HashSet)
+
+  type KeyValuePair<'key,'value> =
+    {
+      Key : 'key;
+      Value : 'value;
+    }
+    
+  type TypeMap =
+    {
+      Map : KeyValuePair<int,Type> seq
+    }
+
+  type Program =
+    {
+      P4 : P4Program;
+      TypeMap : Map<int, Type>
+    }

@@ -237,7 +237,7 @@ module JsonParsing =
         node :> obj
 
   open System.IO
-  let deserialise filename =
+  let deserialise filename : JsonTypes.Program =
     use reader = File.OpenText(filename)
     let serialiser = new JsonSerializer()
     serialiser.TypeNameHandling <- TypeNameHandling.Auto
@@ -249,4 +249,14 @@ module JsonParsing =
     serialiser.Converters.Add(new OrderedMapConverter())
     serialiser.Converters.Add(new IRConverter())
     serialiser.Converters.Add(new DirectionJsonConverter()) // FIXME Can this be attached to the type with an attribute?
-    serialiser.Deserialize<JsonTypes.P4Program>(new IRReader(reader))
+    let ast = serialiser.Deserialize<JsonTypes.P4Program>(new IRReader(reader))
+    let typeMapFile = sprintf "%s.typeMap.json" filename
+    let typeMap =
+      if File.Exists typeMapFile then
+        use typeMapReader = File.OpenText(typeMapFile)
+        serialiser.Deserialize<JsonTypes.TypeMap>(new IRReader(typeMapReader)).Map
+        |> Seq.map (fun kv -> (kv.Key, kv.Value))
+        |> Map.ofSeq
+      else
+        failwithf "Could not find typemap file where expected %s" typeMapFile
+    { P4=ast; TypeMap=typeMap; }
