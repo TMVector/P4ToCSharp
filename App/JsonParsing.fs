@@ -222,18 +222,19 @@ module JsonParsing =
 
   // This type resolves reference ids (Node_ID) to nodes for JSON.NET as they are deserialised
   type private IRReferenceResolver() =
-    member private this.RefLookup : JsonTypes.IDictionary<string,JsonTypes.Node> = upcast new JsonTypes.Dictionary<string,JsonTypes.Node>()
+    let RefLookup = new System.Collections.Generic.Dictionary<string,JsonTypes.Node>()
     interface Newtonsoft.Json.Serialization.IReferenceResolver with
       member this.IsReferenced(context:obj, value:obj) =
         let node = value :?> JsonTypes.Node
-        this.RefLookup.ContainsKey (string node.Node_ID)
+        RefLookup.ContainsKey (string node.Node_ID)
       member this.AddReference(context:obj, reference:string, value:obj) =
-        this.RefLookup.Add(reference, value :?> JsonTypes.Node)
+        // Use indexer syntax to replace entry if already present (we trust p4c to keep unique ids, just not to serialise the node only once)
+        RefLookup.[reference] <- value :?> JsonTypes.Node
       member this.GetReference(context:obj, value:obj) =
         let node = value :?> JsonTypes.Node
         string node.Node_ID
       member this.ResolveReference(context:obj, reference:string) =
-        let _, node = this.RefLookup.TryGetValue reference
+        let _, node = RefLookup.TryGetValue reference
         node :> obj
 
   open System.IO
@@ -254,6 +255,7 @@ module JsonParsing =
     let typeMap =
       if File.Exists typeMapFile then
         use typeMapReader = File.OpenText(typeMapFile)
+        serialiser.ReferenceResolver <- new IRReferenceResolver() // Clear the reference resolver
         serialiser.Deserialize<JsonTypes.TypeMap>(new IRReader(typeMapReader)).Map
         |> Seq.map (fun kv -> (kv.Key, kv.Value))
         |> Map.ofSeq
