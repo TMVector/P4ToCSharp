@@ -1,8 +1,8 @@
 {
-  "Node_ID" : 50, 
+  "Node_ID" : 307, 
   "Node_Type" : "P4Program",
   "declarations" : {
-    "Node_ID" : 5, 
+    "Node_ID" : 308, 
     "Node_Type" : "IndexedVector<Node>",
     "vec" : [
       {
@@ -38,7 +38,7 @@
             }
           },
           "returnType" : {
-            "Node_ID" : 4, 
+            "Node_ID" : 0, 
             "Node_Type" : "Type_Bits",
             "size" : 32,
             "isSigned" : false
@@ -56,10 +56,10 @@
                   "name" : "data",
                   "declid" : 0,
                   "annotations" : {
-                    "Node_ID" : 2, 
+                    "Node_ID" : 3, 
                     "Node_Type" : "Annotations",
                     "annotations" : {
-                      "Node_ID" : 3, 
+                      "Node_ID" : 4, 
                       "Node_Type" : "Vector<Annotation>",
                       "vec" : []
                     }
@@ -84,7 +84,7 @@
                   "name" : "data",
                   "declid" : 0,
                   "annotations" : {
-                    "Node_ID" : 2
+                    "Node_ID" : 3
                   },
                   "direction" : "in",
                   "type" : {
@@ -97,16 +97,16 @@
         },
         "isAbstract" : false,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         }
       },
       {
-        "Node_ID" : 49, 
+        "Node_ID" : 322, 
         "Node_Type" : "P4Action",
         "name" : "a",
         "declid" : 5,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "parameters" : {
           "Node_ID" : 48, 
@@ -119,13 +119,13 @@
           }
         },
         "body" : {
-          "Node_ID" : 47, 
+          "Node_ID" : 325, 
           "Node_Type" : "BlockStatement",
           "annotations" : {
-            "Node_ID" : 2
+            "Node_ID" : 3
           },
           "components" : {
-            "Node_ID" : 19, 
+            "Node_ID" : 326, 
             "Node_Type" : "IndexedVector<StatOrDecl>",
             "vec" : [
               {
@@ -134,7 +134,7 @@
                 "name" : "x",
                 "declid" : 2,
                 "annotations" : {
-                  "Node_ID" : 2
+                  "Node_ID" : 3
                 },
                 "type" : {
                   "Node_ID" : 22, 
@@ -149,7 +149,7 @@
                 "name" : "y",
                 "declid" : 3,
                 "annotations" : {
-                  "Node_ID" : 2
+                  "Node_ID" : 3
                 },
                 "type" : {
                   "Node_ID" : 26, 
@@ -159,25 +159,25 @@
                 }
               },
               {
-                "Node_ID" : 46, 
+                "Node_ID" : 331, 
                 "Node_Type" : "Declaration_Variable",
                 "name" : "r",
                 "declid" : 4,
                 "annotations" : {
-                  "Node_ID" : 2
+                  "Node_ID" : 3
                 },
                 "type" : {
-                  "Node_ID" : 4
+                  "Node_ID" : 0
                 },
                 "initializer" : {
-                  "Node_ID" : 45, 
+                  "Node_ID" : 332, 
                   "Node_Type" : "Add",
                   "type" : {
                     "Node_ID" : 31, 
                     "Node_Type" : "Type_Unknown"
                   },
                   "left" : {
-                    "Node_ID" : 37, 
+                    "Node_ID" : 333, 
                     "Node_Type" : "MethodCallExpression",
                     "type" : {
                       "Node_ID" : 31
@@ -196,9 +196,13 @@
                       }
                     },
                     "typeArguments" : {
-                      "Node_ID" : 36, 
+                      "Node_ID" : 340, 
                       "Node_Type" : "Vector<Type>",
-                      "vec" : []
+                      "vec" : [
+                        {
+                          "Node_ID" : 22
+                        }
+                      ]
                     },
                     "arguments" : {
                       "Node_ID" : 35, 
@@ -221,7 +225,7 @@
                     }
                   },
                   "right" : {
-                    "Node_ID" : 44, 
+                    "Node_ID" : 341, 
                     "Node_Type" : "MethodCallExpression",
                     "type" : {
                       "Node_ID" : 31
@@ -240,9 +244,13 @@
                       }
                     },
                     "typeArguments" : {
-                      "Node_ID" : 43, 
+                      "Node_ID" : 348, 
                       "Node_Type" : "Vector<Type>",
-                      "vec" : []
+                      "vec" : [
+                        {
+                          "Node_ID" : 26
+                        }
+                      ]
                     },
                     "arguments" : {
                       "Node_ID" : 42, 
@@ -274,7 +282,7 @@
                 "name" : "x",
                 "declid" : 2,
                 "annotations" : {
-                  "Node_ID" : 2
+                  "Node_ID" : 3
                 },
                 "type" : {
                   "Node_ID" : 22
@@ -286,25 +294,25 @@
                 "name" : "y",
                 "declid" : 3,
                 "annotations" : {
-                  "Node_ID" : 2
+                  "Node_ID" : 3
                 },
                 "type" : {
                   "Node_ID" : 26
                 }
               },
               "r" : {
-                "Node_ID" : 46, 
+                "Node_ID" : 331, 
                 "Node_Type" : "Declaration_Variable",
                 "name" : "r",
                 "declid" : 4,
                 "annotations" : {
-                  "Node_ID" : 2
+                  "Node_ID" : 3
                 },
                 "type" : {
-                  "Node_ID" : 4
+                  "Node_ID" : 0
                 },
                 "initializer" : {
-                  "Node_ID" : 45
+                  "Node_ID" : 332
                 }
               }
             }
@@ -323,22 +331,22 @@
         },
         "isAbstract" : false,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         }
       },
       "a" : {
-        "Node_ID" : 49, 
+        "Node_ID" : 322, 
         "Node_Type" : "P4Action",
         "name" : "a",
         "declid" : 5,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "parameters" : {
           "Node_ID" : 48
         },
         "body" : {
-          "Node_ID" : 47
+          "Node_ID" : 325
         }
       }
     }

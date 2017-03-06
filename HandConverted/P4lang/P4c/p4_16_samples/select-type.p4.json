@@ -1,12 +1,12 @@
 {
-  "Node_ID" : 35, 
+  "Node_ID" : 73, 
   "Node_Type" : "P4Program",
   "declarations" : {
-    "Node_ID" : 5, 
+    "Node_ID" : 74, 
     "Node_Type" : "IndexedVector<Node>",
     "vec" : [
       {
-        "Node_ID" : 34, 
+        "Node_ID" : 75, 
         "Node_Type" : "P4Parser",
         "name" : "p",
         "declid" : 1,
@@ -16,10 +16,10 @@
           "name" : "p",
           "declid" : 0,
           "annotations" : {
-            "Node_ID" : 2, 
+            "Node_ID" : 3, 
             "Node_Type" : "Annotations",
             "annotations" : {
-              "Node_ID" : 3, 
+              "Node_ID" : 4, 
               "Node_Type" : "Vector<Annotation>",
               "vec" : []
             }
@@ -62,16 +62,16 @@
           "declarations" : {}
         },
         "states" : {
-          "Node_ID" : 32, 
+          "Node_ID" : 88, 
           "Node_Type" : "IndexedVector<ParserState>",
           "vec" : [
             {
-              "Node_ID" : 31, 
+              "Node_ID" : 89, 
               "Node_Type" : "ParserState",
               "name" : "start",
               "declid" : 0,
               "annotations" : {
-                "Node_ID" : 2
+                "Node_ID" : 3
               },
               "components" : {
                 "Node_ID" : 13, 
@@ -80,7 +80,7 @@
                 "declarations" : {}
               },
               "selectExpression" : {
-                "Node_ID" : 29, 
+                "Node_ID" : 121, 
                 "Node_Type" : "SelectExpression",
                 "type" : {
                   "Node_ID" : 20, 
@@ -100,7 +100,7 @@
                         "Node_ID" : 14, 
                         "Node_Type" : "Constant",
                         "type" : {
-                          "Node_ID" : 4, 
+                          "Node_ID" : 0, 
                           "Node_Type" : "Type_Bits",
                           "size" : 32,
                           "isSigned" : false
@@ -112,19 +112,17 @@
                   }
                 },
                 "selectCases" : {
-                  "Node_ID" : 30, 
+                  "Node_ID" : 122, 
                   "Node_Type" : "Vector<SelectCase>",
                   "vec" : [
                     {
-                      "Node_ID" : 22, 
+                      "Node_ID" : 119, 
                       "Node_Type" : "SelectCase",
                       "keyset" : {
-                        "Node_ID" : 18, 
+                        "Node_ID" : 118, 
                         "Node_Type" : "Constant",
                         "type" : {
-                          "Node_ID" : 17, 
-                          "Node_Type" : "Type_InfInt",
-                          "declid" : 0
+                          "Node_ID" : 0
                         },
                         "value" : 5,
                         "base" : 10
@@ -170,22 +168,76 @@
                   ]
                 }
               }
+            },
+            {
+              "Node_ID" : 70, 
+              "Node_Type" : "ParserState",
+              "name" : "accept",
+              "declid" : 1,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "components" : {
+                "Node_ID" : 69, 
+                "Node_Type" : "IndexedVector<StatOrDecl>",
+                "vec" : [],
+                "declarations" : {}
+              }
+            },
+            {
+              "Node_ID" : 72, 
+              "Node_Type" : "ParserState",
+              "name" : "reject",
+              "declid" : 2,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "components" : {
+                "Node_ID" : 71, 
+                "Node_Type" : "IndexedVector<StatOrDecl>",
+                "vec" : [],
+                "declarations" : {}
+              }
             }
           ],
           "declarations" : {
+            "accept" : {
+              "Node_ID" : 70, 
+              "Node_Type" : "ParserState",
+              "name" : "accept",
+              "declid" : 1,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "components" : {
+                "Node_ID" : 69
+              }
+            },
+            "reject" : {
+              "Node_ID" : 72, 
+              "Node_Type" : "ParserState",
+              "name" : "reject",
+              "declid" : 2,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "components" : {
+                "Node_ID" : 71
+              }
+            },
             "start" : {
-              "Node_ID" : 31, 
+              "Node_ID" : 89, 
               "Node_Type" : "ParserState",
               "name" : "start",
               "declid" : 0,
               "annotations" : {
-                "Node_ID" : 2
+                "Node_ID" : 3
               },
               "components" : {
                 "Node_ID" : 13
               },
               "selectExpression" : {
-                "Node_ID" : 29
+                "Node_ID" : 121
               }
             }
           }
@@ -194,7 +246,7 @@
     ],
     "declarations" : {
       "p" : {
-        "Node_ID" : 34, 
+        "Node_ID" : 75, 
         "Node_Type" : "P4Parser",
         "name" : "p",
         "declid" : 1,
@@ -208,7 +260,7 @@
           "Node_ID" : 12
         },
         "states" : {
-          "Node_ID" : 32
+          "Node_ID" : 88
         }
       }
     }

@@ -1,0 +1,1002 @@
+{
+  "map" : [
+    {
+      "key" : 59,
+      "value" : {
+        "Node_ID" : 164, 
+        "Node_Type" : "Type_Header",
+        "name" : "your_header",
+        "declid" : 8,
+        "annotations" : {
+          "Node_ID" : 3, 
+          "Node_Type" : "Annotations",
+          "annotations" : {
+            "Node_ID" : 4, 
+            "Node_Type" : "Vector<Annotation>",
+            "vec" : []
+          }
+        },
+        "fields" : {
+          "Node_ID" : 162, 
+          "Node_Type" : "IndexedVector<StructField>",
+          "vec" : [
+            {
+              "Node_ID" : 163, 
+              "Node_Type" : "StructField",
+              "name" : "field",
+              "declid" : 12,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 15, 
+                "Node_Type" : "Type_Bits",
+                "size" : 3,
+                "isSigned" : false
+              }
+            }
+          ],
+          "declarations" : {
+            "field" : {
+              "Node_ID" : 163, 
+              "Node_Type" : "StructField",
+              "name" : "field",
+              "declid" : 12,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 15
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "key" : 50,
+      "value" : {
+        "Node_ID" : 164
+      }
+    },
+    {
+      "key" : 35,
+      "value" : {
+        "Node_ID" : 188, 
+        "Node_Type" : "Type_Union",
+        "name" : "your_union",
+        "declid" : 9,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "fields" : {
+          "Node_ID" : 186, 
+          "Node_Type" : "IndexedVector<StructField>",
+          "vec" : [
+            {
+              "Node_ID" : 187, 
+              "Node_Type" : "StructField",
+              "name" : "h1",
+              "declid" : 14,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 164
+              }
+            }
+          ],
+          "declarations" : {
+            "h1" : {
+              "Node_ID" : 187, 
+              "Node_Type" : "StructField",
+              "name" : "h1",
+              "declid" : 14,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 164
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "key" : 32,
+      "value" : {
+        "Node_ID" : 164
+      }
+    },
+    {
+      "key" : 27,
+      "value" : {
+        "Node_ID" : 164
+      }
+    },
+    {
+      "key" : 22,
+      "value" : {
+        "Node_ID" : 15
+      }
+    },
+    {
+      "key" : 247,
+      "value" : {
+        "Node_ID" : 280, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 58, 
+          "Node_Type" : "P4Control",
+          "name" : "p",
+          "declid" : 6,
+          "type" : {
+            "Node_ID" : 46, 
+            "Node_Type" : "Type_Control",
+            "name" : "p",
+            "declid" : 5,
+            "annotations" : {
+              "Node_ID" : 3
+            },
+            "typeParameters" : {
+              "Node_ID" : 42, 
+              "Node_Type" : "TypeParameters",
+              "parameters" : {
+                "Node_ID" : 43, 
+                "Node_Type" : "IndexedVector<Type_Var>",
+                "vec" : [],
+                "declarations" : {}
+              }
+            },
+            "applyParams" : {
+              "Node_ID" : 45, 
+              "Node_Type" : "ParameterList",
+              "parameters" : {
+                "Node_ID" : 44, 
+                "Node_Type" : "IndexedVector<Parameter>",
+                "vec" : [],
+                "declarations" : {}
+              }
+            }
+          },
+          "constructorParams" : {
+            "Node_ID" : 57, 
+            "Node_Type" : "ParameterList",
+            "parameters" : {
+              "Node_ID" : 47, 
+              "Node_Type" : "IndexedVector<Parameter>",
+              "vec" : [],
+              "declarations" : {}
+            }
+          },
+          "controlLocals" : {
+            "Node_ID" : 48, 
+            "Node_Type" : "IndexedVector<Declaration>",
+            "vec" : [],
+            "declarations" : {}
+          },
+          "body" : {
+            "Node_ID" : 56, 
+            "Node_Type" : "BlockStatement",
+            "annotations" : {
+              "Node_ID" : 3
+            },
+            "components" : {
+              "Node_ID" : 49, 
+              "Node_Type" : "IndexedVector<StatOrDecl>",
+              "vec" : [
+                {
+                  "Node_ID" : 55, 
+                  "Node_Type" : "Declaration_Variable",
+                  "name" : "stack",
+                  "declid" : 8,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "type" : {
+                    "Node_ID" : 54, 
+                    "Node_Type" : "Type_Stack",
+                    "elementType" : {
+                      "Node_ID" : 51, 
+                      "Node_Type" : "Type_Name",
+                      "path" : {
+                        "Node_ID" : 50, 
+                        "Node_Type" : "Path",
+                        "name" : "your_header",
+                        "absolute" : false
+                      }
+                    },
+                    "size" : {
+                      "Node_ID" : 53, 
+                      "Node_Type" : "Constant",
+                      "type" : {
+                        "Node_ID" : 52, 
+                        "Node_Type" : "Type_InfInt",
+                        "declid" : 4
+                      },
+                      "value" : 5,
+                      "base" : 10
+                    }
+                  }
+                }
+              ],
+              "declarations" : {
+                "stack" : {
+                  "Node_ID" : 55, 
+                  "Node_Type" : "Declaration_Variable",
+                  "name" : "stack",
+                  "declid" : 8,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "type" : {
+                    "Node_ID" : 54
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "key" : 58,
+      "value" : {
+        "Node_ID" : 280
+      }
+    },
+    {
+      "key" : 54,
+      "value" : {
+        "Node_ID" : 278, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 273, 
+          "Node_Type" : "Type_Stack",
+          "elementType" : {
+            "Node_ID" : 164
+          },
+          "size" : {
+            "Node_ID" : 53
+          }
+        }
+      }
+    },
+    {
+      "key" : 63,
+      "value" : {
+        "Node_ID" : 292, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 273
+        }
+      }
+    },
+    {
+      "key" : 64,
+      "value" : {
+        "Node_ID" : 292
+      }
+    },
+    {
+      "key" : 55,
+      "value" : {
+        "Node_ID" : 273
+      }
+    },
+    {
+      "key" : 41,
+      "value" : {
+        "Node_ID" : 246, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 224, 
+          "Node_Type" : "Type_Struct",
+          "name" : "str",
+          "declid" : 10,
+          "annotations" : {
+            "Node_ID" : 3
+          },
+          "fields" : {
+            "Node_ID" : 220, 
+            "Node_Type" : "IndexedVector<StructField>",
+            "vec" : [
+              {
+                "Node_ID" : 221, 
+                "Node_Type" : "StructField",
+                "name" : "hdr",
+                "declid" : 16,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 164
+                }
+              },
+              {
+                "Node_ID" : 222, 
+                "Node_Type" : "StructField",
+                "name" : "unn",
+                "declid" : 17,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 188
+                }
+              },
+              {
+                "Node_ID" : 223, 
+                "Node_Type" : "StructField",
+                "name" : "dt",
+                "declid" : 18,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 0, 
+                  "Node_Type" : "Type_Bits",
+                  "size" : 32,
+                  "isSigned" : false
+                }
+              }
+            ],
+            "declarations" : {
+              "hdr" : {
+                "Node_ID" : 221, 
+                "Node_Type" : "StructField",
+                "name" : "hdr",
+                "declid" : 16,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 164
+                }
+              },
+              "unn" : {
+                "Node_ID" : 222, 
+                "Node_Type" : "StructField",
+                "name" : "unn",
+                "declid" : 17,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 188
+                }
+              },
+              "dt" : {
+                "Node_ID" : 223, 
+                "Node_Type" : "StructField",
+                "name" : "dt",
+                "declid" : 18,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "key" : 40,
+      "value" : {
+        "Node_ID" : 0
+      }
+    },
+    {
+      "key" : 37,
+      "value" : {
+        "Node_ID" : 188
+      }
+    },
+    {
+      "key" : 34,
+      "value" : {
+        "Node_ID" : 164
+      }
+    },
+    {
+      "key" : 30,
+      "value" : {
+        "Node_ID" : 200, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 188
+        }
+      }
+    },
+    {
+      "key" : 29,
+      "value" : {
+        "Node_ID" : 164
+      }
+    },
+    {
+      "key" : 24,
+      "value" : {
+        "Node_ID" : 15
+      }
+    },
+    {
+      "key" : 20,
+      "value" : {
+        "Node_ID" : 143, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 15
+        }
+      }
+    },
+    {
+      "key" : 17,
+      "value" : {
+        "Node_ID" : 148, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 17, 
+          "Node_Type" : "Type_Header",
+          "name" : "my_header",
+          "declid" : 0,
+          "annotations" : {
+            "Node_ID" : 3
+          },
+          "fields" : {
+            "Node_ID" : 6, 
+            "Node_Type" : "IndexedVector<StructField>",
+            "vec" : [
+              {
+                "Node_ID" : 8, 
+                "Node_Type" : "StructField",
+                "name" : "g1",
+                "declid" : 0,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 7, 
+                  "Node_Type" : "Type_Bits",
+                  "size" : 1,
+                  "isSigned" : false
+                }
+              },
+              {
+                "Node_ID" : 12, 
+                "Node_Type" : "StructField",
+                "name" : "g2",
+                "declid" : 1,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 11, 
+                  "Node_Type" : "Type_Bits",
+                  "size" : 2,
+                  "isSigned" : false
+                }
+              },
+              {
+                "Node_ID" : 16, 
+                "Node_Type" : "StructField",
+                "name" : "g3",
+                "declid" : 2,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 15
+                }
+              }
+            ],
+            "declarations" : {
+              "g1" : {
+                "Node_ID" : 8, 
+                "Node_Type" : "StructField",
+                "name" : "g1",
+                "declid" : 0,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 7
+                }
+              },
+              "g2" : {
+                "Node_ID" : 12, 
+                "Node_Type" : "StructField",
+                "name" : "g2",
+                "declid" : 1,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 11
+                }
+              },
+              "g3" : {
+                "Node_ID" : 16, 
+                "Node_Type" : "StructField",
+                "name" : "g3",
+                "declid" : 2,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 15
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "key" : 16,
+      "value" : {
+        "Node_ID" : 15
+      }
+    },
+    {
+      "key" : 25,
+      "value" : {
+        "Node_ID" : 176, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 164
+        }
+      }
+    },
+    {
+      "key" : 12,
+      "value" : {
+        "Node_ID" : 11
+      }
+    },
+    {
+      "key" : 8,
+      "value" : {
+        "Node_ID" : 7
+      }
+    },
+    {
+      "key" : 53,
+      "value" : {
+        "Node_ID" : 271, 
+        "Node_Type" : "Type_InfInt",
+        "declid" : 4
+      }
+    },
+    {
+      "key" : 62,
+      "value" : {
+        "Node_ID" : 288, 
+        "Node_Type" : "Type_InfInt",
+        "declid" : 5
+      }
+    },
+    {
+      "key" : 0,
+      "value" : {
+        "Node_ID" : 219, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 0
+        }
+      }
+    },
+    {
+      "key" : 347,
+      "value" : {
+        "Node_ID" : 288
+      }
+    },
+    {
+      "key" : 341,
+      "value" : {
+        "Node_ID" : 271
+      }
+    },
+    {
+      "key" : 287,
+      "value" : {
+        "Node_ID" : 288
+      }
+    },
+    {
+      "key" : 270,
+      "value" : {
+        "Node_ID" : 271
+      }
+    },
+    {
+      "key" : 7,
+      "value" : {
+        "Node_ID" : 133, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 7
+        }
+      }
+    },
+    {
+      "key" : 11,
+      "value" : {
+        "Node_ID" : 138, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 11
+        }
+      }
+    },
+    {
+      "key" : 15,
+      "value" : {
+        "Node_ID" : 143
+      }
+    },
+    {
+      "key" : 28,
+      "value" : {
+        "Node_ID" : 176
+      }
+    },
+    {
+      "key" : 23,
+      "value" : {
+        "Node_ID" : 143
+      }
+    },
+    {
+      "key" : 61,
+      "value" : {
+        "Node_ID" : 289, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 288
+        }
+      }
+    },
+    {
+      "key" : 60,
+      "value" : {
+        "Node_ID" : 176
+      }
+    },
+    {
+      "key" : 52,
+      "value" : {
+        "Node_ID" : 272, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 271
+        }
+      }
+    },
+    {
+      "key" : 51,
+      "value" : {
+        "Node_ID" : 176
+      }
+    },
+    {
+      "key" : 36,
+      "value" : {
+        "Node_ID" : 200
+      }
+    },
+    {
+      "key" : 33,
+      "value" : {
+        "Node_ID" : 176
+      }
+    },
+    {
+      "key" : 248,
+      "value" : {
+        "Node_ID" : 256, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 46
+        }
+      }
+    },
+    {
+      "key" : 46,
+      "value" : {
+        "Node_ID" : 256
+      }
+    },
+    {
+      "key" : 125,
+      "value" : {
+        "Node_ID" : 148
+      }
+    },
+    {
+      "key" : 284,
+      "value" : {
+        "Node_ID" : 292
+      }
+    },
+    {
+      "key" : 274,
+      "value" : {
+        "Node_ID" : 277, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 273
+        }
+      }
+    },
+    {
+      "key" : 273,
+      "value" : {
+        "Node_ID" : 277
+      }
+    },
+    {
+      "key" : 267,
+      "value" : {
+        "Node_ID" : 278
+      }
+    },
+    {
+      "key" : 160,
+      "value" : {
+        "Node_ID" : 143
+      }
+    },
+    {
+      "key" : 142,
+      "value" : {
+        "Node_ID" : 143
+      }
+    },
+    {
+      "key" : 137,
+      "value" : {
+        "Node_ID" : 138
+      }
+    },
+    {
+      "key" : 132,
+      "value" : {
+        "Node_ID" : 133
+      }
+    },
+    {
+      "key" : 189,
+      "value" : {
+        "Node_ID" : 199, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 188
+        }
+      }
+    },
+    {
+      "key" : 188,
+      "value" : {
+        "Node_ID" : 199
+      }
+    },
+    {
+      "key" : 187,
+      "value" : {
+        "Node_ID" : 164
+      }
+    },
+    {
+      "key" : 181,
+      "value" : {
+        "Node_ID" : 164
+      }
+    },
+    {
+      "key" : 177,
+      "value" : {
+        "Node_ID" : 200
+      }
+    },
+    {
+      "key" : 169,
+      "value" : {
+        "Node_ID" : 15
+      }
+    },
+    {
+      "key" : 165,
+      "value" : {
+        "Node_ID" : 175, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 164
+        }
+      }
+    },
+    {
+      "key" : 164,
+      "value" : {
+        "Node_ID" : 175
+      }
+    },
+    {
+      "key" : 163,
+      "value" : {
+        "Node_ID" : 15
+      }
+    },
+    {
+      "key" : 157,
+      "value" : {
+        "Node_ID" : 15
+      }
+    },
+    {
+      "key" : 153,
+      "value" : {
+        "Node_ID" : 176
+      }
+    },
+    {
+      "key" : 149,
+      "value" : {
+        "Node_ID" : 143
+      }
+    },
+    {
+      "key" : 139,
+      "value" : {
+        "Node_ID" : 15
+      }
+    },
+    {
+      "key" : 134,
+      "value" : {
+        "Node_ID" : 11
+      }
+    },
+    {
+      "key" : 129,
+      "value" : {
+        "Node_ID" : 7
+      }
+    },
+    {
+      "key" : 218,
+      "value" : {
+        "Node_ID" : 219
+      }
+    },
+    {
+      "key" : 213,
+      "value" : {
+        "Node_ID" : 200
+      }
+    },
+    {
+      "key" : 208,
+      "value" : {
+        "Node_ID" : 176
+      }
+    },
+    {
+      "key" : 184,
+      "value" : {
+        "Node_ID" : 176
+      }
+    },
+    {
+      "key" : 237,
+      "value" : {
+        "Node_ID" : 0
+      }
+    },
+    {
+      "key" : 233,
+      "value" : {
+        "Node_ID" : 188
+      }
+    },
+    {
+      "key" : 229,
+      "value" : {
+        "Node_ID" : 164
+      }
+    },
+    {
+      "key" : 225,
+      "value" : {
+        "Node_ID" : 245, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 224
+        }
+      }
+    },
+    {
+      "key" : 224,
+      "value" : {
+        "Node_ID" : 245
+      }
+    },
+    {
+      "key" : 223,
+      "value" : {
+        "Node_ID" : 0
+      }
+    },
+    {
+      "key" : 222,
+      "value" : {
+        "Node_ID" : 188
+      }
+    },
+    {
+      "key" : 221,
+      "value" : {
+        "Node_ID" : 164
+      }
+    },
+    {
+      "key" : 215,
+      "value" : {
+        "Node_ID" : 0
+      }
+    },
+    {
+      "key" : 210,
+      "value" : {
+        "Node_ID" : 188
+      }
+    },
+    {
+      "key" : 205,
+      "value" : {
+        "Node_ID" : 164
+      }
+    },
+    {
+      "key" : 201,
+      "value" : {
+        "Node_ID" : 246
+      }
+    },
+    {
+      "key" : 193,
+      "value" : {
+        "Node_ID" : 164
+      }
+    },
+    {
+      "key" : 285,
+      "value" : {
+        "Node_ID" : 176
+      }
+    },
+    {
+      "key" : 268,
+      "value" : {
+        "Node_ID" : 176
+      }
+    },
+    {
+      "key" : 281,
+      "value" : {
+        "Node_ID" : 292
+      }
+    },
+    {
+      "key" : 264,
+      "value" : {
+        "Node_ID" : 273
+      }
+    }
+  ]
+}

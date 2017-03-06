@@ -1,8 +1,8 @@
 {
-  "Node_ID" : 124, 
+  "Node_ID" : 208, 
   "Node_Type" : "P4Program",
   "declarations" : {
-    "Node_ID" : 5, 
+    "Node_ID" : 209, 
     "Node_Type" : "IndexedVector<Node>",
     "vec" : [
       {
@@ -11,16 +11,16 @@
         "name" : "zero",
         "declid" : 0,
         "annotations" : {
-          "Node_ID" : 2, 
+          "Node_ID" : 3, 
           "Node_Type" : "Annotations",
           "annotations" : {
-            "Node_ID" : 3, 
+            "Node_ID" : 4, 
             "Node_Type" : "Vector<Annotation>",
             "vec" : []
           }
         },
         "type" : {
-          "Node_ID" : 4, 
+          "Node_ID" : 0, 
           "Node_Type" : "Type_Bits",
           "size" : 32,
           "isSigned" : false
@@ -29,7 +29,7 @@
           "Node_ID" : 8, 
           "Node_Type" : "Constant",
           "type" : {
-            "Node_ID" : 4
+            "Node_ID" : 0
           },
           "value" : 0,
           "base" : 10
@@ -41,7 +41,7 @@
         "name" : "tooLarge",
         "declid" : 1,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 12, 
@@ -65,16 +65,16 @@
         "name" : "one",
         "declid" : 2,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
           "Node_ID" : 17, 
           "Node_Type" : "Constant",
           "type" : {
-            "Node_ID" : 4
+            "Node_ID" : 0
           },
           "value" : 1,
           "base" : 10
@@ -86,43 +86,53 @@
         "name" : "max",
         "declid" : 3,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
           "Node_ID" : 21, 
           "Node_Type" : "Constant",
           "type" : {
-            "Node_ID" : 4
+            "Node_ID" : 0
           },
           "value" : 4294967295,
           "base" : 16
         }
       },
       {
-        "Node_ID" : 27, 
+        "Node_ID" : 244, 
         "Node_Type" : "Declaration_Constant",
         "name" : "z",
-        "declid" : 4,
+        "declid" : 18,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
-          "Node_ID" : 26, 
-          "Node_Type" : "Constant",
+          "Node_ID" : 243, 
+          "Node_Type" : "Cast",
           "type" : {
-            "Node_ID" : 25, 
-            "Node_Type" : "Type_Bits",
-            "size" : 1,
-            "isSigned" : false
+            "Node_ID" : 0
           },
-          "value" : 1,
-          "base" : 10
+          "expr" : {
+            "Node_ID" : 26, 
+            "Node_Type" : "Constant",
+            "type" : {
+              "Node_ID" : 25, 
+              "Node_Type" : "Type_Bits",
+              "size" : 1,
+              "isSigned" : false
+            },
+            "value" : 1,
+            "base" : 10
+          },
+          "destType" : {
+            "Node_ID" : 0
+          }
         }
       },
       {
@@ -131,7 +141,7 @@
         "name" : "S",
         "declid" : 0,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "fields" : {
           "Node_ID" : 28, 
@@ -143,10 +153,10 @@
               "name" : "a",
               "declid" : 5,
               "annotations" : {
-                "Node_ID" : 2
+                "Node_ID" : 3
               },
               "type" : {
-                "Node_ID" : 4
+                "Node_ID" : 0
               }
             },
             {
@@ -155,10 +165,10 @@
               "name" : "b",
               "declid" : 6,
               "annotations" : {
-                "Node_ID" : 2
+                "Node_ID" : 3
               },
               "type" : {
-                "Node_ID" : 4
+                "Node_ID" : 0
               }
             }
           ],
@@ -169,10 +179,10 @@
               "name" : "a",
               "declid" : 5,
               "annotations" : {
-                "Node_ID" : 2
+                "Node_ID" : 3
               },
               "type" : {
-                "Node_ID" : 4
+                "Node_ID" : 0
               }
             },
             "b" : {
@@ -181,10 +191,10 @@
               "name" : "b",
               "declid" : 6,
               "annotations" : {
-                "Node_ID" : 2
+                "Node_ID" : 3
               },
               "type" : {
-                "Node_ID" : 4
+                "Node_ID" : 0
               }
             }
           }
@@ -196,7 +206,7 @@
         "name" : "v",
         "declid" : 7,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 37, 
@@ -223,7 +233,7 @@
                 "Node_ID" : 38, 
                 "Node_Type" : "Constant",
                 "type" : {
-                  "Node_ID" : 4
+                  "Node_ID" : 0
                 },
                 "value" : 3,
                 "base" : 10
@@ -232,7 +242,7 @@
                 "Node_ID" : 45, 
                 "Node_Type" : "Cast",
                 "type" : {
-                  "Node_ID" : 4
+                  "Node_ID" : 0
                 },
                 "expr" : {
                   "Node_ID" : 42, 
@@ -248,7 +258,7 @@
                   }
                 },
                 "destType" : {
-                  "Node_ID" : 4
+                  "Node_ID" : 0
                 }
               }
             ]
@@ -261,16 +271,16 @@
         "name" : "two",
         "declid" : 8,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
           "Node_ID" : 50, 
           "Node_Type" : "Constant",
           "type" : {
-            "Node_ID" : 4
+            "Node_ID" : 0
           },
           "value" : 2,
           "base" : 10
@@ -282,7 +292,7 @@
         "name" : "twotwo",
         "declid" : 9,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 54, 
@@ -320,16 +330,16 @@
         "name" : "twothree",
         "declid" : 10,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
           "Node_ID" : 67, 
           "Node_Type" : "Cast",
           "type" : {
-            "Node_ID" : 4
+            "Node_ID" : 0
           },
           "expr" : {
             "Node_ID" : 65, 
@@ -345,7 +355,7 @@
             }
           },
           "destType" : {
-            "Node_ID" : 4
+            "Node_ID" : 0
           }
         }
       },
@@ -355,7 +365,7 @@
         "name" : "twofour",
         "declid" : 11,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 71, 
@@ -373,7 +383,7 @@
             "Node_ID" : 81, 
             "Node_Type" : "Cast",
             "type" : {
-              "Node_ID" : 4
+              "Node_ID" : 0
             },
             "expr" : {
               "Node_ID" : 80, 
@@ -399,7 +409,7 @@
               }
             },
             "destType" : {
-              "Node_ID" : 4
+              "Node_ID" : 0
             }
           },
           "destType" : {
@@ -413,7 +423,7 @@
         "name" : "T",
         "declid" : 1,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "fields" : {
           "Node_ID" : 84, 
@@ -425,7 +435,7 @@
               "name" : "a",
               "declid" : 12,
               "annotations" : {
-                "Node_ID" : 2
+                "Node_ID" : 3
               },
               "type" : {
                 "Node_ID" : 86, 
@@ -444,7 +454,7 @@
               "name" : "b",
               "declid" : 13,
               "annotations" : {
-                "Node_ID" : 2
+                "Node_ID" : 3
               },
               "type" : {
                 "Node_ID" : 89, 
@@ -465,7 +475,7 @@
               "name" : "a",
               "declid" : 12,
               "annotations" : {
-                "Node_ID" : 2
+                "Node_ID" : 3
               },
               "type" : {
                 "Node_ID" : 86
@@ -477,7 +487,7 @@
               "name" : "b",
               "declid" : 13,
               "annotations" : {
-                "Node_ID" : 2
+                "Node_ID" : 3
               },
               "type" : {
                 "Node_ID" : 89
@@ -492,7 +502,7 @@
         "name" : "zz",
         "declid" : 14,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 93, 
@@ -528,7 +538,7 @@
                       "Node_ID" : 94, 
                       "Node_Type" : "Constant",
                       "type" : {
-                        "Node_ID" : 4
+                        "Node_ID" : 0
                       },
                       "value" : 0,
                       "base" : 10
@@ -537,7 +547,7 @@
                       "Node_ID" : 96, 
                       "Node_Type" : "Constant",
                       "type" : {
-                        "Node_ID" : 4
+                        "Node_ID" : 0
                       },
                       "value" : 1,
                       "base" : 10
@@ -559,7 +569,7 @@
                       "Node_ID" : 99, 
                       "Node_Type" : "Constant",
                       "type" : {
-                        "Node_ID" : 4
+                        "Node_ID" : 0
                       },
                       "value" : 2,
                       "base" : 10
@@ -568,7 +578,7 @@
                       "Node_ID" : 101, 
                       "Node_Type" : "Constant",
                       "type" : {
-                        "Node_ID" : 4
+                        "Node_ID" : 0
                       },
                       "value" : 3,
                       "base" : 10
@@ -586,16 +596,16 @@
         "name" : "x",
         "declid" : 15,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
           "Node_ID" : 107, 
           "Node_Type" : "Constant",
           "type" : {
-            "Node_ID" : 4
+            "Node_ID" : 0
           },
           "value" : 0,
           "base" : 10
@@ -607,22 +617,22 @@
         "name" : "x1",
         "declid" : 16,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
           "Node_ID" : 112, 
           "Node_Type" : "Cmpl",
           "type" : {
-            "Node_ID" : 4
+            "Node_ID" : 0
           },
           "expr" : {
             "Node_ID" : 111, 
             "Node_Type" : "Constant",
             "type" : {
-              "Node_ID" : 4
+              "Node_ID" : 0
             },
             "value" : 0,
             "base" : 10
@@ -635,7 +645,7 @@
         "name" : "int32",
         "declid" : 2,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 54
@@ -647,7 +657,7 @@
         "name" : "izero",
         "declid" : 17,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 118, 
@@ -676,7 +686,7 @@
             "Node_ID" : 121, 
             "Node_Type" : "Constant",
             "type" : {
-              "Node_ID" : 4
+              "Node_ID" : 0
             },
             "value" : 0,
             "base" : 10
@@ -694,10 +704,10 @@
         "name" : "zero",
         "declid" : 0,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
           "Node_ID" : 8
@@ -709,7 +719,7 @@
         "name" : "tooLarge",
         "declid" : 1,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 12
@@ -724,10 +734,10 @@
         "name" : "one",
         "declid" : 2,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
           "Node_ID" : 17
@@ -739,28 +749,13 @@
         "name" : "max",
         "declid" : 3,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
           "Node_ID" : 21
-        }
-      },
-      "z" : {
-        "Node_ID" : 27, 
-        "Node_Type" : "Declaration_Constant",
-        "name" : "z",
-        "declid" : 4,
-        "annotations" : {
-          "Node_ID" : 2
-        },
-        "type" : {
-          "Node_ID" : 4
-        },
-        "initializer" : {
-          "Node_ID" : 26
         }
       },
       "S" : {
@@ -769,7 +764,7 @@
         "name" : "S",
         "declid" : 0,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "fields" : {
           "Node_ID" : 28
@@ -781,7 +776,7 @@
         "name" : "v",
         "declid" : 7,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 37
@@ -796,10 +791,10 @@
         "name" : "two",
         "declid" : 8,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
           "Node_ID" : 50
@@ -811,7 +806,7 @@
         "name" : "twotwo",
         "declid" : 9,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 54
@@ -826,10 +821,10 @@
         "name" : "twothree",
         "declid" : 10,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
           "Node_ID" : 67
@@ -841,7 +836,7 @@
         "name" : "twofour",
         "declid" : 11,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 71
@@ -856,7 +851,7 @@
         "name" : "T",
         "declid" : 1,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "fields" : {
           "Node_ID" : 84
@@ -868,7 +863,7 @@
         "name" : "zz",
         "declid" : 14,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 93
@@ -883,10 +878,10 @@
         "name" : "x",
         "declid" : 15,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
           "Node_ID" : 107
@@ -898,10 +893,10 @@
         "name" : "x1",
         "declid" : 16,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
-          "Node_ID" : 4
+          "Node_ID" : 0
         },
         "initializer" : {
           "Node_ID" : 112
@@ -913,7 +908,7 @@
         "name" : "int32",
         "declid" : 2,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 54
@@ -925,13 +920,28 @@
         "name" : "izero",
         "declid" : 17,
         "annotations" : {
-          "Node_ID" : 2
+          "Node_ID" : 3
         },
         "type" : {
           "Node_ID" : 118
         },
         "initializer" : {
           "Node_ID" : 122
+        }
+      },
+      "z" : {
+        "Node_ID" : 244, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "z",
+        "declid" : 18,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 0
+        },
+        "initializer" : {
+          "Node_ID" : 243
         }
       }
     }
