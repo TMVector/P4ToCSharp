@@ -19,6 +19,7 @@ module CSharpTypes =
     | UnknownType
 
   type TypeDefBehaviour = KeepTypeDef | ResolveTypeDef
+  type TypeQualification = UnqualifiedType | FullyQualifiedType
 
   module Transformed =
     open Microsoft.CodeAnalysis

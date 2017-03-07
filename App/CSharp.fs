@@ -473,18 +473,22 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
 and ofType (t : JsonTypes.Type) : Syntax.TypeSyntax =
   match t with
   | :? JsonTypes.Type_Bits as bits ->
-      upcast nameOfType bits
+      upcast nameOfType UnqualifiedType bits
   | :? JsonTypes.Type_Name as n ->
       SF.ParseTypeName(n.path.name)
   | :? JsonTypes.Type_Specialized as ts ->
       upcast SF.GenericName(ts.baseType.path.name).AddTypeArgumentListArguments(ts.arguments.vec |> Seq.map ofType |> Seq.toArray)
   | _ -> failwithf "Unhandled subtype of JsonTypes.Type: %s" (t.GetType().Name) // FIXME make sure exhaustive in handling of types (note ofDeclaration)
-and nameOfType (t : JsonTypes.Type) : Syntax.NameSyntax =
+and nameOfType (fqType:TypeQualification) (t : JsonTypes.Type) : Syntax.NameSyntax =
   match t with
   | :? JsonTypes.Type_Bits as bits ->
       match bits.size with
       | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
-      | s when s <= 64 -> upcast SF.IdentifierName(sprintf "bit%d" s)
+      | s when s <= 64 ->
+          let bitsName = SF.IdentifierName(sprintf "bit%d" s)
+          match fqType with
+          | UnqualifiedType -> upcast bitsName
+          | FullyQualifiedType -> upcast SF.QualifiedName(libraryName, bitsName)
       | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
   | :? JsonTypes.Type_Name as n ->
       qualifiedTypeName n.path.name
@@ -603,7 +607,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           createEnum te.name (te.members.vec |> Seq.map (fun memb -> memb.name))
           |> Transformed.declOf
       | :? JsonTypes.Type_Typedef as td ->
-          SF.UsingDirective(nameOfType td.type_)
+          SF.UsingDirective(nameOfType FullyQualifiedType td.type_)
             .WithAlias(SF.NameEquals(SF.IdentifierName(td.name)))
           |> Transformed.usingOf
       | :? JsonTypes.Type_Extern as ext ->
