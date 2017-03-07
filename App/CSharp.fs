@@ -200,6 +200,7 @@ let int32Name = qualifiedTypeName "System.Int32"
 let uint32Name = qualifiedTypeName "System.UInt32"
 let int64Name = qualifiedTypeName "System.Int64"
 let uint64Name = qualifiedTypeName "System.UInt64"
+let breakStatement = SF.BreakStatement() :> Syntax.StatementSyntax
 
 let classNameFor (name:string) = name
 let argsClassNameFor (name:string) = sprintf "%s_Args" (classNameFor name)
@@ -660,14 +661,34 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             SF.MethodDeclaration(voidType, "Apply")
               .WithParameters(applyParams)
               .WithBlockBody(applyBody)
-          let selectStatement se : Syntax.StatementSyntax seq =
+          let selectStatement (se:JsonTypes.Expression option) : Syntax.StatementSyntax seq =
             match se with
             | None -> Seq.empty
             | Some e ->
-              match ofExpr scopeInfo UnknownType e with // FIXME handling this one case isn't enough. E.g. switch, or even arbitrary expressions?
-              | :? Syntax.IdentifierNameSyntax as ins -> SF.InvocationExpression(ins).WithArguments(stateArgs) :> Syntax.ExpressionSyntax
-              | expr -> expr
-              |> SF.ExpressionStatement |> Seq.singleton |> Seq.cast
+                let ofPathExpr (pe:JsonTypes.PathExpression) =
+                  SF.InvocationExpression(SF.IdentifierName(pe.path.name)).WithArguments(stateArgs) :> Syntax.ExpressionSyntax
+                  |> SF.ExpressionStatement |> Seq.singleton |> Seq.cast
+                match e with
+                | :? JsonTypes.SelectExpression as se ->
+                    let selectExpr = // TODO FIXME we need to cast this to ulong or something
+                      se.select.components.vec
+                      |> Seq.trySingle
+                      |> Option.ifNone (fun () -> failwith "Select statements must currently switch on a single expression only")
+                      |> ofExpr scopeInfo UnknownType
+                    SF.SwitchStatement(selectExpr)
+                      .AddSections(
+                        se.selectCases.vec
+                        |> Seq.map (fun sc ->
+                            SF.SwitchSection()
+                              .AddLabels(ofExpr scopeInfo UnknownType sc.keyset |> Seq.singleton // FIXME keyset could be a list expression?
+                                        |> Seq.map (fun k -> SF.CaseSwitchLabel(k))
+                                        |> Seq.cast |> Seq.toArray)
+                              .AddStatements(Seq.append (ofPathExpr sc.state) [breakStatement] |> Seq.toArray) )
+                        |> Seq.toArray)
+                    |> Seq.singleton |> Seq.cast
+                | :? JsonTypes.PathExpression as pe ->
+                    ofPathExpr pe
+                | expr -> failwithf "Unhandled select expression %s" expr.Node_Type
           let states =
             p.states.vec
             |> Seq.map (fun state -> SF.MethodDeclaration(voidType, state.name)
