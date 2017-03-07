@@ -186,7 +186,9 @@ let controlBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(contr
 let packageBaseName = SF.QualifiedName(SF.IdentifierName("Library"), SF.IdentifierName("IPackage"))
 let packageBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(packageBaseName)
 let voidType : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.VoidKeyword))
-let byteArrayType : Syntax.TypeSyntax = upcast SF.ArrayType(SF.PredefinedType(SF.Token(SK.ByteKeyword)))
+let byteArrayType : Syntax.TypeSyntax =
+  upcast SF.ArrayType(SF.PredefinedType(SF.Token(SK.ByteKeyword)))
+           .WithRankSpecifiers(SF.SingletonList(SF.ArrayRankSpecifier()))
 let boolType : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.BoolKeyword))
 let uint32Type : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.UIntKeyword))
 let byteName = qualifiedTypeName "System.Byte"
