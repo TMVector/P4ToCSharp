@@ -529,7 +529,12 @@ and ofStatement (scopeInfo:ScopeInfo) (n : JsonTypes.Statement) : Syntax.Stateme
   match n with
   | :? JsonTypes.BlockStatement as block -> upcast ofBlockStatement scopeInfo block
   | :? JsonTypes.ExitStatement -> failwith "JsonTypes.ExitStatement not handled yet" // FIXME
-  | :? JsonTypes.ReturnStatement -> failwith "JsonTypes.ReturnStatement not handled yet" // FIXME
+  | :? JsonTypes.ReturnStatement as r ->
+      let rv =
+        match r.expression with
+        | Some expr -> SF.ReturnStatement(ofExpr UnknownType expr)
+        | None -> SF.ReturnStatement()
+      upcast rv
   | :? JsonTypes.EmptyStatement -> failwith "JsonTypes.EmptyStatement not handled yet" // FIXME
   | :? JsonTypes.AssignmentStatement as a ->
       upcast SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, ofExpr UnknownType a.left, ofExpr UnknownType a.right))
