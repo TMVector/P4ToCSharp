@@ -428,8 +428,8 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
       | :? JsonTypes.Constant as c ->
           let str : string =
             match c.base_ with
-            | 10u -> c.value.ToString("{0:d}")
-            | 16u -> c.value.ToString("0x{0:x}")
+            | 10u -> c.value.ToString("D")
+            | 16u -> System.String.Format("0x{0:X}", c.value)
             | _ -> failwithf "Unhandled base %d for JsonTypes.Constant" c.base_ // FIXME don't need to fail, just generate in hex instead
           let expr = SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(str, c.value))
           match expectedType with
