@@ -884,14 +884,19 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                 (field actionBaseType "default_action" (constructorCall (SF.IdentifierName(name)) [])) // FIXME handle default action arguments
                   .WithModifiers(tokenList [SK.PrivateKeyword]))
             |> Option.toArray
-          SF.ClassDeclaration(pt.name)
-            .WithModifiers(tokenList [SK.PrivateKeyword; SK.SealedKeyword])
-            .AddMembers(tableFields |> Seq.cast |> Seq.toArray)
-            .AddMembers(action_list)
-            .AddMembers(apply_result)
-            .AddMembers(actionBase)
-            .AddMembers(defaultAction |> Seq.cast |> Seq.toArray)
-          |> Transformed.declOf
+          let tableClassName = sprintf "%s_t" pt.name
+          let tableClassType = SF.IdentifierName(tableClassName)
+          let tableClass =
+            SF.ClassDeclaration(tableClassName)
+              .WithModifiers(tokenList [SK.PrivateKeyword; SK.SealedKeyword])
+              .AddMembers(tableFields |> Seq.cast |> Seq.toArray)
+              .AddMembers(action_list)
+              .AddMembers(apply_result)
+              .AddMembers(actionBase)
+              .AddMembers(defaultAction |> Seq.cast |> Seq.toArray)
+          let tableInstance =
+            field tableClassType pt.name (constructorCall tableClassType [])
+          Transformed.Declaration [tableClass :> Syntax.MemberDeclarationSyntax; tableInstance :> Syntax.MemberDeclarationSyntax]
       | :? JsonTypes.Method as m ->
           // FIXME does this refer to extern methods only?
           //failwith "JsonTypes.Method not handled yet" // FIXME
