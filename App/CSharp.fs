@@ -77,6 +77,12 @@ type ScopeInfo =
   member this.AddP4Path(name : string, path : JsonTypes.Node) =
     { this with
         P4AstPaths = (name, path::this.P4AstPath)::this.P4AstPaths; }
+  member this.GetTypeOf(node : JsonTypes.Node) =
+    this.TypeMap.TryFind(node.Node_ID)
+  member this.GetReference(path : JsonTypes.Path) =
+    this.PathMap.TryFind(path.Node_ID)
+  member this.GetReference(thisNode : JsonTypes.This) =
+    this.ThisMap.TryFind(thisNode.Node_ID)
     
 
 let csFieldNameOf p4Name =
