@@ -272,11 +272,19 @@ type Syntax.ClassDeclarationSyntax with
       |> Seq.cast<Syntax.MemberDeclarationSyntax>
       |> Seq.toArray
     this.AddMembers(properties)
-  member this.ImplementHeaderBase(header : JsonTypes.Type_Header) =
+  member this.ImplementHeaderBase(header : JsonTypes.Type_Header, scopeInfo : ScopeInfo) =
     let arrName, offsetName = "data", "offset"
+    let fields =
+      let size (field:JsonTypes.StructField) =
+        match resolveType scopeInfo ResolveTypeDef field.type_ with
+        | :? JsonTypes.Type_Bits as tb -> tb.size
+        | ty -> failwithf "Couldn't resolve type for header field: %s" ty.Node_Type
+      header.fields.vec
+      |> Seq.map (fun field -> SF.IdentifierName(csFieldNameOf field.name), resolveType scopeInfo ResolveTypeDef field.type_, size field)
+      |> Seq.toArray
     this.AddMembers(
       SF.MethodDeclaration(voidType, SF.Identifier("Parse"))
-        .WithModifiers(SF.TokenList(SF.Token(SK.OverrideKeyword)))
+        .WithModifiers(tokenList [SK.PublicKeyword; SK.OverrideKeyword])
         .WithParameters(
           [|  SF.Parameter(SF.Identifier(arrName)).WithType(byteArrayType);
               SF.Parameter(SF.Identifier(offsetName)).WithType(uint32Type); |])
@@ -284,8 +292,7 @@ type Syntax.ClassDeclarationSyntax with
           let changeBytesToBits = SF.ExpressionStatement(SF.AssignmentExpression(SK.MultiplyAssignmentExpression, SF.IdentifierName(offsetName), literalInt 8))
           let extractExprFor = createExtractExpr <| SF.IdentifierName(arrName) <| SF.IdentifierName(offsetName)
           let extractStatements =
-            header.fields.vec
-            |> Seq.map (fun field -> SF.IdentifierName(csFieldNameOf field.name), field.type_, (field.type_ :?> JsonTypes.Type_Bits).size) // FIXME shouldn't downcast unless checked first
+            fields
             |> Seq.mapFold (fun bitOffset (field, ty, size) -> assignment field (extractExprFor ty bitOffset), bitOffset + size) 0 |> fst
             |> Seq.cast
           Seq.append [changeBytesToBits] extractStatements))
@@ -299,8 +306,7 @@ type Syntax.ClassDeclarationSyntax with
           let changeBytesToBits = SF.ExpressionStatement(SF.AssignmentExpression(SK.MultiplyAssignmentExpression, SF.IdentifierName(offsetName), literalInt 8))
           let writeExprFor = createWriteExpr <| SF.IdentifierName(arrName) <| SF.IdentifierName(offsetName)
           let writeStatements =
-            header.fields.vec
-            |> Seq.map (fun field -> SF.IdentifierName(csFieldNameOf field.name), field.type_, (field.type_ :?> JsonTypes.Type_Bits).size) // FIXME shouldn't downcast unless checked first
+            fields
             |> Seq.mapFold (fun bitOffset (field, ty, size) -> assignment field (writeExprFor ty bitOffset field), bitOffset + size) 0 |> fst
             |> Seq.cast
           Seq.append [changeBytesToBits] writeStatements))
@@ -558,13 +564,13 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                 .WithModifiers(tokenList([| SK.PublicKeyword; SK.SealedKeyword |]))
                 .WithBaseList(SF.BaseList(SF.SeparatedList([| headerBaseBaseType |])))
                 .AddStructLikeFields(header, ofType)
-                .ImplementHeaderBase(header)
+                .ImplementHeaderBase(header, scopeInfo)
               |> Transformed.declOf
           | _ -> failwithf "Unhandled subtype of JsonTypes.Type_StructLike: %s" (structLike.GetType().Name)
       | :? JsonTypes.Type_ArchBlock as archBlock ->
           match archBlock with
           | :? JsonTypes.Type_Package as tp ->
-              SF.ClassDeclaration(tp.name) // FIXME implement IParser?
+              SF.ClassDeclaration(tp.name)
                 .AddBaseListTypes(packageBaseBaseType)
                 .WithTypeParameters(tp.typeParameters.parameters.vec |> Seq.map (fun tv -> SF.TypeParameter(tv.name)))
                 .AddMembers(tp.constructorParams.parameters.vec
