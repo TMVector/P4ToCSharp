@@ -137,14 +137,14 @@ let rec resolveType (scopeInfo:ScopeInfo) (typedefBehaviour:TypeDefBehaviour) (t
 let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
   match ty with
   | :? JsonTypes.Type_Bits as bits ->
-      SF.InvocationExpression(memberAccess "Library.Extract") // FIXME hardcode method names for common sizes
+      SF.InvocationExpression(memberAccess "BitHelper.Extract") // FIXME hardcode method names for common sizes
         .AddArgumentListArguments(SF.Argument(arrExpr),
                                   SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset))) // FIXME types in headers: bit fixed/var + int
   | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name)
 let createWriteExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) fieldExpr =
   match ty with
   | :? JsonTypes.Type_Bits as bits ->
-      SF.InvocationExpression(memberAccess "Library.Write") // FIXME hardcode method names for common sizes
+      SF.InvocationExpression(memberAccess "BitHelper.Write") // FIXME hardcode method names for common sizes
         .AddArgumentListArguments(SF.Argument(arrExpr),
                                   SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset)),
                                   SF.Argument(fieldExpr))
@@ -175,15 +175,16 @@ let qualifiedGenericTypeName (name:string) (tyArgs:Syntax.TypeSyntax seq) : Synt
   else failwith "qualifiedGenericTypeName received an empty name"
 
 // CS types for convenience
-let headerBaseName = SF.QualifiedName(SF.IdentifierName("Library"), SF.IdentifierName("HeaderBase"))
+let libraryName = SF.QualifiedName(SF.IdentifierName("P4ToCSharp"), SF.IdentifierName("Library"))
+let headerBaseName = SF.IdentifierName("HeaderBase")
 let headerBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(headerBaseName)
-let structBaseName = SF.QualifiedName(SF.IdentifierName("Library"), SF.IdentifierName("StructBase"))
+let structBaseName = SF.IdentifierName("IStruct")
 let structBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(structBaseName)
-let parserBaseName = SF.QualifiedName(SF.IdentifierName("Library"), SF.IdentifierName("IParser"))
+let parserBaseName = SF.IdentifierName("IParser")
 let parserBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(parserBaseName)
-let controlBaseName = SF.QualifiedName(SF.IdentifierName("Library"), SF.IdentifierName("IControl"))
+let controlBaseName = SF.IdentifierName("IControl")
 let controlBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(controlBaseName)
-let packageBaseName = SF.QualifiedName(SF.IdentifierName("Library"), SF.IdentifierName("IPackage"))
+let packageBaseName = SF.IdentifierName("IPackage")
 let packageBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(packageBaseName)
 let voidType : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.VoidKeyword))
 let byteArrayType : Syntax.TypeSyntax =
@@ -300,7 +301,7 @@ type Syntax.ClassDeclarationSyntax with
           Seq.append [changeBytesToBits] extractStatements))
       .AddMembers(
       SF.MethodDeclaration(voidType, SF.Identifier("Deparse"))
-        .WithModifiers(SF.TokenList(SF.Token(SK.OverrideKeyword)))
+        .WithModifiers(tokenList [SK.PublicKeyword; SK.OverrideKeyword])
         .WithParameters(
           [|  SF.Parameter(SF.Identifier(arrName)).WithType(byteArrayType);
               SF.Parameter(SF.Identifier(offsetName)).WithType(uint32Type); |])
@@ -943,7 +944,8 @@ and ofProgram (program : JsonTypes.Program) : Syntax.CompilationUnitSyntax =
     |> Seq.map (declarationOfNode scope)
     |> Transformed.partition
   SF.CompilationUnit()
+    .AddUsings(SF.UsingDirective(libraryName))
     .AddUsings(usings |> Seq.toArray)
     .AddMembers(SF.ClassDeclaration("Program")
-                  .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword; SK.SealedKeyword])
+                  .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword])
                   .AddMembers(declarations |> Seq.toArray))
