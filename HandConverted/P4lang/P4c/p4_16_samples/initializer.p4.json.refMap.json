@@ -1,0 +1,166 @@
+{
+  "pathToDeclaration" : [
+    {
+      "key" : 54,
+      "value" : {
+        "Node_ID" : 176, 
+        "Node_Type" : "Declaration_Variable",
+        "name" : "tmp",
+        "declid" : 3,
+        "annotations" : {
+          "Node_ID" : 3, 
+          "Node_Type" : "Annotations",
+          "annotations" : {
+            "Node_ID" : 4, 
+            "Node_Type" : "Vector<Annotation>",
+            "vec" : []
+          }
+        },
+        "type" : {
+          "Node_ID" : 0, 
+          "Node_Type" : "Type_Bits",
+          "size" : 32,
+          "isSigned" : false
+        },
+        "initializer" : {
+          "Node_ID" : 180, 
+          "Node_Type" : "MethodCallExpression",
+          "type" : {
+            "Node_ID" : 34, 
+            "Node_Type" : "Type_Unknown"
+          },
+          "method" : {
+            "Node_ID" : 33, 
+            "Node_Type" : "PathExpression",
+            "type" : {
+              "Node_ID" : 34
+            },
+            "path" : {
+              "Node_ID" : 35, 
+              "Node_Type" : "Path",
+              "name" : "random",
+              "absolute" : false
+            }
+          },
+          "typeArguments" : {
+            "Node_ID" : 42, 
+            "Node_Type" : "Vector<Type>",
+            "vec" : []
+          },
+          "arguments" : {
+            "Node_ID" : 209, 
+            "Node_Type" : "Vector<Expression>",
+            "vec" : [
+              {
+                "Node_ID" : 218, 
+                "Node_Type" : "Cast",
+                "type" : {
+                  "Node_ID" : 12, 
+                  "Node_Type" : "Type_Bits",
+                  "size" : 5,
+                  "isSigned" : false
+                },
+                "expr" : {
+                  "Node_ID" : 217, 
+                  "Node_Type" : "Constant",
+                  "type" : {
+                    "Node_ID" : 12
+                  },
+                  "value" : 24,
+                  "base" : 10
+                },
+                "destType" : {
+                  "Node_ID" : 12
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "key" : 45,
+      "value" : {
+        "Node_ID" : 22, 
+        "Node_Type" : "Parameter",
+        "name" : "field_d_32",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "direction" : "out",
+        "type" : {
+          "Node_ID" : 0
+        }
+      }
+    },
+    {
+      "key" : 35,
+      "value" : {
+        "Node_ID" : 17, 
+        "Node_Type" : "Method",
+        "name" : "random",
+        "declid" : 1,
+        "type" : {
+          "Node_ID" : 16, 
+          "Node_Type" : "Type_Method",
+          "typeParameters" : {
+            "Node_ID" : 8, 
+            "Node_Type" : "TypeParameters",
+            "parameters" : {
+              "Node_ID" : 9, 
+              "Node_Type" : "IndexedVector<Type_Var>",
+              "vec" : [],
+              "declarations" : {}
+            }
+          },
+          "returnType" : {
+            "Node_ID" : 0
+          },
+          "parameters" : {
+            "Node_ID" : 15, 
+            "Node_Type" : "ParameterList",
+            "parameters" : {
+              "Node_ID" : 14, 
+              "Node_Type" : "IndexedVector<Parameter>",
+              "vec" : [
+                {
+                  "Node_ID" : 13, 
+                  "Node_Type" : "Parameter",
+                  "name" : "logRange",
+                  "declid" : 0,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "",
+                  "type" : {
+                    "Node_ID" : 12
+                  }
+                }
+              ],
+              "declarations" : {
+                "logRange" : {
+                  "Node_ID" : 13, 
+                  "Node_Type" : "Parameter",
+                  "name" : "logRange",
+                  "declid" : 0,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "",
+                  "type" : {
+                    "Node_ID" : 12
+                  }
+                }
+              }
+            }
+          }
+        },
+        "isAbstract" : false,
+        "annotations" : {
+          "Node_ID" : 3
+        }
+      }
+    }
+  ],  "thisToDeclaration" : []
+}

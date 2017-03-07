@@ -1,0 +1,416 @@
+{
+  "pathToDeclaration" : [
+    {
+      "key" : 136,
+      "value" : {
+        "Node_ID" : 130, 
+        "Node_Type" : "Type_Var",
+        "name" : "OH",
+        "declid" : 9
+      }
+    },
+    {
+      "key" : 132,
+      "value" : {
+        "Node_ID" : 95, 
+        "Node_Type" : "Type_Extern",
+        "name" : "packet_out",
+        "declid" : 7,
+        "typeParameters" : {
+          "Node_ID" : 70, 
+          "Node_Type" : "TypeParameters",
+          "parameters" : {
+            "Node_ID" : 71, 
+            "Node_Type" : "IndexedVector<Type_Var>",
+            "vec" : [],
+            "declarations" : {}
+          }
+        },
+        "methods" : {
+          "Node_ID" : 72, 
+          "Node_Type" : "Vector<Method>",
+          "vec" : [
+            {
+              "Node_ID" : 82, 
+              "Node_Type" : "Method",
+              "name" : "emit",
+              "declid" : 17,
+              "type" : {
+                "Node_ID" : 81, 
+                "Node_Type" : "Type_Method",
+                "typeParameters" : {
+                  "Node_ID" : 75, 
+                  "Node_Type" : "TypeParameters",
+                  "parameters" : {
+                    "Node_ID" : 73, 
+                    "Node_Type" : "IndexedVector<Type_Var>",
+                    "vec" : [
+                      {
+                        "Node_ID" : 74, 
+                        "Node_Type" : "Type_Var",
+                        "name" : "T",
+                        "declid" : 5
+                      }
+                    ],
+                    "declarations" : {
+                      "T" : {
+                        "Node_ID" : 74, 
+                        "Node_Type" : "Type_Var",
+                        "name" : "T",
+                        "declid" : 5
+                      }
+                    }
+                  }
+                },
+                "returnType" : {
+                  "Node_ID" : 18, 
+                  "Node_Type" : "Type_Void"
+                },
+                "parameters" : {
+                  "Node_ID" : 80, 
+                  "Node_Type" : "ParameterList",
+                  "parameters" : {
+                    "Node_ID" : 79, 
+                    "Node_Type" : "IndexedVector<Parameter>",
+                    "vec" : [
+                      {
+                        "Node_ID" : 78, 
+                        "Node_Type" : "Parameter",
+                        "name" : "hdr",
+                        "declid" : 16,
+                        "annotations" : {
+                          "Node_ID" : 3, 
+                          "Node_Type" : "Annotations",
+                          "annotations" : {
+                            "Node_ID" : 4, 
+                            "Node_Type" : "Vector<Annotation>",
+                            "vec" : []
+                          }
+                        },
+                        "direction" : "in",
+                        "type" : {
+                          "Node_ID" : 77, 
+                          "Node_Type" : "Type_Name",
+                          "path" : {
+                            "Node_ID" : 76, 
+                            "Node_Type" : "Path",
+                            "name" : "T",
+                            "absolute" : false
+                          }
+                        }
+                      }
+                    ],
+                    "declarations" : {
+                      "hdr" : {
+                        "Node_ID" : 78, 
+                        "Node_Type" : "Parameter",
+                        "name" : "hdr",
+                        "declid" : 16,
+                        "annotations" : {
+                          "Node_ID" : 3
+                        },
+                        "direction" : "in",
+                        "type" : {
+                          "Node_ID" : 77
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "isAbstract" : false,
+              "annotations" : {
+                "Node_ID" : 3
+              }
+            },
+            {
+              "Node_ID" : 94, 
+              "Node_Type" : "Method",
+              "name" : "emit",
+              "declid" : 20,
+              "type" : {
+                "Node_ID" : 93, 
+                "Node_Type" : "Type_Method",
+                "typeParameters" : {
+                  "Node_ID" : 85, 
+                  "Node_Type" : "TypeParameters",
+                  "parameters" : {
+                    "Node_ID" : 83, 
+                    "Node_Type" : "IndexedVector<Type_Var>",
+                    "vec" : [
+                      {
+                        "Node_ID" : 84, 
+                        "Node_Type" : "Type_Var",
+                        "name" : "T",
+                        "declid" : 6
+                      }
+                    ],
+                    "declarations" : {
+                      "T" : {
+                        "Node_ID" : 84, 
+                        "Node_Type" : "Type_Var",
+                        "name" : "T",
+                        "declid" : 6
+                      }
+                    }
+                  }
+                },
+                "returnType" : {
+                  "Node_ID" : 18
+                },
+                "parameters" : {
+                  "Node_ID" : 92, 
+                  "Node_Type" : "ParameterList",
+                  "parameters" : {
+                    "Node_ID" : 88, 
+                    "Node_Type" : "IndexedVector<Parameter>",
+                    "vec" : [
+                      {
+                        "Node_ID" : 87, 
+                        "Node_Type" : "Parameter",
+                        "name" : "condition",
+                        "declid" : 18,
+                        "annotations" : {
+                          "Node_ID" : 3
+                        },
+                        "direction" : "in",
+                        "type" : {
+                          "Node_ID" : 86, 
+                          "Node_Type" : "Type_Boolean"
+                        }
+                      },
+                      {
+                        "Node_ID" : 91, 
+                        "Node_Type" : "Parameter",
+                        "name" : "data",
+                        "declid" : 19,
+                        "annotations" : {
+                          "Node_ID" : 3
+                        },
+                        "direction" : "in",
+                        "type" : {
+                          "Node_ID" : 90, 
+                          "Node_Type" : "Type_Name",
+                          "path" : {
+                            "Node_ID" : 89, 
+                            "Node_Type" : "Path",
+                            "name" : "T",
+                            "absolute" : false
+                          }
+                        }
+                      }
+                    ],
+                    "declarations" : {
+                      "condition" : {
+                        "Node_ID" : 87, 
+                        "Node_Type" : "Parameter",
+                        "name" : "condition",
+                        "declid" : 18,
+                        "annotations" : {
+                          "Node_ID" : 3
+                        },
+                        "direction" : "in",
+                        "type" : {
+                          "Node_ID" : 86
+                        }
+                      },
+                      "data" : {
+                        "Node_ID" : 91, 
+                        "Node_Type" : "Parameter",
+                        "name" : "data",
+                        "declid" : 19,
+                        "annotations" : {
+                          "Node_ID" : 3
+                        },
+                        "direction" : "in",
+                        "type" : {
+                          "Node_ID" : 90
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "isAbstract" : false,
+              "annotations" : {
+                "Node_ID" : 3
+              }
+            }
+          ]
+        },
+        "attributes" : {
+          "Node_ID" : 96, 
+          "Node_Type" : "NameMap<Attribute>",
+          "symbols" : {}
+        },
+        "annotations" : {
+          "Node_ID" : 3
+        }
+      }
+    },
+    {
+      "key" : 139,
+      "value" : {
+        "Node_ID" : 128, 
+        "Node_Type" : "Type_Struct",
+        "name" : "Ports",
+        "declid" : 8,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "fields" : {
+          "Node_ID" : 127, 
+          "Node_Type" : "IndexedVector<StructField>",
+          "vec" : [],
+          "declarations" : {}
+        }
+      }
+    },
+    {
+      "key" : 101,
+      "value" : {
+        "Node_ID" : 14, 
+        "Node_Type" : "Type_Error",
+        "name" : "error",
+        "declid" : 0,
+        "members" : {
+          "Node_ID" : 6, 
+          "Node_Type" : "IndexedVector<Declaration_ID>",
+          "vec" : [
+            {
+              "Node_ID" : 7, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "NoError",
+              "declid" : 0
+            },
+            {
+              "Node_ID" : 8, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "PacketTooShort",
+              "declid" : 1
+            },
+            {
+              "Node_ID" : 9, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "NoMatch",
+              "declid" : 2
+            },
+            {
+              "Node_ID" : 10, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "StackOutOfBounds",
+              "declid" : 3
+            },
+            {
+              "Node_ID" : 11, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "OverwritingHeader",
+              "declid" : 4
+            },
+            {
+              "Node_ID" : 12, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "HeaderTooShort",
+              "declid" : 5
+            },
+            {
+              "Node_ID" : 13, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "ParserTimeout",
+              "declid" : 6
+            }
+          ],
+          "declarations" : {
+            "NoError" : {
+              "Node_ID" : 7, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "NoError",
+              "declid" : 0
+            },
+            "PacketTooShort" : {
+              "Node_ID" : 8, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "PacketTooShort",
+              "declid" : 1
+            },
+            "NoMatch" : {
+              "Node_ID" : 9, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "NoMatch",
+              "declid" : 2
+            },
+            "StackOutOfBounds" : {
+              "Node_ID" : 10, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "StackOutOfBounds",
+              "declid" : 3
+            },
+            "OverwritingHeader" : {
+              "Node_ID" : 11, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "OverwritingHeader",
+              "declid" : 4
+            },
+            "HeaderTooShort" : {
+              "Node_ID" : 12, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "HeaderTooShort",
+              "declid" : 5
+            },
+            "ParserTimeout" : {
+              "Node_ID" : 13, 
+              "Node_Type" : "Declaration_ID",
+              "name" : "ParserTimeout",
+              "declid" : 6
+            }
+          }
+        }
+      }
+    },
+    {
+      "key" : 89,
+      "value" : {
+        "Node_ID" : 84, 
+        "Node_Type" : "Type_Var",
+        "name" : "T",
+        "declid" : 6
+      }
+    },
+    {
+      "key" : 76,
+      "value" : {
+        "Node_ID" : 74, 
+        "Node_Type" : "Type_Var",
+        "name" : "T",
+        "declid" : 5
+      }
+    },
+    {
+      "key" : 42,
+      "value" : {
+        "Node_ID" : 45, 
+        "Node_Type" : "Type_Var",
+        "name" : "T",
+        "declid" : 3
+      }
+    },
+    {
+      "key" : 32,
+      "value" : {
+        "Node_ID" : 30, 
+        "Node_Type" : "Type_Var",
+        "name" : "T",
+        "declid" : 2
+      }
+    },
+    {
+      "key" : 22,
+      "value" : {
+        "Node_ID" : 20, 
+        "Node_Type" : "Type_Var",
+        "name" : "T",
+        "declid" : 1
+      }
+    }
+  ],  "thisToDeclaration" : []
+}

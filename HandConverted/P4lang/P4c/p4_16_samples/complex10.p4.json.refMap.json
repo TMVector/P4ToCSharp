@@ -1,0 +1,636 @@
+{
+  "pathToDeclaration" : [
+    {
+      "key" : 98,
+      "value" : {
+        "Node_ID" : 219, 
+        "Node_Type" : "P4Control",
+        "name" : "c",
+        "declid" : 1,
+        "type" : {
+          "Node_ID" : 24, 
+          "Node_Type" : "Type_Control",
+          "name" : "c",
+          "declid" : 0,
+          "annotations" : {
+            "Node_ID" : 3, 
+            "Node_Type" : "Annotations",
+            "annotations" : {
+              "Node_ID" : 4, 
+              "Node_Type" : "Vector<Annotation>",
+              "vec" : []
+            }
+          },
+          "typeParameters" : {
+            "Node_ID" : 17, 
+            "Node_Type" : "TypeParameters",
+            "parameters" : {
+              "Node_ID" : 18, 
+              "Node_Type" : "IndexedVector<Type_Var>",
+              "vec" : [],
+              "declarations" : {}
+            }
+          },
+          "applyParams" : {
+            "Node_ID" : 23, 
+            "Node_Type" : "ParameterList",
+            "parameters" : {
+              "Node_ID" : 22, 
+              "Node_Type" : "IndexedVector<Parameter>",
+              "vec" : [
+                {
+                  "Node_ID" : 21, 
+                  "Node_Type" : "Parameter",
+                  "name" : "r",
+                  "declid" : 2,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "inout",
+                  "type" : {
+                    "Node_ID" : 0, 
+                    "Node_Type" : "Type_Bits",
+                    "size" : 32,
+                    "isSigned" : false
+                  }
+                }
+              ],
+              "declarations" : {
+                "r" : {
+                  "Node_ID" : 21, 
+                  "Node_Type" : "Parameter",
+                  "name" : "r",
+                  "declid" : 2,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "inout",
+                  "type" : {
+                    "Node_ID" : 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "constructorParams" : {
+          "Node_ID" : 78, 
+          "Node_Type" : "ParameterList",
+          "parameters" : {
+            "Node_ID" : 25, 
+            "Node_Type" : "IndexedVector<Parameter>",
+            "vec" : [],
+            "declarations" : {}
+          }
+        },
+        "controlLocals" : {
+          "Node_ID" : 26, 
+          "Node_Type" : "IndexedVector<Declaration>",
+          "vec" : [],
+          "declarations" : {}
+        },
+        "body" : {
+          "Node_ID" : 236, 
+          "Node_Type" : "BlockStatement",
+          "annotations" : {
+            "Node_ID" : 3
+          },
+          "components" : {
+            "Node_ID" : 239, 
+            "Node_Type" : "IndexedVector<StatOrDecl>",
+            "vec" : [
+              {
+                "Node_ID" : 240, 
+                "Node_Type" : "IfStatement",
+                "condition" : {
+                  "Node_ID" : 241, 
+                  "Node_Type" : "LOr",
+                  "type" : {
+                    "Node_ID" : 39, 
+                    "Node_Type" : "Type_Boolean"
+                  },
+                  "left" : {
+                    "Node_ID" : 242, 
+                    "Node_Type" : "LAnd",
+                    "type" : {
+                      "Node_ID" : 39
+                    },
+                    "left" : {
+                      "Node_ID" : 317, 
+                      "Node_Type" : "Grt",
+                      "type" : {
+                        "Node_ID" : 39
+                      },
+                      "left" : {
+                        "Node_ID" : 306, 
+                        "Node_Type" : "MethodCallExpression",
+                        "type" : {
+                          "Node_ID" : 29, 
+                          "Node_Type" : "Type_Unknown"
+                        },
+                        "method" : {
+                          "Node_ID" : 28, 
+                          "Node_Type" : "PathExpression",
+                          "type" : {
+                            "Node_ID" : 29
+                          },
+                          "path" : {
+                            "Node_ID" : 30, 
+                            "Node_Type" : "Path",
+                            "name" : "f",
+                            "absolute" : false
+                          }
+                        },
+                        "typeArguments" : {
+                          "Node_ID" : 34, 
+                          "Node_Type" : "Vector<Type>",
+                          "vec" : []
+                        },
+                        "arguments" : {
+                          "Node_ID" : 310, 
+                          "Node_Type" : "Vector<Expression>",
+                          "vec" : [
+                            {
+                              "Node_ID" : 313, 
+                              "Node_Type" : "Constant",
+                              "type" : {
+                                "Node_ID" : 0
+                              },
+                              "value" : 2,
+                              "base" : 10
+                            }
+                          ]
+                        }
+                      },
+                      "right" : {
+                        "Node_ID" : 318, 
+                        "Node_Type" : "Constant",
+                        "type" : {
+                          "Node_ID" : 0
+                        },
+                        "value" : 0,
+                        "base" : 10
+                      }
+                    },
+                    "right" : {
+                      "Node_ID" : 393, 
+                      "Node_Type" : "Lss",
+                      "type" : {
+                        "Node_ID" : 39
+                      },
+                      "left" : {
+                        "Node_ID" : 382, 
+                        "Node_Type" : "MethodCallExpression",
+                        "type" : {
+                          "Node_ID" : 29
+                        },
+                        "method" : {
+                          "Node_ID" : 40, 
+                          "Node_Type" : "PathExpression",
+                          "type" : {
+                            "Node_ID" : 29
+                          },
+                          "path" : {
+                            "Node_ID" : 41, 
+                            "Node_Type" : "Path",
+                            "name" : "f",
+                            "absolute" : false
+                          }
+                        },
+                        "typeArguments" : {
+                          "Node_ID" : 45, 
+                          "Node_Type" : "Vector<Type>",
+                          "vec" : []
+                        },
+                        "arguments" : {
+                          "Node_ID" : 386, 
+                          "Node_Type" : "Vector<Expression>",
+                          "vec" : [
+                            {
+                              "Node_ID" : 389, 
+                              "Node_Type" : "Constant",
+                              "type" : {
+                                "Node_ID" : 0
+                              },
+                              "value" : 3,
+                              "base" : 10
+                            }
+                          ]
+                        }
+                      },
+                      "right" : {
+                        "Node_ID" : 394, 
+                        "Node_Type" : "Constant",
+                        "type" : {
+                          "Node_ID" : 0
+                        },
+                        "value" : 0,
+                        "base" : 10
+                      }
+                    }
+                  },
+                  "right" : {
+                    "Node_ID" : 469, 
+                    "Node_Type" : "Equ",
+                    "type" : {
+                      "Node_ID" : 39
+                    },
+                    "left" : {
+                      "Node_ID" : 458, 
+                      "Node_Type" : "MethodCallExpression",
+                      "type" : {
+                        "Node_ID" : 29
+                      },
+                      "method" : {
+                        "Node_ID" : 51, 
+                        "Node_Type" : "PathExpression",
+                        "type" : {
+                          "Node_ID" : 29
+                        },
+                        "path" : {
+                          "Node_ID" : 52, 
+                          "Node_Type" : "Path",
+                          "name" : "f",
+                          "absolute" : false
+                        }
+                      },
+                      "typeArguments" : {
+                        "Node_ID" : 56, 
+                        "Node_Type" : "Vector<Type>",
+                        "vec" : []
+                      },
+                      "arguments" : {
+                        "Node_ID" : 462, 
+                        "Node_Type" : "Vector<Expression>",
+                        "vec" : [
+                          {
+                            "Node_ID" : 465, 
+                            "Node_Type" : "Constant",
+                            "type" : {
+                              "Node_ID" : 0
+                            },
+                            "value" : 5,
+                            "base" : 10
+                          }
+                        ]
+                      }
+                    },
+                    "right" : {
+                      "Node_ID" : 470, 
+                      "Node_Type" : "Constant",
+                      "type" : {
+                        "Node_ID" : 0
+                      },
+                      "value" : 2,
+                      "base" : 10
+                    }
+                  }
+                },
+                "ifTrue" : {
+                  "Node_ID" : 471, 
+                  "Node_Type" : "BlockStatement",
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "components" : {
+                    "Node_ID" : 474, 
+                    "Node_Type" : "IndexedVector<StatOrDecl>",
+                    "vec" : [
+                      {
+                        "Node_ID" : 484, 
+                        "Node_Type" : "AssignmentStatement",
+                        "left" : {
+                          "Node_ID" : 64, 
+                          "Node_Type" : "PathExpression",
+                          "type" : {
+                            "Node_ID" : 29
+                          },
+                          "path" : {
+                            "Node_ID" : 63, 
+                            "Node_Type" : "Path",
+                            "name" : "r",
+                            "absolute" : false
+                          }
+                        },
+                        "right" : {
+                          "Node_ID" : 483, 
+                          "Node_Type" : "Constant",
+                          "type" : {
+                            "Node_ID" : 0
+                          },
+                          "value" : 1,
+                          "base" : 10
+                        }
+                      }
+                    ],
+                    "declarations" : {}
+                  }
+                },
+                "ifFalse" : {
+                  "Node_ID" : 485, 
+                  "Node_Type" : "BlockStatement",
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "components" : {
+                    "Node_ID" : 488, 
+                    "Node_Type" : "IndexedVector<StatOrDecl>",
+                    "vec" : [
+                      {
+                        "Node_ID" : 498, 
+                        "Node_Type" : "AssignmentStatement",
+                        "left" : {
+                          "Node_ID" : 71, 
+                          "Node_Type" : "PathExpression",
+                          "type" : {
+                            "Node_ID" : 29
+                          },
+                          "path" : {
+                            "Node_ID" : 70, 
+                            "Node_Type" : "Path",
+                            "name" : "r",
+                            "absolute" : false
+                          }
+                        },
+                        "right" : {
+                          "Node_ID" : 497, 
+                          "Node_Type" : "Constant",
+                          "type" : {
+                            "Node_ID" : 0
+                          },
+                          "value" : 2,
+                          "base" : 10
+                        }
+                      }
+                    ],
+                    "declarations" : {}
+                  }
+                }
+              }
+            ],
+            "declarations" : {}
+          }
+        }
+      }
+    },
+    {
+      "key" : 96,
+      "value" : {
+        "Node_ID" : 95, 
+        "Node_Type" : "Type_Package",
+        "name" : "top",
+        "declid" : 3,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "typeParameters" : {
+          "Node_ID" : 88, 
+          "Node_Type" : "TypeParameters",
+          "parameters" : {
+            "Node_ID" : 89, 
+            "Node_Type" : "IndexedVector<Type_Var>",
+            "vec" : [],
+            "declarations" : {}
+          }
+        },
+        "constructorParams" : {
+          "Node_ID" : 94, 
+          "Node_Type" : "ParameterList",
+          "parameters" : {
+            "Node_ID" : 93, 
+            "Node_Type" : "IndexedVector<Parameter>",
+            "vec" : [
+              {
+                "Node_ID" : 92, 
+                "Node_Type" : "Parameter",
+                "name" : "e",
+                "declid" : 4,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "direction" : "",
+                "type" : {
+                  "Node_ID" : 91, 
+                  "Node_Type" : "Type_Name",
+                  "path" : {
+                    "Node_ID" : 90, 
+                    "Node_Type" : "Path",
+                    "name" : "simple",
+                    "absolute" : false
+                  }
+                }
+              }
+            ],
+            "declarations" : {
+              "e" : {
+                "Node_ID" : 92, 
+                "Node_Type" : "Parameter",
+                "name" : "e",
+                "declid" : 4,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "direction" : "",
+                "type" : {
+                  "Node_ID" : 91
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "key" : 90,
+      "value" : {
+        "Node_ID" : 87, 
+        "Node_Type" : "Type_Control",
+        "name" : "simple",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "typeParameters" : {
+          "Node_ID" : 80, 
+          "Node_Type" : "TypeParameters",
+          "parameters" : {
+            "Node_ID" : 81, 
+            "Node_Type" : "IndexedVector<Type_Var>",
+            "vec" : [],
+            "declarations" : {}
+          }
+        },
+        "applyParams" : {
+          "Node_ID" : 86, 
+          "Node_Type" : "ParameterList",
+          "parameters" : {
+            "Node_ID" : 85, 
+            "Node_Type" : "IndexedVector<Parameter>",
+            "vec" : [
+              {
+                "Node_ID" : 84, 
+                "Node_Type" : "Parameter",
+                "name" : "r",
+                "declid" : 3,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "direction" : "inout",
+                "type" : {
+                  "Node_ID" : 0
+                }
+              }
+            ],
+            "declarations" : {
+              "r" : {
+                "Node_ID" : 84, 
+                "Node_Type" : "Parameter",
+                "name" : "r",
+                "declid" : 3,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "direction" : "inout",
+                "type" : {
+                  "Node_ID" : 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "key" : 70,
+      "value" : {
+        "Node_ID" : 21, 
+        "Node_Type" : "Parameter",
+        "name" : "r",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "direction" : "inout",
+        "type" : {
+          "Node_ID" : 0
+        }
+      }
+    },
+    {
+      "key" : 63,
+      "value" : {
+        "Node_ID" : 21, 
+        "Node_Type" : "Parameter",
+        "name" : "r",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "direction" : "inout",
+        "type" : {
+          "Node_ID" : 0
+        }
+      }
+    },
+    {
+      "key" : 52,
+      "value" : {
+        "Node_ID" : 16, 
+        "Node_Type" : "Method",
+        "name" : "f",
+        "declid" : 1,
+        "type" : {
+          "Node_ID" : 15, 
+          "Node_Type" : "Type_Method",
+          "typeParameters" : {
+            "Node_ID" : 8, 
+            "Node_Type" : "TypeParameters",
+            "parameters" : {
+              "Node_ID" : 9, 
+              "Node_Type" : "IndexedVector<Type_Var>",
+              "vec" : [],
+              "declarations" : {}
+            }
+          },
+          "returnType" : {
+            "Node_ID" : 0
+          },
+          "parameters" : {
+            "Node_ID" : 14, 
+            "Node_Type" : "ParameterList",
+            "parameters" : {
+              "Node_ID" : 13, 
+              "Node_Type" : "IndexedVector<Parameter>",
+              "vec" : [
+                {
+                  "Node_ID" : 12, 
+                  "Node_Type" : "Parameter",
+                  "name" : "x",
+                  "declid" : 0,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "in",
+                  "type" : {
+                    "Node_ID" : 0
+                  }
+                }
+              ],
+              "declarations" : {
+                "x" : {
+                  "Node_ID" : 12, 
+                  "Node_Type" : "Parameter",
+                  "name" : "x",
+                  "declid" : 0,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "in",
+                  "type" : {
+                    "Node_ID" : 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "isAbstract" : false,
+        "annotations" : {
+          "Node_ID" : 3
+        }
+      }
+    },
+    {
+      "key" : 41,
+      "value" : {
+        "Node_ID" : 16, 
+        "Node_Type" : "Method",
+        "name" : "f",
+        "declid" : 1,
+        "type" : {
+          "Node_ID" : 15
+        },
+        "isAbstract" : false,
+        "annotations" : {
+          "Node_ID" : 3
+        }
+      }
+    },
+    {
+      "key" : 30,
+      "value" : {
+        "Node_ID" : 16, 
+        "Node_Type" : "Method",
+        "name" : "f",
+        "declid" : 1,
+        "type" : {
+          "Node_ID" : 15
+        },
+        "isAbstract" : false,
+        "annotations" : {
+          "Node_ID" : 3
+        }
+      }
+    }
+  ],  "thisToDeclaration" : []
+}
