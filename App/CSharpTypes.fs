@@ -18,6 +18,8 @@ module CSharpTypes =
     | CsType of Syntax.TypeSyntax
     | UnknownType
 
+  type TypeDefBehaviour = KeepTypeDef | ResolveTypeDef
+
   module Transformed =
     open Microsoft.CodeAnalysis
     open Microsoft.CodeAnalysis.CSharp

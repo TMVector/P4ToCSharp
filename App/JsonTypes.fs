@@ -127,6 +127,11 @@ module JsonTypes =
   type Annotations(node_id, node_type, annotations) =
     inherit Node(node_id, node_type)
     member this.annotations : Vector<Annotation> = annotations
+    member this.GetAnnotationByName<'a>(name) =
+      this.annotations.vec
+      |> Seq.filter (fun annotation -> annotation.name = name)
+      |> Seq.cast<'a>
+      |> Seq.tryFirst
 
   type Direction = None | In | Out | InOut (*  NOTE P4 has copy-in/copy-out semantics *)
 
@@ -304,11 +309,14 @@ module JsonTypes =
   type TableProperties(node_id, node_type, properties) =
     inherit Node(node_id, node_type)
     member this.properties : IndexedVector<Property> = properties
-    member this.GetPropertyByName<'a>(name) =
+    member this.GetPropertyByName(name) =
       this.properties.vec
       |> Seq.filter (fun prop -> prop.name = name)
-      |> Seq.cast<'a>
-      |> Seq.tryPick Some
+      |> Seq.tryFirst
+    member this.GetPropertyValueByName<'a>(name) =
+      this.GetPropertyByName(name)
+      |> Option.map (fun p -> p.value)
+      |> Option.cast<_,'a>
     override this.NamedChild(name) =
       this.properties.NamedChild(name)
 

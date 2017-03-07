@@ -122,6 +122,18 @@ let tupleTypeOf (types:Syntax.TypeSyntax seq) : Syntax.TypeSyntax =
   upcast SF.GenericName(SF.Identifier("Tuple"), tArgList types)
 let literalInt (value:int) =
   SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(value))
+let rec resolveType (scopeInfo:ScopeInfo) (typedefBehaviour:TypeDefBehaviour) (ty:JsonTypes.Type) : JsonTypes.Type =
+  match ty with
+  | :? JsonTypes.Type_Name as tn ->
+      scopeInfo.GetReference(tn.path)
+      |> Option.ofType
+      |> Option.ifNone (fun () -> failwithf "Couldn't resolve Type_Name %s" tn.path.name)
+      |> resolveType scopeInfo typedefBehaviour
+  | :? JsonTypes.Type_Typedef as td ->
+      match typedefBehaviour with
+      | KeepTypeDef -> upcast td
+      | ResolveTypeDef -> resolveType scopeInfo typedefBehaviour td.type_
+  | _ -> ty
 let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
   match ty with
   | :? JsonTypes.Type_Bits as bits ->
@@ -323,6 +335,31 @@ let saveToFile (compilationUnit : Syntax.CompilationUnitSyntax) (filename:string
   let formattedNode = Microsoft.CodeAnalysis.Formatting.Formatter.Format(compilationUnit, workspace)
   use writer = new System.IO.StreamWriter(filename)
   formattedNode.WriteTo(writer)
+
+let inferTypeOf (scope:ScopeInfo) (typedefBehaviour:TypeDefBehaviour) (expr:JsonTypes.Expression) : JsonTypes.Type =
+  scope.GetTypeOf(expr) // Doesn't respect/preserve typedefs... 
+  |> Option.map (resolveType scope typedefBehaviour)
+  |> Option.ifNone (fun () -> failwithf "Couldn't infer type of expression %s" expr.Node_Type)
+//  let rec getTypeOf (nameExpr : JsonTypes.Expression) =
+//      match nameExpr with
+//      | :? JsonTypes.PathExpression as pathExpr -> // This is the base of the name expression
+//          scope.GetP4ForPath pathExpr.path
+//          // E.g. .t.t1.a -> [t; t1; a]
+//          // We then need to find the type of t, and from that, of the member named here
+//      | :? JsonTypes.Member as m ->
+//          getTypeOf m.expr
+//          |> Option.bind (fun parentPath ->
+//            match parentPath with
+//            | parent::_ ->
+//                match parent with
+//                //| :? JsonTypes.Type_Enum as e -> Some parent // We want to return the enum itself, not the unhelpful Declaration_ID member
+//                | _ -> 
+//                  let childName = m.member_
+//                  (parent.NamedChild(childName))::parentPath |> Some
+//            | None::_ -> None::parentPath |> Some // cannot find a named child of None, so fill place with None 
+//            | [] -> failwith "getP4For should never return an empty list")
+//      | _ -> failwith "Tried to follow a name expression that wasn't a valid name expression"
+//    getTypeOf expr
 
 let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
   let ofExpr = ofExpr scopeInfo
@@ -695,39 +732,57 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
       | :? JsonTypes.Property -> failwith "JsonTypes.Property not handled yet" // FIXME
       | :? JsonTypes.P4Table as pt ->
-          let inferTypeOf (expr:JsonTypes.Expression) : Syntax.TypeSyntax = () // TODO FIXME infer types?! :'( Going to need access to already processed types/scope...
-
-          let resultTy : Syntax.TypeSyntax =
+          let resultTy : Syntax.TypeSyntax option =
             let types = pt.parameters.parameters.vec
                         |> Seq.filter (fun p -> p.direction = JsonTypes.Direction.Out)
                         |> Seq.map (fun p -> p.type_) // FIXME check this isn't Type_Unknown
                         |> Seq.toList
             match types with
-            | [] -> failwith "Expected out parameter(s) on table %s" pt.name
-            | [ty] -> ofType ty
-            | types -> tupleTypeOf (Seq.map ofType types)
+            | [] -> None 
+            | [ty] -> ofType ty |> Some
+            | types -> tupleTypeOf (Seq.map ofType types) |> Some
+          let actionBaseType = SF.IdentifierName("ActionBase")
           let key =
             let lutTypeFor (path:JsonTypes.PathExpression) keyType resultType : Syntax.TypeSyntax =
               let matchKindName = path.path.name
               let matchKindName = System.Char.ToUpper(matchKindName.[0]).ToString() + matchKindName.Substring(1)
-              upcast qualifiedGenericTypeName (sprintf "Library.%sTable" matchKindName) [|keyType; resultType|]
-            let key = pt.properties.GetPropertyByName<JsonTypes.Key>("key") |> Option.get // key property must be present
+              upcast qualifiedGenericTypeName (sprintf "%sTable" matchKindName) [|keyType; resultType|]
+            let key = pt.properties.GetPropertyValueByName<JsonTypes.Key>("key") |> Option.get // key property must be present
             seq {
-              let mutable prevTy = resultTy
+              let mutable prevTy = actionBaseType
               for ke in Seq.rev key.keyElements.vec do
-                let keyTy = inferTypeOf ke.expression
+                let keyTy = inferTypeOf scopeInfo KeepTypeDef ke.expression |> ofType
                 let lutTy = lutTypeFor ke.matchType keyTy prevTy
                 yield (lutTy, ke.expression)
             } |> Seq.rev |> Seq.toArray
           let tableFields =
             key
-            |> Seq.mapi (fun i (lutTy, kExpr) -> field lutTy (sprintf "table%d" i) (SF.ObjectCreationExpression(lutTy)))
-          let actionOfExpr (a:JsonTypes.Expression) =
-            let expr = ofExpr scopeInfo UnknownType a // get a cs expression for the method
-            let name = expr.ToString().Replace('.', '_') // get a name usable in class names/enum
-            assert not (name.Contains(".") || name.Contains("-") || name.Contains("(") || name.Contains(")") || name.Contains("<") || name.Contains(">") || name.Contains(" "))
-            let p4action =
-              match scopeInfo.GetP4PathForNameExpr a with // The head should be the P4Action
+            |> Seq.mapi (fun i (lutTy, kExpr) -> field lutTy (sprintf "table%d" i) (constructorCall lutTy []))
+          let actionOfExpr (actionExpr:JsonTypes.Expression) (name:string option) =
+            // TODO FIXME need to be more careful with the handling of the expression here:
+            // From the spec:
+            //action a(in bit<32> x) { ...}
+            //action b(inout bit<32> x, bit<8> data) { ...}
+            //table t(inout bit<32> z) {
+            //    actions = {
+            //       // a; -- illegal, x parameter must be bound
+            //       a(5);  // binding a's parameter x to 5
+            //       b(z);  // binding b's parameter x to z
+            //       // b(z, 3);  // -- illegal, cannot bind directionless data parameter
+            //       // b(); -- illegal, x parameter must be bound
+            //    }
+            //}
+            let expr = ofExpr scopeInfo UnknownType actionExpr // get a cs expression for the method
+            let name = name |> Option.ifNone (fun () -> expr.ToString()) // Use annotated name in preference
+            let name = name.Replace('.', '_').Replace("(","").Replace(")","") // get a name usable in class names/enum
+            if name.Contains(".") || name.Contains("-") || name.Contains("(") || name.Contains(")") || name.Contains("<") || name.Contains(">") || name.Contains(" ") then
+              failwithf "Name unsuitable for use as C# identifier: %s" name
+            let p4action = // TODO FIXME get the P4 action properly
+              let nameExpr =
+                match actionExpr with
+                | :? JsonTypes.MethodCallExpression as mce -> mce.method_
+                | _ -> actionExpr
+              match scopeInfo.GetP4PathForNameExpr nameExpr with // The head should be the P4Action
               | Some path ->
                   match path with
                   | action::_ ->
@@ -735,25 +790,24 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                       |> Option.ofType<_,JsonTypes.P4Action>
                       |> Option.ifNone (fun () -> failwith "Couldn't resolve name to P4Action")
                   | _ -> failwith "GetP4PathForNameExpr returned an empty list" 
-              | None -> failwithf "Couldn't resolve name (%s) to P4Action" (a.ToString())
+              | None -> failwithf "Couldn't resolve name (%s) to P4Action" (actionExpr.ToString())
             (name, expr, p4action) // So we have the P4AST for actions, but still can't be sure whether they should take e.g. TopPipe_Args?
           let actions =
-            pt.properties.GetPropertyByName<JsonTypes.ActionList>("actions")
-            |> Option.map (fun al -> al.actionList.vec |> Seq.map (fun ale -> ale.expression))
+            pt.properties.GetPropertyValueByName<JsonTypes.ActionList>("actions")
+            |> Option.map (fun al -> al.actionList.vec |> Seq.ofArray)
             |> Option.orEmpty // actions should always be present anyways
-            |> Seq.map actionOfExpr
-          let action_list = createEnum "action_list" (actions |> Seq.map fst3)
+            |> Seq.map (fun ale -> actionOfExpr ale.expression <| ale.annotations.GetAnnotationByName<string>("name"))
+          let action_list = (createEnum "action_list" (actions |> Seq.map fst3)).WithModifiers(tokenList [SK.PublicKeyword])
           let actionListType = SF.IdentifierName("action_list") :> Syntax.TypeSyntax
           let apply_result =
             SF.ClassDeclaration("apply_result")
               .WithModifiers(tokenList [ SK.PublicKeyword; SK.SealedKeyword ])
-              .WithBaseTypes([qualifiedGenericTypeName "Library.apply_result" [actionListType]])
+              .WithBaseTypes([qualifiedGenericTypeName "apply_result" [actionListType]])
               .AddMembers(SF.ConstructorDeclaration("apply_result")
                             .WithModifiers(tokenList [ SK.PublicKeyword ])
                             .WithParameters([ ("hit", boolType); ("action_run", actionListType) ])
                             .WithBase([ SF.IdentifierName("hit"); SF.IdentifierName("action_run") ])
                             .WithBlockBody([]))
-          let actionBaseType = SF.IdentifierName("ActionBase")
           let directedParams =
             pt.parameters.parameters.vec
             |> Seq.filter (fun p -> p.direction <> JsonTypes.Direction.None)
@@ -796,14 +850,13 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                                  .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
               .AddMembers(actions |> Seq.map actionClassOf |> Seq.cast |> Seq.toArray)
           let size =
-            pt.properties.GetPropertyByName<JsonTypes.ExpressionValue>("size")
+            pt.properties.GetPropertyValueByName<JsonTypes.ExpressionValue>("size")
             |> Option.map (fun size -> field int32Name "size" (ofExpr scopeInfo (CsType int32Name) size.expression)) // FIXME using InfInt to mean int32...
           let defaultAction =
-            pt.properties.GetPropertyByName<JsonTypes.ExpressionValue>("default_action")
-            |> Option.map (fun da -> actionOfExpr da.expression)
+            pt.properties.GetPropertyValueByName<JsonTypes.ExpressionValue>("default_action")
+            |> Option.map (fun da -> actionOfExpr da.expression None)
             |> Option.map (fun (name, expr, p4action) ->
-                (field actionBaseType "default_action" (SF.ObjectCreationExpression(SF.IdentifierName(name))
-                                                          .WithArgumentList(argList []))) // FIXME handle default action arguments
+                (field actionBaseType "default_action" (constructorCall (SF.IdentifierName(name)) [])) // FIXME handle default action arguments
                   .WithModifiers(tokenList [SK.PrivateKeyword]))
             |> Option.toArray
           SF.ClassDeclaration(pt.name)
