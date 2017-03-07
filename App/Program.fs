@@ -15,10 +15,19 @@ module Main =
     let outputFilename = sprintf "%s.gen.cs" filename
     P4ToCSharp.App.CSharp.saveToFile cs outputFilename
 
-//  [<EntryPoint>]
-//  let main argv = 
-//      printfn "%A" argv
-//      0 // return an integer exit code
+  [<EntryPoint>]
+  let main argv = 
+      let filename = lazy argv.[0]
+      if argv.Length = 1 && System.IO.File.Exists filename.Value then
+        printfn "Converting %s" filename.Value
+        convertFile filename.Value
+        printfn "Done."
+        0
+      else
+        printfn "Syntax: App p4-json-file-to-convert"
+        printfn "Please provide a valid path"
+        1
+
 
 
 #if INTERACTIVE

@@ -6,6 +6,8 @@ module Util =
       Seq.head
     let tryFirst<'a> : seq<'a> -> 'a option =
       Seq.tryHead
+    let trySingle<'a> : seq<'a> -> 'a option =
+      Seq.truncate 2 >> Seq.toArray >> (fun s -> if s.Length = 1 then Some s.[0] else None)
     let inline ofType<'src,'dst> (xs:'src seq) =
       xs
       |> Seq.filter (fun x -> x :> obj :? 'dst)
@@ -15,7 +17,7 @@ module Util =
       Option.toArray >> Seq.concat
     let ifNone f x =
       match x with Some x -> x | None -> f()
-    let inline cast x = x |> Option.toArray |> Seq.cast |> Seq.tryHead
+    let cast<'src,'dst> (x : 'src option) = x |> Option.toArray |> Seq.cast<'dst> |> Seq.tryHead
     let flatten x =
       match x with
       | Some o -> o

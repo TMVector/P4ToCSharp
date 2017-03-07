@@ -27,7 +27,12 @@ type ScopeInfo =
     /// The (reverse) path from the root of the current scope in the P4 AST
     P4AstPath : JsonTypes.Node list;
     /// The top-level scope for absolutely-named references (with the P4 '.' operator)
-    GlobalScope : ScopeInfo option } with
+    GlobalScope : ScopeInfo option
+
+    TypeMap : Map<int, JsonTypes.Type>;
+    PathMap : Map<int, JsonTypes.IDeclaration>;
+    ThisMap : Map<int, JsonTypes.IDeclaration>;
+  } with
   member this.GetP4Path(name : string) =
     this.P4AstPaths
     |> Seq.filter (fun (n,p) -> n = name)
@@ -857,7 +862,10 @@ and ofProgram (program : JsonTypes.Program) : Syntax.CompilationUnitSyntax =
         P4AstPaths=p4Paths;
         ScopeParameterList=Array.empty;
         P4AstPath=[];
-        GlobalScope=None; }
+        GlobalScope=None;
+        TypeMap=program.TypeMap;
+        PathMap=program.PathMap;
+        ThisMap=program.ThisMap; }
     { globalScope with GlobalScope = Some globalScope }
   let usings, declarations =
     program.P4.declarations.vec

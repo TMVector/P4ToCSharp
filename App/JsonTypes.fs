@@ -1320,8 +1320,16 @@ module JsonTypes =
       Map : KeyValuePair<int,Type> seq
     }
 
+  type RefMap =
+    {
+      PathToDeclaration : KeyValuePair<int,IDeclaration> seq;
+      ThisToDeclaration : KeyValuePair<int,IDeclaration> seq
+    }
+
   type Program =
     {
       P4 : P4Program;
-      TypeMap : Map<int, Type>
+      TypeMap : Map<int, Type>;
+      PathMap : Map<int, IDeclaration>;
+      ThisMap : Map<int, IDeclaration>;
     }

@@ -251,14 +251,24 @@ module JsonParsing =
     serialiser.Converters.Add(new IRConverter())
     serialiser.Converters.Add(new DirectionJsonConverter()) // FIXME Can this be attached to the type with an attribute?
     let ast = serialiser.Deserialize<JsonTypes.P4Program>(new IRReader(reader))
+    let mapOf (m : JsonTypes.KeyValuePair<int,'a> seq) =
+      m |> Seq.map (fun kv -> (kv.Key, kv.Value)) |> Map.ofSeq 
     let typeMapFile = sprintf "%s.typeMap.json" filename
     let typeMap =
       if File.Exists typeMapFile then
         use typeMapReader = File.OpenText(typeMapFile)
         serialiser.ReferenceResolver <- new IRReferenceResolver() // Clear the reference resolver
         serialiser.Deserialize<JsonTypes.TypeMap>(new IRReader(typeMapReader)).Map
-        |> Seq.map (fun kv -> (kv.Key, kv.Value))
-        |> Map.ofSeq
+        |> mapOf
       else
         failwithf "Could not find typemap file where expected %s" typeMapFile
-    { P4=ast; TypeMap=typeMap; }
+    let refMapFile = sprintf "%s.refMap.json" filename
+    let pathMap, thisMap =
+      if File.Exists refMapFile then
+        use refMapReader = File.OpenText(refMapFile)
+        serialiser.ReferenceResolver <- new IRReferenceResolver() // Clear the reference resolver
+        let refMap = serialiser.Deserialize<JsonTypes.RefMap>(new IRReader(refMapReader))
+        (mapOf refMap.PathToDeclaration, mapOf refMap.ThisToDeclaration)
+      else
+        failwithf "Could not find refmap file where expected %s" refMapFile
+    { P4=ast; TypeMap=typeMap; PathMap=pathMap; ThisMap=thisMap; }
