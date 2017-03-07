@@ -913,10 +913,10 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           |> Transformed.declOf
       | :? JsonTypes.Declaration_Variable -> failwith "JsonTypes.Declaration_Variable not handled yet" // FIXME
       | :? JsonTypes.Declaration_Constant as dc -> // FIXME if these aren't in a class, they need to not be wrapped in a FieldDeclaration
-          let expr = ofExpr scopeInfo CJType.UnknownType dc.initializer
+          let expr = ofExpr scopeInfo (CJType.JsonType dc.type_) dc.initializer
           let decl = variableDeclaration dc.name (ofType dc.type_) (Some expr)
           SF.FieldDeclaration(decl)
-            .WithModifiers(tokenList [SK.PublicKeyword; SK.ConstKeyword])
+            .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword; SK.ReadOnlyKeyword])
           |> Transformed.declOf
       | :? JsonTypes.Declaration_Instance as di ->
           // TODO FIXME How to handle this? Is this where we need to start interacting with the device? Are these always packages?
