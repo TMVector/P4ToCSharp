@@ -265,6 +265,11 @@ type Syntax.ConstructorDeclarationSyntax with
   member this.WithBase(args : Syntax.ExpressionSyntax seq) =
     this.WithInitializer(SF.ConstructorInitializer(SK.BaseConstructorInitializer, argList args))
 
+type Syntax.InterfaceDeclarationSyntax with
+  member this.WithTypeParameters(tyParams : Syntax.TypeParameterSyntax seq) =
+    if Seq.isEmpty tyParams then this
+    else this.WithTypeParameterList(SF.TypeParameterList(SF.SeparatedList(tyParams)))
+
 type Syntax.ClassDeclarationSyntax with
   member this.AddStructLikeFields(header :# JsonTypes.Type_StructLike, typeTranslator) =
     let properties =
@@ -599,6 +604,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           | :? JsonTypes.Type_Parser as tp ->
               SF.InterfaceDeclaration(tp.name) // FIXME all applicable parsers need to implement this
                 .AddBaseListTypes(parserBaseBaseType)
+                .WithTypeParameters(tp.typeParameters.parameters.vec |> Seq.map (fun tv -> SF.TypeParameter(tv.name)))
                 .AddMembers(SF.MethodDeclaration(voidType, "Apply") // FIXME type params
                               .WithParameters(tp.applyParams.parameters.vec |> Seq.map (fun p -> (parameter ofType p).WithDirection(p.direction)))
                               .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
@@ -606,6 +612,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           | :? JsonTypes.Type_Control as tc ->
               SF.InterfaceDeclaration(tc.name) // FIXME all applicable controls need to implement this
                 .AddBaseListTypes(controlBaseBaseType)
+                .WithTypeParameters(tc.typeParameters.parameters.vec |> Seq.map (fun tv -> SF.TypeParameter(tv.name)))
                 .AddMembers(SF.MethodDeclaration(voidType, "Apply") // FIXME type params
                               .WithParameters(tc.applyParams.parameters.vec |> Seq.map (fun p -> (parameter ofType p).WithDirection(p.direction)))
                               .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
