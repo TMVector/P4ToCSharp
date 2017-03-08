@@ -100,6 +100,10 @@ namespace P4ToCSharp.Library
     {
       return !(a == b);
     }
+    public static bit8 operator -(bit8 a, int i)
+    {
+      return new bit8((byte)(a.Value - i));
+    }
   }
 
   public struct bit16 : IBitString
