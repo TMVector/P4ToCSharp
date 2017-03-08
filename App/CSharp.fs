@@ -140,14 +140,14 @@ let rec resolveType (scopeInfo:ScopeInfo) (typedefBehaviour:TypeDefBehaviour) (t
 let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
   match ty with
   | :? JsonTypes.Type_Bits as bits ->
-      SF.InvocationExpression(memberAccess "BitHelper.Extract") // FIXME hardcode method names for common sizes
+      SF.InvocationExpression(memberAccess (sprintf "BitHelper.Extract%d" bits.size))
         .AddArgumentListArguments(SF.Argument(arrExpr),
                                   SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset))) // FIXME types in headers: bit fixed/var + int
   | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name)
 let createWriteExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) fieldExpr =
   match ty with
   | :? JsonTypes.Type_Bits as bits ->
-      SF.InvocationExpression(memberAccess "BitHelper.Write") // FIXME hardcode method names for common sizes
+      SF.InvocationExpression(memberAccess (sprintf "BitHelper.Write%d" bits.size))
         .AddArgumentListArguments(SF.Argument(arrExpr),
                                   SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset)),
                                   SF.Argument(fieldExpr))
@@ -327,7 +327,7 @@ type Syntax.ClassDeclarationSyntax with
           let writeExprFor = createWriteExpr <| SF.IdentifierName(arrName) <| SF.IdentifierName(offsetName)
           let writeStatements =
             fields
-            |> Seq.mapFold (fun bitOffset (field, ty, size) -> assignment field (writeExprFor ty bitOffset field), bitOffset + size) 0 |> fst
+            |> Seq.mapFold (fun bitOffset (field, ty, size) -> SF.ExpressionStatement(writeExprFor ty bitOffset field), bitOffset + size) 0 |> fst
             |> Seq.cast
           Seq.append [changeBytesToBits] writeStatements))
   member this.WithTypeParameters(tyParams : Syntax.TypeParameterSyntax seq) =
