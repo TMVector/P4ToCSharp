@@ -201,6 +201,14 @@ let uint32Name = qualifiedTypeName "System.UInt32"
 let int64Name = qualifiedTypeName "System.Int64"
 let uint64Name = qualifiedTypeName "System.UInt64"
 let breakStatement = SF.BreakStatement() :> Syntax.StatementSyntax
+let smallestTypeToHold (bitwidth:int) =
+  match bitwidth with
+  | _ when bitwidth > 64 -> failwithf "Cannot handle widths greater than 64 bits. (%d)" bitwidth
+  | _ when bitwidth > 32 -> uint64Name
+  | _ when bitwidth > 16 -> uint32Name
+  | _ when bitwidth > 8 -> uint16Name
+  | _ when bitwidth > 0 -> byteName
+  | _ -> failwithf "Cannot handle bitwidth of %d" bitwidth
 
 let classNameFor (name:string) = name
 let argsClassNameFor (name:string) = sprintf "%s_Args" (classNameFor name)
@@ -671,15 +679,21 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                 match e with
                 | :? JsonTypes.SelectExpression as se ->
                     let selectExpr = // TODO FIXME we need to cast this to ulong or something
-                      se.select.components.vec
-                      |> Seq.trySingle
-                      |> Option.ifNone (fun () -> failwith "Select statements must currently switch on a single expression only")
-                      |> ofExpr scopeInfo UnknownType
+                      let expr =
+                        se.select.components.vec
+                        |> Seq.trySingle
+                        |> Option.ifNone (fun () -> failwith "Select statements must currently switch on a single expression only")
+                      let exprType = inferTypeOf scopeInfo ResolveTypeDef expr
+                      let castType =
+                        match exprType with
+                        | :? JsonTypes.Type_Bits as tb -> smallestTypeToHold tb.size
+                        | _ -> failwithf "Type of (%s) not handled in switch expression" exprType.Node_Type
+                      SF.CastExpression(castType, expr |> ofExpr scopeInfo UnknownType)
                     SF.SwitchStatement(selectExpr)
                       .AddSections(
                         se.selectCases.vec
                         |> Seq.map (fun sc ->
-                            SF.SwitchSection()
+                            SF.SwitchSection() // FIXME if the case label is too big for the type of the switch expr, we get a c# compile error
                               .AddLabels(ofExpr scopeInfo UnknownType sc.keyset |> Seq.singleton // FIXME keyset could be a list expression?
                                         |> Seq.map (fun k -> SF.CaseSwitchLabel(k))
                                         |> Seq.cast |> Seq.toArray)
@@ -754,7 +768,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
               { scope.AppendScopeParameters(argsParam) with GetExprForName=getExpr }
             let apply = SF.MethodDeclaration(voidType, "apply")
                           .WithParameters(applyParams |> Seq.map snd)
-                          .WithBody(ofBlockStatement thisScope pc.body) // We need to explicitly pass argsClass closure to all actions, etc.
+                          .WithBody(ofBlockStatement thisScope pc.body) // TODO FIXME We need to explicitly pass argsClass closure to all actions, etc. + create the closure arg
             apply, argsClass, thisScope
           let locals = // NOTE locals can access ctor params through properties, and apply args through the argsClass which is passed to each action, etc.
             let usings, decls = pc.controlLocals.vec |> Seq.map (declarationOfNode thisScope) |> Transformed.partition
