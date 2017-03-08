@@ -934,9 +934,9 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             |> Option.map (fun size -> field int32Name "size" (ofExpr scopeInfo (CsType int32Name) size.expression)) // FIXME using InfInt to mean int32...
           let defaultAction =
             pt.properties.GetPropertyValueByName<JsonTypes.ExpressionValue>("default_action")
-            |> Option.map (fun da -> actionOfExpr da.expression None)
+            |> Option.map (fun da -> actionOfExpr da.expression None) // FIXME default_action must be in the action list, but the actual class could still have a different name via an annotation...
             |> Option.map (fun (name, expr, p4action) ->
-                (field actionBaseType "default_action" (constructorCall (SF.IdentifierName(name)) [])) // FIXME handle default action arguments
+                (field actionBaseType "default_action" (constructorCall (qualifiedTypeName (sprintf "ActionBase.%s_Action" name)) [])) // FIXME handle default action arguments
                   .WithModifiers(tokenList [SK.PrivateKeyword]))
             |> Option.toArray
           let apply =
@@ -979,7 +979,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             field tableClassType pt.name (constructorCall tableClassType [])
           Transformed.Declaration [tableClass :> Syntax.MemberDeclarationSyntax; tableInstance :> Syntax.MemberDeclarationSyntax]
       | :? JsonTypes.Method as m ->
-          // FIXME does this refer to extern methods only?
+          // FIXME does this refer to extern methods only? May want to emit a static method that calls the actual (external) method to avoid namespace issues
           //failwith "JsonTypes.Method not handled yet" // FIXME
           // For now just emit a comment to remind me (FIXME can we emit comments on their own?)
           SF.ClassDeclaration(m.name).WithKeyword(SF.Token(SF.TriviaList(SF.Comment("// FIXME how are extern methods handled?"), SF.LineFeed), SK.ClassKeyword, SF.TriviaList(SF.Space)))
@@ -1009,7 +1009,6 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           // FIXME handle initialiser
           let ty = ofType di.type_
           field ty (csFieldNameOf di.name) (constructorCall ty (Seq.map (ofExpr scopeInfo UnknownType) di.arguments.vec))
-          //failwith "JsonTypes.Declaration_Instance not handled yet" // FIXME
           |> Transformed.declOf
       | :? JsonTypes.Function -> failwith "JsonTypes.Function not handled yet" // FIXME
       | _ ->
@@ -1045,5 +1044,5 @@ and ofProgram (program : JsonTypes.Program) : Syntax.CompilationUnitSyntax =
     .AddUsings(SF.UsingDirective(libraryName))
     .AddUsings(usings |> Seq.toArray)
     .AddMembers(SF.ClassDeclaration("Program")
-                  .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword])
+                  .WithModifiers(tokenList [SK.PublicKeyword])
                   .AddMembers(declarations |> Seq.toArray))
