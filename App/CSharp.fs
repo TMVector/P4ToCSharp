@@ -240,8 +240,8 @@ type Syntax.ParameterSyntax with
       match direction with
       | JsonTypes.Direction.None
       | JsonTypes.Direction.In -> []
-      | JsonTypes.Direction.InOut -> [SK.RefKeyword]
-      | JsonTypes.Direction.Out -> [SK.OutKeyword] // FIXME C# compiler enforces assignment to this in method body, whereas P4 doesn't? This could be problematic
+      | JsonTypes.Direction.InOut
+      | JsonTypes.Direction.Out -> [SK.RefKeyword]
     this.WithModifiers(tokenList modifiers)
 
 type Syntax.PropertyDeclarationSyntax with
@@ -729,7 +729,10 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
               SF.ConstructorDeclaration(className)
                 .WithModifiers(tokenList [SK.PublicKeyword])
                 .WithParameterList(paramList ctorParams)
-                .WithBody(SF.Block([ (* FIXME constructor body - set readonly fields and initialise external blocks? *) ]))
+                .WithBlockBody(
+                  ctorParams // FIXME initialise external blocks e.g. ck checksum16
+                  |> Seq.map (fun p -> assignment (thisAccess p.Identifier.Text) (SF.IdentifierName(p.Identifier)))// set readonly fields
+                  |> Seq.cast)
             let ctorParamProperties =
               ctorParams
               |> Seq.map (fun cp -> SF.PropertyDeclaration(cp.Type, cp.Identifier).WithAccessors(Property.Get))
@@ -752,6 +755,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                                             .WithModifiers(tokenList [SK.PublicKeyword]))
                 |> Seq.cast |> Seq.toArray
               let ctor = SF.ConstructorDeclaration(argsClassName)
+                           .WithModifiers(tokenList [SK.PublicKeyword])
                            .WithParameters(applyParams |> Seq.map (fun (p,cp) -> (cp.Identifier.Text, cp.Type)))
                            .WithBlockBody(applyParams |> Seq.map (fun (p,cp) -> upcast assignment (thisAccess cp.Identifier.Text) (SF.IdentifierName(cp.Identifier))))
               SF.ClassDeclaration(argsClassName)
@@ -766,9 +770,16 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                 if map.ContainsKey name then Some map.[name] else scopeInfo.GetExprForName name // FIXME could move explicit parent check to helper scope building method
               let argsParam = SF.Parameter(argsClass.Identifier).WithType(SF.IdentifierName(argsClass.Identifier))
               { scope.AppendScopeParameters(argsParam) with GetExprForName=getExpr }
+            let instantiateArgsClass : Syntax.StatementSyntax =
+              let argsClassType = SF.IdentifierName(argsClass.Identifier)
+              let objCreation =
+                SF.ObjectCreationExpression(argsClassType)
+                  .WithArgumentList(applyParams |> Seq.map (fun (_,p) -> SF.IdentifierName(p.Identifier)) |> argList)
+              upcast SF.LocalDeclarationStatement(variableDeclaration argsClass.Identifier.Text argsClassType (Some objCreation |> Option.cast))
             let apply = SF.MethodDeclaration(voidType, "apply")
                           .WithParameters(applyParams |> Seq.map snd)
-                          .WithBody(ofBlockStatement thisScope pc.body) // TODO FIXME We need to explicitly pass argsClass closure to all actions, etc. + create the closure arg
+                          .AddBodyStatements(instantiateArgsClass |> Array.singleton)
+                          .AddBodyStatements(pc.body.components.vec |> Seq.map (ofStatOrDecl scopeInfo) |> Seq.toArray) // TODO FIXME We need to explicitly pass argsClass closure to all actions, etc. + create the closure arg
             apply, argsClass, thisScope
           let locals = // NOTE locals can access ctor params through properties, and apply args through the argsClass which is passed to each action, etc.
             let usings, decls = pc.controlLocals.vec |> Seq.map (declarationOfNode thisScope) |> Transformed.partition
@@ -778,7 +789,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             .AddBaseListTypes(controlBaseBaseType)
             .WithModifiers(tokenList [ SK.SealedKeyword ])
             .AddMembers(ctorParamProperties)
-            .AddMembers(ctor, apply)
+            .AddMembers(argsClass, ctor, apply)
             .AddMembers(locals)
           |> Transformed.declOf
       | :? JsonTypes.Type_Error as err ->
@@ -947,7 +958,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
               |> Seq.map (fun p -> SF.Parameter(SF.Identifier(p.name)).WithType(ofType p.type_).WithDirection(p.direction))
             Seq.append scopeInfo.ScopeParameterList parameters // Add args closure parameters if needed, e.g. for accessing a control block's arguments
           SF.MethodDeclaration(voidType, a.name)
-            .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword])
+            .WithModifiers(tokenList [SK.StaticKeyword])
             .WithParameters(parameters)
             .WithBody(ofBlockStatement scopeInfo a.body)
           |> Transformed.declOf
