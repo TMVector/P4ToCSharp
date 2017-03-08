@@ -21,11 +21,14 @@ module Util =
           else
             pos <- pos + 1
       }
+    let isNotEmpty xs = Seq.isEmpty xs |> not
   module Option =
     let orEmpty<'a> : seq<'a> option -> seq<'a> =
       Option.toArray >> Seq.concat
     let ifNone f x =
       match x with Some x -> x | None -> f()
+    let ifNoneValue v x =
+      match x with Some x -> x | None -> v
     let cast<'src,'dst> (x : 'src option) = x |> Option.toArray |> Seq.cast<'dst> |> Seq.tryHead
     let flatten x =
       match x with

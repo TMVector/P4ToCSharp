@@ -498,6 +498,8 @@ and ofType (t : JsonTypes.Type) : Syntax.TypeSyntax =
       SF.ParseTypeName(n.path.name)
   | :? JsonTypes.Type_Specialized as ts ->
       upcast SF.GenericName(ts.baseType.path.name).AddTypeArgumentListArguments(ts.arguments.vec |> Seq.map ofType |> Seq.toArray)
+  | :? JsonTypes.Type_Void -> voidType
+  | :? JsonTypes.Type_Boolean -> boolType
   | _ -> failwithf "Unhandled subtype of JsonTypes.Type: %s" (t.GetType().Name) // FIXME make sure exhaustive in handling of types (note ofDeclaration)
 and nameOfType (fqType:TypeQualification) (t : JsonTypes.Type) : Syntax.NameSyntax =
   match t with
@@ -638,11 +640,10 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             .WithAlias(SF.NameEquals(SF.IdentifierName(td.name)))
           |> Transformed.usingOf
       | :? JsonTypes.Type_Extern as ext ->
-          // How are extern types handled? Maybe find the relavant interface in external code and use that
-          //failwith "JsonTypes.Type_Extern not handled yet" // FIXME
-          // For now just emit a comment to remind me (FIXME can we emit comments on their own?)
-          SF.ClassDeclaration(ext.name).WithKeyword(SF.Token(SF.TriviaList(SF.Comment("// FIXME how are extern types handled?"), SF.LineFeed), SK.ClassKeyword, SF.TriviaList(SF.Space)))
-          |> Transformed.declOf
+          if ext.typeParameters.parameters.vec |> Seq.isNotEmpty then failwith "Cannot handle type parameters in extern types"
+          SF.UsingDirective(SF.IdentifierName("FQNAMEHEREPLEASE"))// FIXME FQ name of extern type here
+            .WithAlias(SF.NameEquals(SF.IdentifierName(ext.name)))
+          |> Transformed.usingOf
       | :? JsonTypes.P4Parser as p ->
           let className = p.name
           let ctor =
@@ -994,9 +995,13 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           Transformed.Declaration [tableClass :> Syntax.MemberDeclarationSyntax; tableInstance :> Syntax.MemberDeclarationSyntax]
       | :? JsonTypes.Method as m ->
           // FIXME does this refer to extern methods only? May want to emit a static method that calls the actual (external) method to avoid namespace issues
-          //failwith "JsonTypes.Method not handled yet" // FIXME
-          // For now just emit a comment to remind me (FIXME can we emit comments on their own?)
-          SF.ClassDeclaration(m.name).WithKeyword(SF.Token(SF.TriviaList(SF.Comment("// FIXME how are extern methods handled?"), SF.LineFeed), SK.ClassKeyword, SF.TriviaList(SF.Space)))
+          let fullName = SF.IdentifierName("FQMethodName")
+          SF.MethodDeclaration(m.type_.returnType |> Option.map (ofType) |> Option.ifNoneValue voidType, m.name)
+            .WithModifiers(tokenList [SK.StaticKeyword])
+            // FIXME type parameters
+            //.WithTypeParameterList(SF.TypeParameterList(SF.SeparatedList(m.type_.typeParameters.parameters.vec |> Seq.map (fun p -> p)))) 
+            .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter ofType))
+            .WithBlockBody([SF.ExpressionStatement(SF.InvocationExpression(fullName).WithArguments(m.type_.parameters.parameters.vec |> Seq.map (fun p -> upcast SF.IdentifierName(p.name))))])
           |> Transformed.declOf
       | :? JsonTypes.Attribute -> failwith "JsonTypes.Attribute not handled yet" // FIXME
       | :? JsonTypes.ParserState -> failwith "JsonTypes.ParserState not handled yet" // FIXME
