@@ -11,15 +11,22 @@ namespace P4ToCSharp.Library
     private TKey[] Keys;
     private TResult[] Values;
 
-    public TResult Lookup(TKey key)
+    public TResult this[TKey key]
     {
+      get
+      {
+
+      }
     }
   }
   public sealed class ExactTable<TKey, TResult>
   {
-    public TResult Lookup(TKey key)
+    public TResult this[TKey key]
     {
+      get
+      {
 
+      }
     }
   }
 }

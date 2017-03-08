@@ -12,6 +12,15 @@ module Util =
       xs
       |> Seq.filter (fun x -> x :> obj :? 'dst)
       |> Seq.cast<'dst>
+    let skipIf skipCount xs =
+      seq {
+        let mutable pos = 0
+        for x in xs do
+          if pos > skipCount then
+            yield x
+          else
+            pos <- pos + 1
+      }
   module Option =
     let orEmpty<'a> : seq<'a> option -> seq<'a> =
       Option.toArray >> Seq.concat

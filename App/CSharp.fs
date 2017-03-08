@@ -10,6 +10,7 @@ open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.CSharp
 type SF = SyntaxFactory
 type SK = SyntaxKind
+type Expr = Syntax.ExpressionSyntax
 
 open P4ToCSharp.App.IR
 open P4ToCSharp.App.CSharpTypes
@@ -84,7 +85,9 @@ type ScopeInfo =
   member this.GetReference(thisNode : JsonTypes.This) =
     this.ThisMap.TryFind(thisNode.Node_ID)
     
-
+let nullLiteral = SF.LiteralExpression(SK.NullLiteralExpression)
+let trueLiteral = SF.LiteralExpression(SK.TrueLiteralExpression)
+let falseLiteral = SF.LiteralExpression(SK.FalseLiteralExpression)
 let csFieldNameOf p4Name =
   p4Name // FIXME any changes needed? Illegal chars etc
 let arg x =
@@ -820,15 +823,16 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
               upcast qualifiedGenericTypeName (sprintf "%sTable" matchKindName) [|keyType; resultType|]
             let key = pt.properties.GetPropertyValueByName<JsonTypes.Key>("key") |> Option.get // key property must be present
             seq {
-              let mutable prevTy = actionBaseType
+              let mutable prevTy : Syntax.TypeSyntax = upcast actionBaseType
               for ke in Seq.rev key.keyElements.vec do
                 let keyTy = inferTypeOf scopeInfo KeepTypeDef ke.expression |> ofType
-                let lutTy = lutTypeFor ke.matchType keyTy prevTy
+                let lutTy = lutTypeFor ke.matchType keyTy prevTy // Each lookup gets the next lookup in the chain (or the action)
+                prevTy <- lutTy
                 yield (lutTy, ke.expression)
             } |> Seq.rev |> Seq.toArray
-          let tableFields =
-            key
-            |> Seq.mapi (fun i (lutTy, kExpr) -> field lutTy (sprintf "table%d" i) (constructorCall lutTy []))
+          let tableField =
+            let (lutTy, kExpr) = Seq.first key
+            field lutTy "lookup" (constructorCall lutTy [])
           let actionOfExpr (actionExpr:JsonTypes.Expression) (name:string option) =
             // TODO FIXME need to be more careful with the handling of the expression here:
             // From the spec:
@@ -882,11 +886,16 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let directedParams =
             pt.parameters.parameters.vec
             |> Seq.filter (fun p -> p.direction <> JsonTypes.Direction.None)
-            |> Seq.map (parameter ofType)
+            |> Seq.map (fun p -> (parameter ofType p).WithDirection(p.direction))
           let onApply =
             SF.MethodDeclaration(voidType, "OnApply")
               .WithModifiers(tokenList [SK.PublicKeyword; SK.OverrideKeyword])
               .WithParameters(Seq.append scopeInfo.ScopeParameterList directedParams)
+          let onApplyArgs =
+            onApply.ParameterList.Parameters
+            |> Seq.map (fun p -> let arg = SF.Argument(SF.IdentifierName(p.Identifier))
+                                 if p.Modifiers.Any(SK.RefKeyword) then arg.WithRefOrOutKeyword(SF.Token(SK.RefKeyword)) else arg)
+            |> Seq.toArray
           let actionClassOf (name:string, expr:Syntax.ExpressionSyntax, p4action:JsonTypes.P4Action) =
             let className = sprintf "%s_Action" name
             let directionlessParams =
@@ -930,12 +939,38 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                 (field actionBaseType "default_action" (constructorCall (SF.IdentifierName(name)) [])) // FIXME handle default action arguments
                   .WithModifiers(tokenList [SK.PrivateKeyword]))
             |> Option.toArray
+          let apply =
+            let apply_resultType = SF.IdentifierName(apply_result.Identifier)
+            let result = SF.IdentifierName("result")
+            SF.MethodDeclaration(SF.IdentifierName(apply_result.Identifier), "apply")
+              .WithModifiers(tokenList [SK.PublicKeyword])
+              .WithParameters(Seq.append scopeInfo.ScopeParameterList (pt.parameters.parameters.vec |> Seq.map (fun p -> (parameter ofType p).WithDirection(p.direction))))
+              .WithBlockBody(seq {
+                  yield upcast SF.LocalDeclarationStatement(variableDeclaration result.Identifier.Text apply_resultType None)
+                  // Chain table lookups
+                  let indexAccessExpr key = SF.ElementBindingExpression().WithArgumentList(SF.BracketedArgumentList(SF.SingletonSeparatedList(SF.Argument(key)))) :> Expr
+                  let lookupKey lut key = SF.ConditionalAccessExpression(lut, indexAccessExpr key) :> Expr
+                  let lookupChain = Seq.fold (fun expr (_,keyExpr) -> lookupKey (indexAccessExpr (keyExpr |> ofExpr scopeInfo UnknownType)) expr)
+                                             (Seq.last key |> snd |> ofExpr scopeInfo UnknownType |> indexAccessExpr)
+                                             (key |> Seq.skipIf 1)
+                  let lookupExpr = SF.ConditionalAccessExpression(SF.IdentifierName("lookup"), lookupChain) :> Expr
+                  yield upcast SF.LocalDeclarationStatement(variableDeclaration "RA" actionBaseType (Some lookupExpr))
+                  let condition = SF.BinaryExpression(SK.EqualsExpression, SF.IdentifierName("RA"), nullLiteral)
+                  let ifThen = assignment result (SF.ObjectCreationExpression(apply_resultType).WithArgumentList(argList [falseLiteral :> Expr; memberAccess "default_action.Action"]))
+                  let elseThen = assignment result (SF.ObjectCreationExpression(apply_resultType).WithArgumentList(argList [trueLiteral :> Expr; memberAccess "RA.Action"]))
+                  yield upcast SF.IfStatement(condition, ifThen, SF.ElseClause(elseThen))
+                  //RA.OnApply(args, ref nextHop);
+                  yield upcast SF.ExpressionStatement(SF.InvocationExpression(memberAccess "RA.OnApply").WithArgumentList(SF.ArgumentList(SF.SeparatedList(onApplyArgs))))
+                  //return result;
+                  yield upcast SF.ReturnStatement(SF.IdentifierName("result"))
+                })
           let tableClassName = sprintf "%s_t" pt.name
           let tableClassType = SF.IdentifierName(tableClassName)
           let tableClass =
             SF.ClassDeclaration(tableClassName)
               .WithModifiers(tokenList [SK.PrivateKeyword; SK.SealedKeyword])
-              .AddMembers(tableFields |> Seq.cast |> Seq.toArray)
+              .AddMembers(tableField)
+              .AddMembers(apply)
               .AddMembers(action_list)
               .AddMembers(apply_result)
               .AddMembers(actionBase)
