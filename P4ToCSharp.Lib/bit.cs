@@ -129,6 +129,12 @@ namespace P4ToCSharp.Library
 
     public static explicit operator bit16(int v)
     {
+      // FIXME implement casts
+    }
+
+    public static explicit operator ushort(bit16 v)
+    {
+      return v.Value;
     }
   }
 

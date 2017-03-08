@@ -111,6 +111,11 @@ namespace P4ToCSharp.Library
       Write32(arr, startByte, new bit32(data));
     }
 
+    public static void Write4(byte[] arr, uint bitOffset, bit4 value)
+    {
+
+    }
+
     public static void Write8(byte[] arr, uint bitOffset, bit8 value)
     {
       Debug.Assert(bitOffset % 8 == 0, "Offset for Write8 must be a multiple of 8");
