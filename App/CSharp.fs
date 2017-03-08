@@ -891,10 +891,12 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             SF.MethodDeclaration(voidType, "OnApply")
               .WithModifiers(tokenList [SK.PublicKeyword; SK.OverrideKeyword])
               .WithParameters(Seq.append scopeInfo.ScopeParameterList directedParams)
+          let argForParam (p:Syntax.ParameterSyntax) =
+            let arg = SF.Argument(SF.IdentifierName(p.Identifier))
+            if p.Modifiers.Any(SK.RefKeyword) then arg.WithRefOrOutKeyword(SF.Token(SK.RefKeyword)) else arg
           let onApplyArgs =
             onApply.ParameterList.Parameters
-            |> Seq.map (fun p -> let arg = SF.Argument(SF.IdentifierName(p.Identifier))
-                                 if p.Modifiers.Any(SK.RefKeyword) then arg.WithRefOrOutKeyword(SF.Token(SK.RefKeyword)) else arg)
+            |> Seq.map argForParam
             |> Seq.toArray
           let actionClassOf (name:string, expr:Syntax.ExpressionSyntax, p4action:JsonTypes.P4Action) =
             let className = sprintf "%s_Action" name
@@ -903,7 +905,10 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
               |> Seq.filter (fun p -> p.direction = JsonTypes.Direction.None)
             let actionArgs =
               p4action.parameters.parameters.vec
-              |> Seq.map (fun p -> SF.IdentifierName(p.name)) // FIXME are parameters guaranteed to be named the same way in this scope? Need to add out/ref keyword to those parameters...
+              |> Seq.map (fun p -> let arg = SF.Argument(SF.IdentifierName(p.name)) // FIXME are parameters guaranteed to have the same name in this scope?
+                                   match p.direction with
+                                   | JsonTypes.Direction.Out | JsonTypes.Direction.InOut -> arg.WithRefOrOutKeyword(SF.Token(SK.RefKeyword))
+                                   | _ -> arg)
             SF.ClassDeclaration(className)
               .WithModifiers(tokenList [SK.PublicKeyword; SK.SealedKeyword])
               .WithBaseTypes([actionBaseType])
@@ -917,7 +922,16 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                             .WithBlockBody(directionlessParams // Set readonly fields
                                            |> Seq.map (fun p -> assignment (thisAccess p.name) (SF.IdentifierName(p.name)))
                                            |> Seq.cast))
-              .AddMembers(onApply.WithBlockBody([SF.ExpressionStatement(SF.InvocationExpression(expr, argList actionArgs))])) // TODO FIXME call the method with all its parameters                  
+              .AddMembers(
+                let methodExpr, args =
+                  match expr with
+                  | :? Syntax.InvocationExpressionSyntax as ies -> ies.Expression, ies.ArgumentList.Arguments
+                  | _ -> failwith "Couldn't deconstruct action expression to an InvocationExpressionSyntax"
+                // FIXME It may be that not all scope args should be used! One method of avoiding this problem is redefining the method that *does* take them, and calling the actual method inside that one.
+                //        Still not the easiest though... Maybe add some info 
+                // FIXME Should use user args (args), not just action parameters
+                let args = Seq.append (scopeInfo.ScopeParameterList |> Seq.map argForParam) actionArgs
+                onApply.WithBlockBody([SF.ExpressionStatement(SF.InvocationExpression(methodExpr, SF.ArgumentList(SF.SeparatedList(args |> Seq.toArray))))]))
           let actionBase =
             SF.ClassDeclaration("ActionBase")
               .WithModifiers(tokenList [ SK.PrivateKeyword; SK.AbstractKeyword ])
