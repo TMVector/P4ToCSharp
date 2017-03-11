@@ -25,26 +25,29 @@ module CSharpTypes =
     open Microsoft.CodeAnalysis
     open Microsoft.CodeAnalysis.CSharp
     type Declaration =
-      | Empty
-      | Declaration of Syntax.MemberDeclarationSyntax list
-      | Using of Syntax.UsingDirectiveSyntax list
+      | Declaration of Syntax.MemberDeclarationSyntax
+      | Using of Syntax.UsingDirectiveSyntax
     let declOf (d :# Syntax.MemberDeclarationSyntax) =
-      Declaration [d]
+      Declaration d |> Seq.singleton
     let usingOf (u :# Syntax.UsingDirectiveSyntax) =
-      Using [u]
+      Using u |> Seq.singleton
+    let addDecl (d :# Syntax.MemberDeclarationSyntax) (t:Declaration seq) =
+      Seq.append t (declOf d)
+    let addUsing (u :# Syntax.UsingDirectiveSyntax) (t:Declaration seq) =
+      Seq.append t (usingOf u)
     let declarations(decls:Declaration seq) = 
       seq { 
         for d in decls do 
           match d with 
-          | Empty | Using(_) -> () 
-          | Declaration(vs) -> yield! vs 
+          | Using _ -> () 
+          | Declaration vs -> yield vs 
       }
     let usings(decls:Declaration seq) = 
       seq { 
         for d in decls do 
           match d with 
-          | Empty | Declaration(_) -> () 
-          | Using(vs) -> yield! vs 
+          | Declaration _ -> () 
+          | Using vs -> yield vs 
       } 
     let partition(decls:Declaration seq) =
       let decls = Seq.cache decls

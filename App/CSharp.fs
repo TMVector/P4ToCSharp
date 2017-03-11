@@ -573,7 +573,7 @@ and ofStatOrDecl (scopeInfo:ScopeInfo) (n : JsonTypes.StatOrDecl) =
   | :? JsonTypes.Statement as statement -> ofStatement scopeInfo statement
   | :? JsonTypes.Declaration as decl -> statementOfDeclaration scopeInfo decl
   | _ -> failwithf "Unhandled subtype of JsonTypes.StatOrDecl: %s" (n.GetType().Name)
-and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Declaration =
+and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Declaration seq =
   match n with
   | :? JsonTypes.Type_Declaration as tyDec->
       match tyDec with
@@ -786,7 +786,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                           .AddBodyStatements(pc.body.components.vec |> Seq.map (ofStatOrDecl scopeInfo) |> Seq.toArray) // TODO FIXME We need to explicitly pass argsClass closure to all actions, etc. + create the closure arg
             apply, argsClass, thisScope
           let locals = // NOTE locals can access ctor params through properties, and apply args through the argsClass which is passed to each action, etc.
-            let usings, decls = pc.controlLocals.vec |> Seq.map (declarationOfNode thisScope) |> Transformed.partition
+            let usings, decls = pc.controlLocals.vec |> Seq.map (declarationOfNode thisScope) |> Seq.concat |> Transformed.partition
             if Seq.isEmpty usings |> not then failwithf "Usings declared within P4Control - currently unhandled" // FIXME E.g. Type_Typedef - could be solved by scoping the control in its own namespace?
             decls |> Seq.toArray
           SF.ClassDeclaration(className)
@@ -992,7 +992,8 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
               .AddMembers(defaultAction |> Seq.cast |> Seq.toArray)
           let tableInstance =
             field tableClassType pt.name (constructorCall tableClassType [])
-          Transformed.Declaration [tableClass :> Syntax.MemberDeclarationSyntax; tableInstance :> Syntax.MemberDeclarationSyntax]
+          Transformed.declOf tableClass
+          |> Transformed.addDecl tableInstance
       | :? JsonTypes.Method as m ->
           // FIXME does this refer to extern methods only? May want to emit a static method that calls the actual (external) method to avoid namespace issues
           let fullName = SF.IdentifierName("FQMethodName")
@@ -1058,6 +1059,7 @@ and ofProgram (program : JsonTypes.Program) : Syntax.CompilationUnitSyntax =
   let usings, declarations =
     program.P4.declarations.vec
     |> Seq.map (declarationOfNode scope)
+    |> Seq.concat
     |> Transformed.partition
   SF.CompilationUnit()
     .AddUsings(SF.UsingDirective(libraryName))
