@@ -645,9 +645,22 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           |> Transformed.usingOf
       | :? JsonTypes.Type_Extern as ext ->
           if ext.typeParameters.parameters.vec |> Seq.isNotEmpty then failwith "Cannot handle type parameters in extern types"
+          // Generate the interface for the extern type. This allows the implementer to check they have the right signature
+          let intf =
+            SF.InterfaceDeclaration(ext.name)
+              .WithModifiers(tokenList [SK.PublicKeyword])
+              .AddMembers(
+                ext.methods.vec
+                |> Seq.map (fun m ->
+                    SF.MethodDeclaration(m.type_.returnType |> Option.map ofType |> Option.ifNoneValue voidType, m.name)
+                      .WithTypeParameters(m.type_.typeParameters.parameters.vec |> Seq.map (fun p -> SF.TypeParameter(p.name)))
+                      .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter ofType))
+                      .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
+                |> Seq.cast |> Seq.toArray)
           SF.UsingDirective(sprintf "%s.%s" scopeInfo.ExternNamespace ext.name |> qualifiedTypeName)
             .WithAlias(SF.NameEquals(SF.IdentifierName(ext.name)))
           |> Transformed.usingOf
+          |> Transformed.addDecl intf
       | :? JsonTypes.P4Parser as p ->
           let className = p.name
           let ctor =
