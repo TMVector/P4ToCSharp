@@ -33,6 +33,7 @@ type ScopeInfo =
     TypeMap : Map<int, JsonTypes.Type>;
     PathMap : Map<int, JsonTypes.IDeclaration>;
     ThisMap : Map<int, JsonTypes.IDeclaration>;
+    ExternNamespace : string;
   } with
   member this.GetP4Path(name : string) =
     this.P4AstPaths
@@ -266,6 +267,9 @@ type Syntax.MethodDeclarationSyntax with
     this.WithParameterList(paramList parameters)
   member this.WithBlockBody(statements : Syntax.StatementSyntax seq) =
     this.WithBody(SF.Block(statements))
+  member this.WithTypeParameters(typeParameters : Syntax.TypeParameterSyntax seq) =
+    if Seq.isEmpty typeParameters then this
+    else this.WithTypeParameterList(SF.TypeParameterList(SF.SeparatedList(typeParameters)))
     
 type Syntax.ConstructorDeclarationSyntax with
   member this.WithParameters(parameters : Syntax.ParameterSyntax seq) =
@@ -641,7 +645,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           |> Transformed.usingOf
       | :? JsonTypes.Type_Extern as ext ->
           if ext.typeParameters.parameters.vec |> Seq.isNotEmpty then failwith "Cannot handle type parameters in extern types"
-          SF.UsingDirective(SF.IdentifierName("FQNAMEHEREPLEASE"))// FIXME FQ name of extern type here
+          SF.UsingDirective(sprintf "%s.%s" scopeInfo.ExternNamespace ext.name |> qualifiedTypeName)
             .WithAlias(SF.NameEquals(SF.IdentifierName(ext.name)))
           |> Transformed.usingOf
       | :? JsonTypes.P4Parser as p ->
@@ -995,14 +999,22 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           Transformed.declOf tableClass
           |> Transformed.addDecl tableInstance
       | :? JsonTypes.Method as m ->
-          // FIXME does this refer to extern methods only? May want to emit a static method that calls the actual (external) method to avoid namespace issues
-          let fullName = SF.IdentifierName("FQMethodName")
+          let typeParameterNames : string[] = m.type_.typeParameters.parameters.vec |> Seq.map (fun p -> p.name) |> Seq.toArray
+          let fullName : Syntax.ExpressionSyntax =
+            let fqTy = qualifiedTypeName scopeInfo.ExternNamespace
+            if Seq.isEmpty typeParameterNames then
+              eMemberAccess fqTy [m.name]
+            else
+              upcast SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, fqTy,
+                      SF.GenericName("FQMethodName")
+                        .AddTypeArgumentListArguments(typeParameterNames |> Seq.map SF.IdentifierName |> Seq.cast |> Seq.toArray))
           SF.MethodDeclaration(m.type_.returnType |> Option.map (ofType) |> Option.ifNoneValue voidType, m.name)
             .WithModifiers(tokenList [SK.StaticKeyword])
-            // FIXME type parameters
-            //.WithTypeParameterList(SF.TypeParameterList(SF.SeparatedList(m.type_.typeParameters.parameters.vec |> Seq.map (fun p -> p)))) 
+            .WithTypeParameters(typeParameterNames |> Seq.map (fun name -> SF.TypeParameter(name)))
             .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter ofType))
-            .WithBlockBody([SF.ExpressionStatement(SF.InvocationExpression(fullName).WithArguments(m.type_.parameters.parameters.vec |> Seq.map (fun p -> upcast SF.IdentifierName(p.name))))])
+            .WithBlockBody([SF.ExpressionStatement(
+                              SF.InvocationExpression(fullName)
+                                .WithArguments(m.type_.parameters.parameters.vec |> Seq.map (fun p -> upcast SF.IdentifierName(p.name))))])
           |> Transformed.declOf
       | :? JsonTypes.Attribute -> failwith "JsonTypes.Attribute not handled yet" // FIXME
       | :? JsonTypes.ParserState -> failwith "JsonTypes.ParserState not handled yet" // FIXME
@@ -1040,7 +1052,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       createEnum "MatchKind" (mk.members.vec |> Seq.map (fun memb -> memb.name))
       |> Transformed.declOf
   | _ -> failwithf "Unhandled subtype of JsonTypes.Node in declarationOfNode: %s" (n.GetType().Name) // FIXME check exhaustive
-and ofProgram (program : JsonTypes.Program) : Syntax.CompilationUnitSyntax =
+and ofProgram (program : JsonTypes.Program) (externNamespace : string option) : Syntax.CompilationUnitSyntax =
   let scope : ScopeInfo =
     let p4Paths =
       program.P4.declarations.declarations
@@ -1054,7 +1066,8 @@ and ofProgram (program : JsonTypes.Program) : Syntax.CompilationUnitSyntax =
         GlobalScope=None;
         TypeMap=program.TypeMap;
         PathMap=program.PathMap;
-        ThisMap=program.ThisMap; }
+        ThisMap=program.ThisMap;
+        ExternNamespace=externNamespace |> Option.ifNoneValue "YourExternNamespace"; }
     { globalScope with GlobalScope = Some globalScope }
   let usings, declarations =
     program.P4.declarations.vec

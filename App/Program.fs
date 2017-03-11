@@ -9,25 +9,26 @@ namespace P4ToCSharp.App
 #endif
 
 module Main =
-  let convertFile filename =
+  let convertFile filename exterNamespace =
     let ir = P4ToCSharp.App.IR.JsonParsing.deserialise filename
-    let cs = P4ToCSharp.App.CSharp.ofProgram ir
+    let cs = P4ToCSharp.App.CSharp.ofProgram ir exterNamespace
     let outputFilename = sprintf "%s.gen.cs" filename
     P4ToCSharp.App.CSharp.saveToFile cs outputFilename
 
   [<EntryPoint>]
   let main argv = 
-      let filename = lazy argv.[0]
-      if argv.Length = 1 && System.IO.File.Exists filename.Value then
-        printfn "Converting %s" filename.Value
-        convertFile filename.Value
-        printfn "Done."
-        0
-      else
-        printfn "Syntax: App p4-json-file-to-convert"
-        printfn "Please provide a valid path"
-        1
-
+      let filename = Array.tryItem 0 argv
+      let externNamespace = Array.tryItem 1 argv
+      match filename with
+      | Some filename when System.IO.File.Exists filename ->
+          printfn "Converting %s" filename
+          convertFile filename externNamespace
+          printfn "Done."
+          0
+      | _ ->
+          printfn "Syntax: App p4-json-file-to-convert extern-namespace"
+          printfn "Please provide a valid path"
+          1
 
 
 #if INTERACTIVE
