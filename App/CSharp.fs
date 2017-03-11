@@ -814,7 +814,8 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             .AddMembers(locals)
           |> Transformed.declOf
       | :? JsonTypes.Type_Error as err ->
-          createEnum "error" (err.members.vec |> Seq.map (fun memb -> memb.name))
+          (createEnum "error" (err.members.vec |> Seq.map (fun memb -> memb.name)))
+            .WithModifiers(tokenList [SK.PublicKeyword])
           |> Transformed.declOf
       | _ -> failwithf "Unhandled subtype of JsonTypes.Type_Declatation: %s" (n.GetType().Name)
   | :? JsonTypes.Declaration as decl ->
