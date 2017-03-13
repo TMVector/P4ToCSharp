@@ -1,0 +1,200 @@
+{
+  "Node_ID" : 26, 
+  "Node_Type" : "P4Program",
+  "declarations" : {
+    "Node_ID" : 5, 
+    "Node_Type" : "IndexedVector<Node>",
+    "vec" : [
+      {
+        "Node_ID" : 9, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "COUNTER",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 3, 
+          "Node_Type" : "Annotations",
+          "annotations" : {
+            "Node_ID" : 4, 
+            "Node_Type" : "Vector<Annotation>",
+            "vec" : []
+          }
+        },
+        "type" : {
+          "Node_ID" : 0, 
+          "Node_Type" : "Type_Bits",
+          "size" : 32,
+          "isSigned" : false
+        },
+        "initializer" : {
+          "Node_ID" : 8, 
+          "Node_Type" : "Constant",
+          "type" : {
+            "Node_ID" : 0
+          },
+          "value" : 0,
+          "base" : 16
+        }
+      },
+      {
+        "Node_ID" : 17, 
+        "Node_Type" : "Type_Struct",
+        "name" : "Version",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "fields" : {
+          "Node_ID" : 10, 
+          "Node_Type" : "IndexedVector<StructField>",
+          "vec" : [
+            {
+              "Node_ID" : 13, 
+              "Node_Type" : "StructField",
+              "name" : "major",
+              "declid" : 1,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 0
+              }
+            },
+            {
+              "Node_ID" : 16, 
+              "Node_Type" : "StructField",
+              "name" : "minor",
+              "declid" : 2,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 0
+              }
+            }
+          ],
+          "declarations" : {
+            "major" : {
+              "Node_ID" : 13, 
+              "Node_Type" : "StructField",
+              "name" : "major",
+              "declid" : 1,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 0
+              }
+            },
+            "minor" : {
+              "Node_ID" : 16, 
+              "Node_Type" : "StructField",
+              "name" : "minor",
+              "declid" : 2,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 0
+              }
+            }
+          }
+        }
+      },
+      {
+        "Node_ID" : 25, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "version",
+        "declid" : 3,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 19, 
+          "Node_Type" : "Type_Name",
+          "path" : {
+            "Node_ID" : 18, 
+            "Node_Type" : "Path",
+            "name" : "Version",
+            "absolute" : false
+          }
+        },
+        "initializer" : {
+          "Node_ID" : 23, 
+          "Node_Type" : "ListExpression",
+          "type" : {
+            "Node_ID" : 24, 
+            "Node_Type" : "Type_Unknown"
+          },
+          "components" : {
+            "Node_ID" : 21, 
+            "Node_Type" : "Vector<Expression>",
+            "vec" : [
+              {
+                "Node_ID" : 20, 
+                "Node_Type" : "Constant",
+                "type" : {
+                  "Node_ID" : 0
+                },
+                "value" : 0,
+                "base" : 10
+              },
+              {
+                "Node_ID" : 22, 
+                "Node_Type" : "Constant",
+                "type" : {
+                  "Node_ID" : 0
+                },
+                "value" : 0,
+                "base" : 10
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "declarations" : {
+      "COUNTER" : {
+        "Node_ID" : 9, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "COUNTER",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 0
+        },
+        "initializer" : {
+          "Node_ID" : 8
+        }
+      },
+      "Version" : {
+        "Node_ID" : 17, 
+        "Node_Type" : "Type_Struct",
+        "name" : "Version",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "fields" : {
+          "Node_ID" : 10
+        }
+      },
+      "version" : {
+        "Node_ID" : 25, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "version",
+        "declid" : 3,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 19
+        },
+        "initializer" : {
+          "Node_ID" : 23
+        }
+      }
+    }
+  }
+}

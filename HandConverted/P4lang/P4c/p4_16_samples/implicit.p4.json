@@ -1,0 +1,166 @@
+{
+  "Node_ID" : 48, 
+  "Node_Type" : "P4Program",
+  "declarations" : {
+    "Node_ID" : 49, 
+    "Node_Type" : "IndexedVector<Node>",
+    "vec" : [
+      {
+        "Node_ID" : 50, 
+        "Node_Type" : "P4Action",
+        "name" : "p",
+        "declid" : 1,
+        "annotations" : {
+          "Node_ID" : 3, 
+          "Node_Type" : "Annotations",
+          "annotations" : {
+            "Node_ID" : 4, 
+            "Node_Type" : "Vector<Annotation>",
+            "vec" : []
+          }
+        },
+        "parameters" : {
+          "Node_ID" : 23, 
+          "Node_Type" : "ParameterList",
+          "parameters" : {
+            "Node_ID" : 6, 
+            "Node_Type" : "IndexedVector<Parameter>",
+            "vec" : [],
+            "declarations" : {}
+          }
+        },
+        "body" : {
+          "Node_ID" : 55, 
+          "Node_Type" : "BlockStatement",
+          "annotations" : {
+            "Node_ID" : 3
+          },
+          "components" : {
+            "Node_ID" : 58, 
+            "Node_Type" : "IndexedVector<StatOrDecl>",
+            "vec" : [
+              {
+                "Node_ID" : 59, 
+                "Node_Type" : "Declaration_Variable",
+                "name" : "b",
+                "declid" : 0,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 0, 
+                  "Node_Type" : "Type_Bits",
+                  "size" : 32,
+                  "isSigned" : false
+                },
+                "initializer" : {
+                  "Node_ID" : 67, 
+                  "Node_Type" : "Cast",
+                  "type" : {
+                    "Node_ID" : 0
+                  },
+                  "expr" : {
+                    "Node_ID" : 11, 
+                    "Node_Type" : "Constant",
+                    "type" : {
+                      "Node_ID" : 10, 
+                      "Node_Type" : "Type_Bits",
+                      "size" : 32,
+                      "isSigned" : true
+                    },
+                    "value" : 1,
+                    "base" : 10
+                  },
+                  "destType" : {
+                    "Node_ID" : 0
+                  }
+                }
+              },
+              {
+                "Node_ID" : 68, 
+                "Node_Type" : "AssignmentStatement",
+                "left" : {
+                  "Node_ID" : 14, 
+                  "Node_Type" : "PathExpression",
+                  "type" : {
+                    "Node_ID" : 15, 
+                    "Node_Type" : "Type_Unknown"
+                  },
+                  "path" : {
+                    "Node_ID" : 13, 
+                    "Node_Type" : "Path",
+                    "name" : "b",
+                    "absolute" : false
+                  }
+                },
+                "right" : {
+                  "Node_ID" : 77, 
+                  "Node_Type" : "Add",
+                  "type" : {
+                    "Node_ID" : 15
+                  },
+                  "left" : {
+                    "Node_ID" : 16, 
+                    "Node_Type" : "PathExpression",
+                    "type" : {
+                      "Node_ID" : 15
+                    },
+                    "path" : {
+                      "Node_ID" : 17, 
+                      "Node_Type" : "Path",
+                      "name" : "b",
+                      "absolute" : false
+                    }
+                  },
+                  "right" : {
+                    "Node_ID" : 78, 
+                    "Node_Type" : "Constant",
+                    "type" : {
+                      "Node_ID" : 0
+                    },
+                    "value" : 1,
+                    "base" : 10
+                  }
+                }
+              }
+            ],
+            "declarations" : {
+              "b" : {
+                "Node_ID" : 59, 
+                "Node_Type" : "Declaration_Variable",
+                "name" : "b",
+                "declid" : 0,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 0
+                },
+                "initializer" : {
+                  "Node_ID" : 67
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "declarations" : {
+      "p" : {
+        "Node_ID" : 50, 
+        "Node_Type" : "P4Action",
+        "name" : "p",
+        "declid" : 1,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "parameters" : {
+          "Node_ID" : 23
+        },
+        "body" : {
+          "Node_ID" : 55
+        }
+      }
+    }
+  }
+}

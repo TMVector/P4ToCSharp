@@ -1,0 +1,207 @@
+{
+  "Node_ID" : 27, 
+  "Node_Type" : "P4Program",
+  "declarations" : {
+    "Node_ID" : 5, 
+    "Node_Type" : "IndexedVector<Node>",
+    "vec" : [
+      {
+        "Node_ID" : 7, 
+        "Node_Type" : "Type_Header",
+        "name" : "Empty_h",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 3, 
+          "Node_Type" : "Annotations",
+          "annotations" : {
+            "Node_ID" : 4, 
+            "Node_Type" : "Vector<Annotation>",
+            "vec" : []
+          }
+        },
+        "fields" : {
+          "Node_ID" : 6, 
+          "Node_Type" : "IndexedVector<StructField>",
+          "vec" : [],
+          "declarations" : {}
+        }
+      },
+      {
+        "Node_ID" : 10, 
+        "Node_Type" : "Type_Typedef",
+        "name" : "u32",
+        "declid" : 1,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 0, 
+          "Node_Type" : "Type_Bits",
+          "size" : 32,
+          "isSigned" : false
+        }
+      },
+      {
+        "Node_ID" : 20, 
+        "Node_Type" : "Type_Typedef",
+        "name" : "Pt",
+        "declid" : 3,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 19, 
+          "Node_Type" : "Type_Struct",
+          "name" : "Point",
+          "declid" : 2,
+          "annotations" : {
+            "Node_ID" : 3
+          },
+          "fields" : {
+            "Node_ID" : 11, 
+            "Node_Type" : "IndexedVector<StructField>",
+            "vec" : [
+              {
+                "Node_ID" : 15, 
+                "Node_Type" : "StructField",
+                "name" : "x",
+                "declid" : 0,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 14, 
+                  "Node_Type" : "Type_Bits",
+                  "size" : 32,
+                  "isSigned" : true
+                }
+              },
+              {
+                "Node_ID" : 18, 
+                "Node_Type" : "StructField",
+                "name" : "y",
+                "declid" : 1,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 14
+                }
+              }
+            ],
+            "declarations" : {
+              "x" : {
+                "Node_ID" : 15, 
+                "Node_Type" : "StructField",
+                "name" : "x",
+                "declid" : 0,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 14
+                }
+              },
+              "y" : {
+                "Node_ID" : 18, 
+                "Node_Type" : "StructField",
+                "name" : "y",
+                "declid" : 1,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "type" : {
+                  "Node_ID" : 14
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "Node_ID" : 26, 
+        "Node_Type" : "Type_Typedef",
+        "name" : "HeaderStack",
+        "declid" : 4,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 25, 
+          "Node_Type" : "Type_Stack",
+          "elementType" : {
+            "Node_ID" : 22, 
+            "Node_Type" : "Type_Name",
+            "path" : {
+              "Node_ID" : 21, 
+              "Node_Type" : "Path",
+              "name" : "Empty_h",
+              "absolute" : false
+            }
+          },
+          "size" : {
+            "Node_ID" : 24, 
+            "Node_Type" : "Constant",
+            "type" : {
+              "Node_ID" : 23, 
+              "Node_Type" : "Type_InfInt",
+              "declid" : 3
+            },
+            "value" : 32,
+            "base" : 10
+          }
+        }
+      }
+    ],
+    "declarations" : {
+      "Empty_h" : {
+        "Node_ID" : 7, 
+        "Node_Type" : "Type_Header",
+        "name" : "Empty_h",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "fields" : {
+          "Node_ID" : 6
+        }
+      },
+      "u32" : {
+        "Node_ID" : 10, 
+        "Node_Type" : "Type_Typedef",
+        "name" : "u32",
+        "declid" : 1,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 0
+        }
+      },
+      "Pt" : {
+        "Node_ID" : 20, 
+        "Node_Type" : "Type_Typedef",
+        "name" : "Pt",
+        "declid" : 3,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 19
+        }
+      },
+      "HeaderStack" : {
+        "Node_ID" : 26, 
+        "Node_Type" : "Type_Typedef",
+        "name" : "HeaderStack",
+        "declid" : 4,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 25
+        }
+      }
+    }
+  }
+}

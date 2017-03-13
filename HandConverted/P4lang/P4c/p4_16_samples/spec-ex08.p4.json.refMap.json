@@ -1,0 +1,475 @@
+{
+  "pathToDeclaration" : [
+    {
+      "key" : 87,
+      "value" : {
+        "Node_ID" : 82, 
+        "Node_Type" : "Type_Header",
+        "name" : "Ipv6_h",
+        "declid" : 5,
+        "annotations" : {
+          "Node_ID" : 3, 
+          "Node_Type" : "Annotations",
+          "annotations" : {
+            "Node_ID" : 4, 
+            "Node_Type" : "Vector<Annotation>",
+            "vec" : []
+          }
+        },
+        "fields" : {
+          "Node_ID" : 81, 
+          "Node_Type" : "IndexedVector<StructField>",
+          "vec" : [],
+          "declarations" : {}
+        }
+      }
+    },
+    {
+      "key" : 84,
+      "value" : {
+        "Node_ID" : 80, 
+        "Node_Type" : "Type_Header",
+        "name" : "Ipv4_h",
+        "declid" : 4,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "fields" : {
+          "Node_ID" : 35, 
+          "Node_Type" : "IndexedVector<StructField>",
+          "vec" : [
+            {
+              "Node_ID" : 39, 
+              "Node_Type" : "StructField",
+              "name" : "version",
+              "declid" : 4,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 38, 
+                "Node_Type" : "Type_Bits",
+                "size" : 4,
+                "isSigned" : false
+              }
+            },
+            {
+              "Node_ID" : 42, 
+              "Node_Type" : "StructField",
+              "name" : "ihl",
+              "declid" : 5,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 38
+              }
+            },
+            {
+              "Node_ID" : 46, 
+              "Node_Type" : "StructField",
+              "name" : "diffserv",
+              "declid" : 6,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 45, 
+                "Node_Type" : "Type_Bits",
+                "size" : 8,
+                "isSigned" : false
+              }
+            },
+            {
+              "Node_ID" : 49, 
+              "Node_Type" : "StructField",
+              "name" : "totalLen",
+              "declid" : 7,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 18, 
+                "Node_Type" : "Type_Bits",
+                "size" : 16,
+                "isSigned" : false
+              }
+            },
+            {
+              "Node_ID" : 52, 
+              "Node_Type" : "StructField",
+              "name" : "identification",
+              "declid" : 8,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 18
+              }
+            },
+            {
+              "Node_ID" : 56, 
+              "Node_Type" : "StructField",
+              "name" : "flags",
+              "declid" : 9,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 55, 
+                "Node_Type" : "Type_Bits",
+                "size" : 3,
+                "isSigned" : false
+              }
+            },
+            {
+              "Node_ID" : 60, 
+              "Node_Type" : "StructField",
+              "name" : "fragOffset",
+              "declid" : 10,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 59, 
+                "Node_Type" : "Type_Bits",
+                "size" : 13,
+                "isSigned" : false
+              }
+            },
+            {
+              "Node_ID" : 63, 
+              "Node_Type" : "StructField",
+              "name" : "ttl",
+              "declid" : 11,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 45
+              }
+            },
+            {
+              "Node_ID" : 66, 
+              "Node_Type" : "StructField",
+              "name" : "protocol",
+              "declid" : 12,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 45
+              }
+            },
+            {
+              "Node_ID" : 69, 
+              "Node_Type" : "StructField",
+              "name" : "hdrChecksum",
+              "declid" : 13,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 18
+              }
+            },
+            {
+              "Node_ID" : 72, 
+              "Node_Type" : "StructField",
+              "name" : "srcAddr",
+              "declid" : 14,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 0, 
+                "Node_Type" : "Type_Bits",
+                "size" : 32,
+                "isSigned" : false
+              }
+            },
+            {
+              "Node_ID" : 75, 
+              "Node_Type" : "StructField",
+              "name" : "dstAddr",
+              "declid" : 15,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 0
+              }
+            },
+            {
+              "Node_ID" : 79, 
+              "Node_Type" : "StructField",
+              "name" : "options",
+              "declid" : 16,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 78, 
+                "Node_Type" : "Type_Varbits",
+                "size" : 160
+              }
+            }
+          ],
+          "declarations" : {
+            "version" : {
+              "Node_ID" : 39, 
+              "Node_Type" : "StructField",
+              "name" : "version",
+              "declid" : 4,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 38
+              }
+            },
+            "ihl" : {
+              "Node_ID" : 42, 
+              "Node_Type" : "StructField",
+              "name" : "ihl",
+              "declid" : 5,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 38
+              }
+            },
+            "diffserv" : {
+              "Node_ID" : 46, 
+              "Node_Type" : "StructField",
+              "name" : "diffserv",
+              "declid" : 6,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 45
+              }
+            },
+            "totalLen" : {
+              "Node_ID" : 49, 
+              "Node_Type" : "StructField",
+              "name" : "totalLen",
+              "declid" : 7,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 18
+              }
+            },
+            "identification" : {
+              "Node_ID" : 52, 
+              "Node_Type" : "StructField",
+              "name" : "identification",
+              "declid" : 8,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 18
+              }
+            },
+            "flags" : {
+              "Node_ID" : 56, 
+              "Node_Type" : "StructField",
+              "name" : "flags",
+              "declid" : 9,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 55
+              }
+            },
+            "fragOffset" : {
+              "Node_ID" : 60, 
+              "Node_Type" : "StructField",
+              "name" : "fragOffset",
+              "declid" : 10,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 59
+              }
+            },
+            "ttl" : {
+              "Node_ID" : 63, 
+              "Node_Type" : "StructField",
+              "name" : "ttl",
+              "declid" : 11,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 45
+              }
+            },
+            "protocol" : {
+              "Node_ID" : 66, 
+              "Node_Type" : "StructField",
+              "name" : "protocol",
+              "declid" : 12,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 45
+              }
+            },
+            "hdrChecksum" : {
+              "Node_ID" : 69, 
+              "Node_Type" : "StructField",
+              "name" : "hdrChecksum",
+              "declid" : 13,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 18
+              }
+            },
+            "srcAddr" : {
+              "Node_ID" : 72, 
+              "Node_Type" : "StructField",
+              "name" : "srcAddr",
+              "declid" : 14,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 0
+              }
+            },
+            "dstAddr" : {
+              "Node_ID" : 75, 
+              "Node_Type" : "StructField",
+              "name" : "dstAddr",
+              "declid" : 15,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 0
+              }
+            },
+            "options" : {
+              "Node_ID" : 79, 
+              "Node_Type" : "StructField",
+              "name" : "options",
+              "declid" : 16,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 78
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "key" : 29,
+      "value" : {
+        "Node_ID" : 20, 
+        "Node_Type" : "Type_Header",
+        "name" : "Ethernet_h",
+        "declid" : 1,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "fields" : {
+          "Node_ID" : 8, 
+          "Node_Type" : "IndexedVector<StructField>",
+          "vec" : [
+            {
+              "Node_ID" : 12, 
+              "Node_Type" : "StructField",
+              "name" : "dstAddr",
+              "declid" : 0,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 11, 
+                "Node_Type" : "Type_Bits",
+                "size" : 48,
+                "isSigned" : false
+              }
+            },
+            {
+              "Node_ID" : 15, 
+              "Node_Type" : "StructField",
+              "name" : "srcAddr",
+              "declid" : 1,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 11
+              }
+            },
+            {
+              "Node_ID" : 19, 
+              "Node_Type" : "StructField",
+              "name" : "etherType",
+              "declid" : 2,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 18
+              }
+            }
+          ],
+          "declarations" : {
+            "dstAddr" : {
+              "Node_ID" : 12, 
+              "Node_Type" : "StructField",
+              "name" : "dstAddr",
+              "declid" : 0,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 11
+              }
+            },
+            "srcAddr" : {
+              "Node_ID" : 15, 
+              "Node_Type" : "StructField",
+              "name" : "srcAddr",
+              "declid" : 1,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 11
+              }
+            },
+            "etherType" : {
+              "Node_ID" : 19, 
+              "Node_Type" : "StructField",
+              "name" : "etherType",
+              "declid" : 2,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 18
+              }
+            }
+          }
+        }
+      }
+    }
+  ],  "thisToDeclaration" : []
+}

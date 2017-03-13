@@ -1,0 +1,446 @@
+{
+  "Node_ID" : 127, 
+  "Node_Type" : "P4Program",
+  "declarations" : {
+    "Node_ID" : 128, 
+    "Node_Type" : "IndexedVector<Node>",
+    "vec" : [
+      {
+        "Node_ID" : 17, 
+        "Node_Type" : "Method",
+        "name" : "random",
+        "declid" : 1,
+        "type" : {
+          "Node_ID" : 16, 
+          "Node_Type" : "Type_Method",
+          "typeParameters" : {
+            "Node_ID" : 8, 
+            "Node_Type" : "TypeParameters",
+            "parameters" : {
+              "Node_ID" : 9, 
+              "Node_Type" : "IndexedVector<Type_Var>",
+              "vec" : [],
+              "declarations" : {}
+            }
+          },
+          "returnType" : {
+            "Node_ID" : 0, 
+            "Node_Type" : "Type_Bits",
+            "size" : 32,
+            "isSigned" : false
+          },
+          "parameters" : {
+            "Node_ID" : 15, 
+            "Node_Type" : "ParameterList",
+            "parameters" : {
+              "Node_ID" : 14, 
+              "Node_Type" : "IndexedVector<Parameter>",
+              "vec" : [
+                {
+                  "Node_ID" : 13, 
+                  "Node_Type" : "Parameter",
+                  "name" : "logRange",
+                  "declid" : 0,
+                  "annotations" : {
+                    "Node_ID" : 3, 
+                    "Node_Type" : "Annotations",
+                    "annotations" : {
+                      "Node_ID" : 4, 
+                      "Node_Type" : "Vector<Annotation>",
+                      "vec" : []
+                    }
+                  },
+                  "direction" : "",
+                  "type" : {
+                    "Node_ID" : 12, 
+                    "Node_Type" : "Type_Bits",
+                    "size" : 5,
+                    "isSigned" : false
+                  }
+                }
+              ],
+              "declarations" : {
+                "logRange" : {
+                  "Node_ID" : 13, 
+                  "Node_Type" : "Parameter",
+                  "name" : "logRange",
+                  "declid" : 0,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "",
+                  "type" : {
+                    "Node_ID" : 12
+                  }
+                }
+              }
+            }
+          }
+        },
+        "isAbstract" : false,
+        "annotations" : {
+          "Node_ID" : 3
+        }
+      },
+      {
+        "Node_ID" : 146, 
+        "Node_Type" : "P4Control",
+        "name" : "ingress",
+        "declid" : 1,
+        "type" : {
+          "Node_ID" : 25, 
+          "Node_Type" : "Type_Control",
+          "name" : "ingress",
+          "declid" : 0,
+          "annotations" : {
+            "Node_ID" : 3
+          },
+          "typeParameters" : {
+            "Node_ID" : 18, 
+            "Node_Type" : "TypeParameters",
+            "parameters" : {
+              "Node_ID" : 19, 
+              "Node_Type" : "IndexedVector<Type_Var>",
+              "vec" : [],
+              "declarations" : {}
+            }
+          },
+          "applyParams" : {
+            "Node_ID" : 24, 
+            "Node_Type" : "ParameterList",
+            "parameters" : {
+              "Node_ID" : 23, 
+              "Node_Type" : "IndexedVector<Parameter>",
+              "vec" : [
+                {
+                  "Node_ID" : 22, 
+                  "Node_Type" : "Parameter",
+                  "name" : "field_d_32",
+                  "declid" : 2,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "out",
+                  "type" : {
+                    "Node_ID" : 0
+                  }
+                }
+              ],
+              "declarations" : {
+                "field_d_32" : {
+                  "Node_ID" : 22, 
+                  "Node_Type" : "Parameter",
+                  "name" : "field_d_32",
+                  "declid" : 2,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "out",
+                  "type" : {
+                    "Node_ID" : 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "constructorParams" : {
+          "Node_ID" : 67, 
+          "Node_Type" : "ParameterList",
+          "parameters" : {
+            "Node_ID" : 26, 
+            "Node_Type" : "IndexedVector<Parameter>",
+            "vec" : [],
+            "declarations" : {}
+          }
+        },
+        "controlLocals" : {
+          "Node_ID" : 162, 
+          "Node_Type" : "IndexedVector<Declaration>",
+          "vec" : [
+            {
+              "Node_ID" : 163, 
+              "Node_Type" : "P4Action",
+              "name" : "action_1",
+              "declid" : 4,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "parameters" : {
+                "Node_ID" : 63, 
+                "Node_Type" : "ParameterList",
+                "parameters" : {
+                  "Node_ID" : 28, 
+                  "Node_Type" : "IndexedVector<Parameter>",
+                  "vec" : [],
+                  "declarations" : {}
+                }
+              },
+              "body" : {
+                "Node_ID" : 168, 
+                "Node_Type" : "BlockStatement",
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "components" : {
+                  "Node_ID" : 171, 
+                  "Node_Type" : "IndexedVector<StatOrDecl>",
+                  "vec" : [
+                    {
+                      "Node_ID" : 172, 
+                      "Node_Type" : "BlockStatement",
+                      "annotations" : {
+                        "Node_ID" : 3
+                      },
+                      "components" : {
+                        "Node_ID" : 175, 
+                        "Node_Type" : "IndexedVector<StatOrDecl>",
+                        "vec" : [
+                          {
+                            "Node_ID" : 176, 
+                            "Node_Type" : "Declaration_Variable",
+                            "name" : "tmp",
+                            "declid" : 3,
+                            "annotations" : {
+                              "Node_ID" : 3
+                            },
+                            "type" : {
+                              "Node_ID" : 0
+                            },
+                            "initializer" : {
+                              "Node_ID" : 180, 
+                              "Node_Type" : "MethodCallExpression",
+                              "type" : {
+                                "Node_ID" : 34, 
+                                "Node_Type" : "Type_Unknown"
+                              },
+                              "method" : {
+                                "Node_ID" : 33, 
+                                "Node_Type" : "PathExpression",
+                                "type" : {
+                                  "Node_ID" : 34
+                                },
+                                "path" : {
+                                  "Node_ID" : 35, 
+                                  "Node_Type" : "Path",
+                                  "name" : "random",
+                                  "absolute" : false
+                                }
+                              },
+                              "typeArguments" : {
+                                "Node_ID" : 42, 
+                                "Node_Type" : "Vector<Type>",
+                                "vec" : []
+                              },
+                              "arguments" : {
+                                "Node_ID" : 209, 
+                                "Node_Type" : "Vector<Expression>",
+                                "vec" : [
+                                  {
+                                    "Node_ID" : 218, 
+                                    "Node_Type" : "Cast",
+                                    "type" : {
+                                      "Node_ID" : 12
+                                    },
+                                    "expr" : {
+                                      "Node_ID" : 217, 
+                                      "Node_Type" : "Constant",
+                                      "type" : {
+                                        "Node_ID" : 12
+                                      },
+                                      "value" : 24,
+                                      "base" : 10
+                                    },
+                                    "destType" : {
+                                      "Node_ID" : 12
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "Node_ID" : 60, 
+                            "Node_Type" : "AssignmentStatement",
+                            "left" : {
+                              "Node_ID" : 51, 
+                              "Node_Type" : "Slice",
+                              "type" : {
+                                "Node_ID" : 52, 
+                                "Node_Type" : "Type_Bits",
+                                "size" : 24,
+                                "isSigned" : false
+                              },
+                              "e0" : {
+                                "Node_ID" : 46, 
+                                "Node_Type" : "PathExpression",
+                                "type" : {
+                                  "Node_ID" : 34
+                                },
+                                "path" : {
+                                  "Node_ID" : 45, 
+                                  "Node_Type" : "Path",
+                                  "name" : "field_d_32",
+                                  "absolute" : false
+                                }
+                              },
+                              "e1" : {
+                                "Node_ID" : 48, 
+                                "Node_Type" : "Constant",
+                                "type" : {
+                                  "Node_ID" : 47, 
+                                  "Node_Type" : "Type_InfInt",
+                                  "declid" : 6
+                                },
+                                "value" : 31,
+                                "base" : 10
+                              },
+                              "e2" : {
+                                "Node_ID" : 50, 
+                                "Node_Type" : "Constant",
+                                "type" : {
+                                  "Node_ID" : 49, 
+                                  "Node_Type" : "Type_InfInt",
+                                  "declid" : 7
+                                },
+                                "value" : 8,
+                                "base" : 10
+                              }
+                            },
+                            "right" : {
+                              "Node_ID" : 59, 
+                              "Node_Type" : "Slice",
+                              "type" : {
+                                "Node_ID" : 52
+                              },
+                              "e0" : {
+                                "Node_ID" : 53, 
+                                "Node_Type" : "PathExpression",
+                                "type" : {
+                                  "Node_ID" : 34
+                                },
+                                "path" : {
+                                  "Node_ID" : 54, 
+                                  "Node_Type" : "Path",
+                                  "name" : "tmp",
+                                  "absolute" : false
+                                }
+                              },
+                              "e1" : {
+                                "Node_ID" : 56, 
+                                "Node_Type" : "Constant",
+                                "type" : {
+                                  "Node_ID" : 55, 
+                                  "Node_Type" : "Type_InfInt",
+                                  "declid" : 8
+                                },
+                                "value" : 31,
+                                "base" : 10
+                              },
+                              "e2" : {
+                                "Node_ID" : 58, 
+                                "Node_Type" : "Constant",
+                                "type" : {
+                                  "Node_ID" : 57, 
+                                  "Node_Type" : "Type_InfInt",
+                                  "declid" : 9
+                                },
+                                "value" : 8,
+                                "base" : 10
+                              }
+                            }
+                          }
+                        ],
+                        "declarations" : {
+                          "tmp" : {
+                            "Node_ID" : 176, 
+                            "Node_Type" : "Declaration_Variable",
+                            "name" : "tmp",
+                            "declid" : 3,
+                            "annotations" : {
+                              "Node_ID" : 3
+                            },
+                            "type" : {
+                              "Node_ID" : 0
+                            },
+                            "initializer" : {
+                              "Node_ID" : 180
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "declarations" : {}
+                }
+              }
+            }
+          ],
+          "declarations" : {
+            "action_1" : {
+              "Node_ID" : 163, 
+              "Node_Type" : "P4Action",
+              "name" : "action_1",
+              "declid" : 4,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "parameters" : {
+                "Node_ID" : 63
+              },
+              "body" : {
+                "Node_ID" : 168
+              }
+            }
+          }
+        },
+        "body" : {
+          "Node_ID" : 66, 
+          "Node_Type" : "BlockStatement",
+          "annotations" : {
+            "Node_ID" : 3
+          },
+          "components" : {
+            "Node_ID" : 65, 
+            "Node_Type" : "IndexedVector<StatOrDecl>",
+            "vec" : [],
+            "declarations" : {}
+          }
+        }
+      }
+    ],
+    "declarations" : {
+      "random" : {
+        "Node_ID" : 17, 
+        "Node_Type" : "Method",
+        "name" : "random",
+        "declid" : 1,
+        "type" : {
+          "Node_ID" : 16
+        },
+        "isAbstract" : false,
+        "annotations" : {
+          "Node_ID" : 3
+        }
+      },
+      "ingress" : {
+        "Node_ID" : 146, 
+        "Node_Type" : "P4Control",
+        "name" : "ingress",
+        "declid" : 1,
+        "type" : {
+          "Node_ID" : 25
+        },
+        "constructorParams" : {
+          "Node_ID" : 67
+        },
+        "controlLocals" : {
+          "Node_ID" : 162
+        },
+        "body" : {
+          "Node_ID" : 66
+        }
+      }
+    }
+  }
+}

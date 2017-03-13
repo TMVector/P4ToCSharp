@@ -1,0 +1,261 @@
+{
+  "pathToDeclaration" : [
+    {
+      "key" : 77,
+      "value" : {
+        "Node_ID" : 22, 
+        "Node_Type" : "Type_Extern",
+        "name" : "tbl",
+        "declid" : 1,
+        "typeParameters" : {
+          "Node_ID" : 13, 
+          "Node_Type" : "TypeParameters",
+          "parameters" : {
+            "Node_ID" : 14, 
+            "Node_Type" : "IndexedVector<Type_Var>",
+            "vec" : [],
+            "declarations" : {}
+          }
+        },
+        "methods" : {
+          "Node_ID" : 15, 
+          "Node_Type" : "Vector<Method>",
+          "vec" : [
+            {
+              "Node_ID" : 21, 
+              "Node_Type" : "Method",
+              "name" : "tbl",
+              "declid" : 1,
+              "type" : {
+                "Node_ID" : 18, 
+                "Node_Type" : "Type_Method",
+                "typeParameters" : {
+                  "Node_ID" : 19, 
+                  "Node_Type" : "TypeParameters",
+                  "parameters" : {
+                    "Node_ID" : 20, 
+                    "Node_Type" : "IndexedVector<Type_Var>",
+                    "vec" : [],
+                    "declarations" : {}
+                  }
+                },
+                "parameters" : {
+                  "Node_ID" : 17, 
+                  "Node_Type" : "ParameterList",
+                  "parameters" : {
+                    "Node_ID" : 16, 
+                    "Node_Type" : "IndexedVector<Parameter>",
+                    "vec" : [],
+                    "declarations" : {}
+                  }
+                }
+              },
+              "isAbstract" : false,
+              "annotations" : {
+                "Node_ID" : 3, 
+                "Node_Type" : "Annotations",
+                "annotations" : {
+                  "Node_ID" : 4, 
+                  "Node_Type" : "Vector<Annotation>",
+                  "vec" : []
+                }
+              }
+            }
+          ]
+        },
+        "attributes" : {
+          "Node_ID" : 23, 
+          "Node_Type" : "NameMap<Attribute>",
+          "symbols" : {}
+        },
+        "annotations" : {
+          "Node_ID" : 3
+        }
+      }
+    },
+    {
+      "key" : 68,
+      "value" : {
+        "Node_ID" : 12, 
+        "Node_Type" : "Type_Typedef",
+        "name" : "EthernetAddress",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 11, 
+          "Node_Type" : "Type_Bits",
+          "size" : 48,
+          "isSigned" : false
+        }
+      }
+    },
+    {
+      "key" : 67,
+      "value" : {
+        "Node_ID" : 40, 
+        "Node_Type" : "P4Action",
+        "name" : "Set_dmac",
+        "declid" : 4,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "parameters" : {
+          "Node_ID" : 39, 
+          "Node_Type" : "ParameterList",
+          "parameters" : {
+            "Node_ID" : 36, 
+            "Node_Type" : "IndexedVector<Parameter>",
+            "vec" : [
+              {
+                "Node_ID" : 35, 
+                "Node_Type" : "Parameter",
+                "name" : "dmac",
+                "declid" : 3,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "direction" : "",
+                "type" : {
+                  "Node_ID" : 34, 
+                  "Node_Type" : "Type_Name",
+                  "path" : {
+                    "Node_ID" : 33, 
+                    "Node_Type" : "Path",
+                    "name" : "EthernetAddress",
+                    "absolute" : false
+                  }
+                }
+              }
+            ],
+            "declarations" : {
+              "dmac" : {
+                "Node_ID" : 35, 
+                "Node_Type" : "Parameter",
+                "name" : "dmac",
+                "declid" : 3,
+                "annotations" : {
+                  "Node_ID" : 3
+                },
+                "direction" : "",
+                "type" : {
+                  "Node_ID" : 34
+                }
+              }
+            }
+          }
+        },
+        "body" : {
+          "Node_ID" : 38, 
+          "Node_Type" : "BlockStatement",
+          "annotations" : {
+            "Node_ID" : 3
+          },
+          "components" : {
+            "Node_ID" : 37, 
+            "Node_Type" : "IndexedVector<StatOrDecl>",
+            "vec" : [],
+            "declarations" : {}
+          }
+        }
+      }
+    },
+    {
+      "key" : 62,
+      "value" : {
+        "Node_ID" : 45, 
+        "Node_Type" : "P4Action",
+        "name" : "drop",
+        "declid" : 5,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "parameters" : {
+          "Node_ID" : 44, 
+          "Node_Type" : "ParameterList",
+          "parameters" : {
+            "Node_ID" : 41, 
+            "Node_Type" : "IndexedVector<Parameter>",
+            "vec" : [],
+            "declarations" : {}
+          }
+        },
+        "body" : {
+          "Node_ID" : 43, 
+          "Node_Type" : "BlockStatement",
+          "annotations" : {
+            "Node_ID" : 3
+          },
+          "components" : {
+            "Node_ID" : 42, 
+            "Node_Type" : "IndexedVector<StatOrDecl>",
+            "vec" : [],
+            "declarations" : {}
+          }
+        }
+      }
+    },
+    {
+      "key" : 58,
+      "value" : {
+        "Node_ID" : 40, 
+        "Node_Type" : "P4Action",
+        "name" : "Set_dmac",
+        "declid" : 4,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "parameters" : {
+          "Node_ID" : 39
+        },
+        "body" : {
+          "Node_ID" : 38
+        }
+      }
+    },
+    {
+      "key" : 52,
+      "value" : {
+        "Node_ID" : 7, 
+        "Node_Type" : "Declaration_ID",
+        "name" : "exact",
+        "declid" : 0
+      }
+    },
+    {
+      "key" : 50,
+      "value" : {
+        "Node_ID" : 27, 
+        "Node_Type" : "Parameter",
+        "name" : "x",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "direction" : "",
+        "type" : {
+          "Node_ID" : 26, 
+          "Node_Type" : "Type_Bits",
+          "size" : 1,
+          "isSigned" : false
+        }
+      }
+    },
+    {
+      "key" : 33,
+      "value" : {
+        "Node_ID" : 12, 
+        "Node_Type" : "Type_Typedef",
+        "name" : "EthernetAddress",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 11
+        }
+      }
+    }
+  ],  "thisToDeclaration" : []
+}

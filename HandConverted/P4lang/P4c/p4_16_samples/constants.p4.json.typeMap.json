@@ -1,0 +1,802 @@
+{
+  "map" : [
+    {
+      "key" : 114,
+      "value" : {
+        "Node_ID" : 186, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 56, 
+          "Node_Type" : "P4Control",
+          "name" : "p",
+          "declid" : 1,
+          "type" : {
+            "Node_ID" : 10, 
+            "Node_Type" : "Type_Control",
+            "name" : "p",
+            "declid" : 0,
+            "annotations" : {
+              "Node_ID" : 3, 
+              "Node_Type" : "Annotations",
+              "annotations" : {
+                "Node_ID" : 4, 
+                "Node_Type" : "Vector<Annotation>",
+                "vec" : []
+              }
+            },
+            "typeParameters" : {
+              "Node_ID" : 6, 
+              "Node_Type" : "TypeParameters",
+              "parameters" : {
+                "Node_ID" : 7, 
+                "Node_Type" : "IndexedVector<Type_Var>",
+                "vec" : [],
+                "declarations" : {}
+              }
+            },
+            "applyParams" : {
+              "Node_ID" : 9, 
+              "Node_Type" : "ParameterList",
+              "parameters" : {
+                "Node_ID" : 8, 
+                "Node_Type" : "IndexedVector<Parameter>",
+                "vec" : [],
+                "declarations" : {}
+              }
+            }
+          },
+          "constructorParams" : {
+            "Node_ID" : 55, 
+            "Node_Type" : "ParameterList",
+            "parameters" : {
+              "Node_ID" : 11, 
+              "Node_Type" : "IndexedVector<Parameter>",
+              "vec" : [],
+              "declarations" : {}
+            }
+          },
+          "controlLocals" : {
+            "Node_ID" : 12, 
+            "Node_Type" : "IndexedVector<Declaration>",
+            "vec" : [],
+            "declarations" : {}
+          },
+          "body" : {
+            "Node_ID" : 54, 
+            "Node_Type" : "BlockStatement",
+            "annotations" : {
+              "Node_ID" : 3
+            },
+            "components" : {
+              "Node_ID" : 13, 
+              "Node_Type" : "IndexedVector<StatOrDecl>",
+              "vec" : [
+                {
+                  "Node_ID" : 15, 
+                  "Node_Type" : "Declaration_Variable",
+                  "name" : "x",
+                  "declid" : 0,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "type" : {
+                    "Node_ID" : 14, 
+                    "Node_Type" : "Type_Bits",
+                    "size" : 1,
+                    "isSigned" : false
+                  }
+                },
+                {
+                  "Node_ID" : 16, 
+                  "Node_Type" : "Declaration_Variable",
+                  "name" : "z",
+                  "declid" : 1,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "type" : {
+                    "Node_ID" : 14
+                  }
+                },
+                {
+                  "Node_ID" : 18, 
+                  "Node_Type" : "Declaration_Constant",
+                  "name" : "c",
+                  "declid" : 2,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "type" : {
+                    "Node_ID" : 14
+                  },
+                  "initializer" : {
+                    "Node_ID" : 17, 
+                    "Node_Type" : "Constant",
+                    "type" : {
+                      "Node_ID" : 14
+                    },
+                    "value" : 0,
+                    "base" : 10
+                  }
+                },
+                {
+                  "Node_ID" : 29, 
+                  "Node_Type" : "IfStatement",
+                  "condition" : {
+                    "Node_ID" : 19, 
+                    "Node_Type" : "BoolLiteral",
+                    "type" : {
+                      "Node_ID" : 20, 
+                      "Node_Type" : "Type_Unknown"
+                    },
+                    "value" : true
+                  },
+                  "ifTrue" : {
+                    "Node_ID" : 24, 
+                    "Node_Type" : "AssignmentStatement",
+                    "left" : {
+                      "Node_ID" : 22, 
+                      "Node_Type" : "PathExpression",
+                      "type" : {
+                        "Node_ID" : 20
+                      },
+                      "path" : {
+                        "Node_ID" : 21, 
+                        "Node_Type" : "Path",
+                        "name" : "x",
+                        "absolute" : false
+                      }
+                    },
+                    "right" : {
+                      "Node_ID" : 23, 
+                      "Node_Type" : "Constant",
+                      "type" : {
+                        "Node_ID" : 14
+                      },
+                      "value" : 0,
+                      "base" : 10
+                    }
+                  },
+                  "ifFalse" : {
+                    "Node_ID" : 28, 
+                    "Node_Type" : "AssignmentStatement",
+                    "left" : {
+                      "Node_ID" : 26, 
+                      "Node_Type" : "PathExpression",
+                      "type" : {
+                        "Node_ID" : 20
+                      },
+                      "path" : {
+                        "Node_ID" : 25, 
+                        "Node_Type" : "Path",
+                        "name" : "x",
+                        "absolute" : false
+                      }
+                    },
+                    "right" : {
+                      "Node_ID" : 27, 
+                      "Node_Type" : "Constant",
+                      "type" : {
+                        "Node_ID" : 14
+                      },
+                      "value" : 1,
+                      "base" : 10
+                    }
+                  }
+                },
+                {
+                  "Node_ID" : 43, 
+                  "Node_Type" : "IfStatement",
+                  "condition" : {
+                    "Node_ID" : 30, 
+                    "Node_Type" : "BoolLiteral",
+                    "type" : {
+                      "Node_ID" : 20
+                    },
+                    "value" : false
+                  },
+                  "ifTrue" : {
+                    "Node_ID" : 34, 
+                    "Node_Type" : "AssignmentStatement",
+                    "left" : {
+                      "Node_ID" : 32, 
+                      "Node_Type" : "PathExpression",
+                      "type" : {
+                        "Node_ID" : 20
+                      },
+                      "path" : {
+                        "Node_ID" : 31, 
+                        "Node_Type" : "Path",
+                        "name" : "z",
+                        "absolute" : false
+                      }
+                    },
+                    "right" : {
+                      "Node_ID" : 33, 
+                      "Node_Type" : "Constant",
+                      "type" : {
+                        "Node_ID" : 14
+                      },
+                      "value" : 0,
+                      "base" : 10
+                    }
+                  },
+                  "ifFalse" : {
+                    "Node_ID" : 42, 
+                    "Node_Type" : "IfStatement",
+                    "condition" : {
+                      "Node_ID" : 37, 
+                      "Node_Type" : "LAnd",
+                      "type" : {
+                        "Node_ID" : 20
+                      },
+                      "left" : {
+                        "Node_ID" : 35, 
+                        "Node_Type" : "BoolLiteral",
+                        "type" : {
+                          "Node_ID" : 20
+                        },
+                        "value" : true
+                      },
+                      "right" : {
+                        "Node_ID" : 36, 
+                        "Node_Type" : "BoolLiteral",
+                        "type" : {
+                          "Node_ID" : 20
+                        },
+                        "value" : false
+                      }
+                    },
+                    "ifTrue" : {
+                      "Node_ID" : 41, 
+                      "Node_Type" : "AssignmentStatement",
+                      "left" : {
+                        "Node_ID" : 39, 
+                        "Node_Type" : "PathExpression",
+                        "type" : {
+                          "Node_ID" : 20
+                        },
+                        "path" : {
+                          "Node_ID" : 38, 
+                          "Node_Type" : "Path",
+                          "name" : "z",
+                          "absolute" : false
+                        }
+                      },
+                      "right" : {
+                        "Node_ID" : 40, 
+                        "Node_Type" : "Constant",
+                        "type" : {
+                          "Node_ID" : 14
+                        },
+                        "value" : 1,
+                        "base" : 10
+                      }
+                    }
+                  }
+                },
+                {
+                  "Node_ID" : 53, 
+                  "Node_Type" : "IfStatement",
+                  "condition" : {
+                    "Node_ID" : 47, 
+                    "Node_Type" : "Equ",
+                    "type" : {
+                      "Node_ID" : 48, 
+                      "Node_Type" : "Type_Boolean"
+                    },
+                    "left" : {
+                      "Node_ID" : 44, 
+                      "Node_Type" : "PathExpression",
+                      "type" : {
+                        "Node_ID" : 20
+                      },
+                      "path" : {
+                        "Node_ID" : 45, 
+                        "Node_Type" : "Path",
+                        "name" : "c",
+                        "absolute" : false
+                      }
+                    },
+                    "right" : {
+                      "Node_ID" : 46, 
+                      "Node_Type" : "Constant",
+                      "type" : {
+                        "Node_ID" : 14
+                      },
+                      "value" : 0,
+                      "base" : 10
+                    }
+                  },
+                  "ifTrue" : {
+                    "Node_ID" : 52, 
+                    "Node_Type" : "AssignmentStatement",
+                    "left" : {
+                      "Node_ID" : 50, 
+                      "Node_Type" : "PathExpression",
+                      "type" : {
+                        "Node_ID" : 20
+                      },
+                      "path" : {
+                        "Node_ID" : 49, 
+                        "Node_Type" : "Path",
+                        "name" : "z",
+                        "absolute" : false
+                      }
+                    },
+                    "right" : {
+                      "Node_ID" : 51, 
+                      "Node_Type" : "Constant",
+                      "type" : {
+                        "Node_ID" : 14
+                      },
+                      "value" : 0,
+                      "base" : 10
+                    }
+                  }
+                }
+              ],
+              "declarations" : {
+                "x" : {
+                  "Node_ID" : 15, 
+                  "Node_Type" : "Declaration_Variable",
+                  "name" : "x",
+                  "declid" : 0,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "type" : {
+                    "Node_ID" : 14
+                  }
+                },
+                "z" : {
+                  "Node_ID" : 16, 
+                  "Node_Type" : "Declaration_Variable",
+                  "name" : "z",
+                  "declid" : 1,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "type" : {
+                    "Node_ID" : 14
+                  }
+                },
+                "c" : {
+                  "Node_ID" : 18, 
+                  "Node_Type" : "Declaration_Constant",
+                  "name" : "c",
+                  "declid" : 2,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "type" : {
+                    "Node_ID" : 14
+                  },
+                  "initializer" : {
+                    "Node_ID" : 17
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "key" : 56,
+      "value" : {
+        "Node_ID" : 186
+      }
+    },
+    {
+      "key" : 35,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 36,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 32,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 30,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 19,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 26,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 39,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 37,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 22,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 18,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 16,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 15,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 17,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 23,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 27,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 33,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 40,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 46,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 51,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 239,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 235,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 230,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 222,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 216,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 156,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 151,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 212,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 206,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 183,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 178,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 172,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 163,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 144,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 115,
+      "value" : {
+        "Node_ID" : 123, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 10
+        }
+      }
+    },
+    {
+      "key" : 10,
+      "value" : {
+        "Node_ID" : 123
+      }
+    },
+    {
+      "key" : 14,
+      "value" : {
+        "Node_ID" : 135, 
+        "Node_Type" : "Type_Type",
+        "type" : {
+          "Node_ID" : 14
+        }
+      }
+    },
+    {
+      "key" : 147,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 149,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 50,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 47,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 154,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 44,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 134,
+      "value" : {
+        "Node_ID" : 135
+      }
+    },
+    {
+      "key" : 140,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 136,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 131,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 237,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 233,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 232,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 228,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 226,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 225,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 224,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 220,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 218,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 214,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 210,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 208,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 181,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 176,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 175,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 170,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 168,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 167,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 166,
+      "value" : {
+        "Node_ID" : 48
+      }
+    },
+    {
+      "key" : 161,
+      "value" : {
+        "Node_ID" : 14
+      }
+    },
+    {
+      "key" : 159,
+      "value" : {
+        "Node_ID" : 48
+      }
+    }
+  ]
+}

@@ -1,0 +1,408 @@
+{
+  "Node_ID" : 139, 
+  "Node_Type" : "P4Program",
+  "declarations" : {
+    "Node_ID" : 140, 
+    "Node_Type" : "IndexedVector<Node>",
+    "vec" : [
+      {
+        "Node_ID" : 154, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "b",
+        "declid" : 4,
+        "annotations" : {
+          "Node_ID" : 10, 
+          "Node_Type" : "Annotations",
+          "annotations" : {
+            "Node_ID" : 11, 
+            "Node_Type" : "Vector<Annotation>",
+            "vec" : [
+              {
+                "Node_ID" : 6, 
+                "Node_Type" : "Annotation",
+                "name" : "annotest",
+                "expr" : {
+                  "Node_ID" : 7, 
+                  "Node_Type" : "Vector<Expression>",
+                  "vec" : []
+                }
+              }
+            ]
+          }
+        },
+        "type" : {
+          "Node_ID" : 12, 
+          "Node_Type" : "Type_Bits",
+          "size" : 1,
+          "isSigned" : false
+        },
+        "initializer" : {
+          "Node_ID" : 153, 
+          "Node_Type" : "Constant",
+          "type" : {
+            "Node_ID" : 12
+          },
+          "value" : 1,
+          "base" : 10
+        }
+      },
+      {
+        "Node_ID" : 35, 
+        "Node_Type" : "Type_Extern",
+        "name" : "Annotated",
+        "declid" : 0,
+        "typeParameters" : {
+          "Node_ID" : 26, 
+          "Node_Type" : "TypeParameters",
+          "parameters" : {
+            "Node_ID" : 27, 
+            "Node_Type" : "IndexedVector<Type_Var>",
+            "vec" : [],
+            "declarations" : {}
+          }
+        },
+        "methods" : {
+          "Node_ID" : 28, 
+          "Node_Type" : "Vector<Method>",
+          "vec" : [
+            {
+              "Node_ID" : 34, 
+              "Node_Type" : "Method",
+              "name" : "Annotated",
+              "declid" : 1,
+              "type" : {
+                "Node_ID" : 31, 
+                "Node_Type" : "Type_Method",
+                "typeParameters" : {
+                  "Node_ID" : 32, 
+                  "Node_Type" : "TypeParameters",
+                  "parameters" : {
+                    "Node_ID" : 33, 
+                    "Node_Type" : "IndexedVector<Type_Var>",
+                    "vec" : [],
+                    "declarations" : {}
+                  }
+                },
+                "parameters" : {
+                  "Node_ID" : 30, 
+                  "Node_Type" : "ParameterList",
+                  "parameters" : {
+                    "Node_ID" : 29, 
+                    "Node_Type" : "IndexedVector<Parameter>",
+                    "vec" : [],
+                    "declarations" : {}
+                  }
+                }
+              },
+              "isAbstract" : false,
+              "annotations" : {
+                "Node_ID" : 3, 
+                "Node_Type" : "Annotations",
+                "annotations" : {
+                  "Node_ID" : 4, 
+                  "Node_Type" : "Vector<Annotation>",
+                  "vec" : []
+                }
+              }
+            }
+          ]
+        },
+        "attributes" : {
+          "Node_ID" : 36, 
+          "Node_Type" : "NameMap<Attribute>",
+          "symbols" : {}
+        },
+        "annotations" : {
+          "Node_ID" : 24, 
+          "Node_Type" : "Annotations",
+          "annotations" : {
+            "Node_ID" : 25, 
+            "Node_Type" : "Vector<Annotation>",
+            "vec" : [
+              {
+                "Node_ID" : 20, 
+                "Node_Type" : "Annotation",
+                "name" : "size",
+                "expr" : {
+                  "Node_ID" : 21, 
+                  "Node_Type" : "Vector<Expression>",
+                  "vec" : [
+                    {
+                      "Node_ID" : 17, 
+                      "Node_Type" : "Constant",
+                      "type" : {
+                        "Node_ID" : 16, 
+                        "Node_Type" : "Type_InfInt",
+                        "declid" : 1
+                      },
+                      "value" : 100,
+                      "base" : 10
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "Node_ID" : 57, 
+        "Node_Type" : "Method",
+        "name" : "log",
+        "declid" : 3,
+        "type" : {
+          "Node_ID" : 56, 
+          "Node_Type" : "Type_Method",
+          "typeParameters" : {
+            "Node_ID" : 49, 
+            "Node_Type" : "TypeParameters",
+            "parameters" : {
+              "Node_ID" : 50, 
+              "Node_Type" : "IndexedVector<Type_Var>",
+              "vec" : [],
+              "declarations" : {}
+            }
+          },
+          "returnType" : {
+            "Node_ID" : 0, 
+            "Node_Type" : "Type_Bits",
+            "size" : 32,
+            "isSigned" : false
+          },
+          "parameters" : {
+            "Node_ID" : 55, 
+            "Node_Type" : "ParameterList",
+            "parameters" : {
+              "Node_ID" : 54, 
+              "Node_Type" : "IndexedVector<Parameter>",
+              "vec" : [
+                {
+                  "Node_ID" : 53, 
+                  "Node_Type" : "Parameter",
+                  "name" : "data",
+                  "declid" : 2,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "in",
+                  "type" : {
+                    "Node_ID" : 0
+                  }
+                }
+              ],
+              "declarations" : {
+                "data" : {
+                  "Node_ID" : 53, 
+                  "Node_Type" : "Parameter",
+                  "name" : "data",
+                  "declid" : 2,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "in",
+                  "type" : {
+                    "Node_ID" : 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "isAbstract" : false,
+        "annotations" : {
+          "Node_ID" : 45, 
+          "Node_Type" : "Annotations",
+          "annotations" : {
+            "Node_ID" : 46, 
+            "Node_Type" : "Vector<Annotation>",
+            "vec" : [
+              {
+                "Node_ID" : 41, 
+                "Node_Type" : "Annotation",
+                "name" : "cycles",
+                "expr" : {
+                  "Node_ID" : 42, 
+                  "Node_Type" : "Vector<Expression>",
+                  "vec" : [
+                    {
+                      "Node_ID" : 38, 
+                      "Node_Type" : "Constant",
+                      "type" : {
+                        "Node_ID" : 37, 
+                        "Node_Type" : "Type_InfInt",
+                        "declid" : 2
+                      },
+                      "value" : 10,
+                      "base" : 10
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "Node_ID" : 76, 
+        "Node_Type" : "P4Control",
+        "name" : "c",
+        "declid" : 2,
+        "type" : {
+          "Node_ID" : 62, 
+          "Node_Type" : "Type_Control",
+          "name" : "c",
+          "declid" : 1,
+          "annotations" : {
+            "Node_ID" : 3
+          },
+          "typeParameters" : {
+            "Node_ID" : 58, 
+            "Node_Type" : "TypeParameters",
+            "parameters" : {
+              "Node_ID" : 59, 
+              "Node_Type" : "IndexedVector<Type_Var>",
+              "vec" : [],
+              "declarations" : {}
+            }
+          },
+          "applyParams" : {
+            "Node_ID" : 61, 
+            "Node_Type" : "ParameterList",
+            "parameters" : {
+              "Node_ID" : 60, 
+              "Node_Type" : "IndexedVector<Parameter>",
+              "vec" : [],
+              "declarations" : {}
+            }
+          }
+        },
+        "constructorParams" : {
+          "Node_ID" : 75, 
+          "Node_Type" : "ParameterList",
+          "parameters" : {
+            "Node_ID" : 63, 
+            "Node_Type" : "IndexedVector<Parameter>",
+            "vec" : [],
+            "declarations" : {}
+          }
+        },
+        "controlLocals" : {
+          "Node_ID" : 64, 
+          "Node_Type" : "IndexedVector<Declaration>",
+          "vec" : [],
+          "declarations" : {}
+        },
+        "body" : {
+          "Node_ID" : 74, 
+          "Node_Type" : "BlockStatement",
+          "annotations" : {
+            "Node_ID" : 3
+          },
+          "components" : {
+            "Node_ID" : 65, 
+            "Node_Type" : "IndexedVector<StatOrDecl>",
+            "vec" : [
+              {
+                "Node_ID" : 73, 
+                "Node_Type" : "BlockStatement",
+                "annotations" : {
+                  "Node_ID" : 70, 
+                  "Node_Type" : "Annotations",
+                  "annotations" : {
+                    "Node_ID" : 71, 
+                    "Node_Type" : "Vector<Annotation>",
+                    "vec" : [
+                      {
+                        "Node_ID" : 66, 
+                        "Node_Type" : "Annotation",
+                        "name" : "blockAnnotation",
+                        "expr" : {
+                          "Node_ID" : 67, 
+                          "Node_Type" : "Vector<Expression>",
+                          "vec" : []
+                        }
+                      }
+                    ]
+                  }
+                },
+                "components" : {
+                  "Node_ID" : 72, 
+                  "Node_Type" : "IndexedVector<StatOrDecl>",
+                  "vec" : [],
+                  "declarations" : {}
+                }
+              }
+            ],
+            "declarations" : {}
+          }
+        }
+      }
+    ],
+    "declarations" : {
+      "Annotated" : {
+        "Node_ID" : 35, 
+        "Node_Type" : "Type_Extern",
+        "name" : "Annotated",
+        "declid" : 0,
+        "typeParameters" : {
+          "Node_ID" : 26
+        },
+        "methods" : {
+          "Node_ID" : 28
+        },
+        "attributes" : {
+          "Node_ID" : 36
+        },
+        "annotations" : {
+          "Node_ID" : 24
+        }
+      },
+      "log" : {
+        "Node_ID" : 57, 
+        "Node_Type" : "Method",
+        "name" : "log",
+        "declid" : 3,
+        "type" : {
+          "Node_ID" : 56
+        },
+        "isAbstract" : false,
+        "annotations" : {
+          "Node_ID" : 45
+        }
+      },
+      "c" : {
+        "Node_ID" : 76, 
+        "Node_Type" : "P4Control",
+        "name" : "c",
+        "declid" : 2,
+        "type" : {
+          "Node_ID" : 62
+        },
+        "constructorParams" : {
+          "Node_ID" : 75
+        },
+        "controlLocals" : {
+          "Node_ID" : 64
+        },
+        "body" : {
+          "Node_ID" : 74
+        }
+      },
+      "b" : {
+        "Node_ID" : 154, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "b",
+        "declid" : 4,
+        "annotations" : {
+          "Node_ID" : 10
+        },
+        "type" : {
+          "Node_ID" : 12
+        },
+        "initializer" : {
+          "Node_ID" : 153
+        }
+      }
+    }
+  }
+}

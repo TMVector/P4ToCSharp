@@ -1,0 +1,164 @@
+{
+  "Node_ID" : 23, 
+  "Node_Type" : "P4Program",
+  "declarations" : {
+    "Node_ID" : 5, 
+    "Node_Type" : "IndexedVector<Node>",
+    "vec" : [
+      {
+        "Node_ID" : 14, 
+        "Node_Type" : "Type_Struct",
+        "name" : "Version",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 3, 
+          "Node_Type" : "Annotations",
+          "annotations" : {
+            "Node_ID" : 4, 
+            "Node_Type" : "Vector<Annotation>",
+            "vec" : []
+          }
+        },
+        "fields" : {
+          "Node_ID" : 6, 
+          "Node_Type" : "IndexedVector<StructField>",
+          "vec" : [
+            {
+              "Node_ID" : 10, 
+              "Node_Type" : "StructField",
+              "name" : "major",
+              "declid" : 0,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 9, 
+                "Node_Type" : "Type_Bits",
+                "size" : 8,
+                "isSigned" : false
+              }
+            },
+            {
+              "Node_ID" : 13, 
+              "Node_Type" : "StructField",
+              "name" : "minor",
+              "declid" : 1,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 9
+              }
+            }
+          ],
+          "declarations" : {
+            "major" : {
+              "Node_ID" : 10, 
+              "Node_Type" : "StructField",
+              "name" : "major",
+              "declid" : 0,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 9
+              }
+            },
+            "minor" : {
+              "Node_ID" : 13, 
+              "Node_Type" : "StructField",
+              "name" : "minor",
+              "declid" : 1,
+              "annotations" : {
+                "Node_ID" : 3
+              },
+              "type" : {
+                "Node_ID" : 9
+              }
+            }
+          }
+        }
+      },
+      {
+        "Node_ID" : 22, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "version",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 16, 
+          "Node_Type" : "Type_Name",
+          "path" : {
+            "Node_ID" : 15, 
+            "Node_Type" : "Path",
+            "name" : "Version",
+            "absolute" : true
+          }
+        },
+        "initializer" : {
+          "Node_ID" : 20, 
+          "Node_Type" : "ListExpression",
+          "type" : {
+            "Node_ID" : 21, 
+            "Node_Type" : "Type_Unknown"
+          },
+          "components" : {
+            "Node_ID" : 18, 
+            "Node_Type" : "Vector<Expression>",
+            "vec" : [
+              {
+                "Node_ID" : 17, 
+                "Node_Type" : "Constant",
+                "type" : {
+                  "Node_ID" : 9
+                },
+                "value" : 0,
+                "base" : 10
+              },
+              {
+                "Node_ID" : 19, 
+                "Node_Type" : "Constant",
+                "type" : {
+                  "Node_ID" : 9
+                },
+                "value" : 1,
+                "base" : 10
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "declarations" : {
+      "Version" : {
+        "Node_ID" : 14, 
+        "Node_Type" : "Type_Struct",
+        "name" : "Version",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "fields" : {
+          "Node_ID" : 6
+        }
+      },
+      "version" : {
+        "Node_ID" : 22, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "version",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 16
+        },
+        "initializer" : {
+          "Node_ID" : 20
+        }
+      }
+    }
+  }
+}

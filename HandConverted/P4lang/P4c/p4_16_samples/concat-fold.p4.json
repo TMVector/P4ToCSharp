@@ -1,0 +1,82 @@
+{
+  "Node_ID" : 16, 
+  "Node_Type" : "P4Program",
+  "declarations" : {
+    "Node_ID" : 5, 
+    "Node_Type" : "IndexedVector<Node>",
+    "vec" : [
+      {
+        "Node_ID" : 15, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "a",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 3, 
+          "Node_Type" : "Annotations",
+          "annotations" : {
+            "Node_ID" : 4, 
+            "Node_Type" : "Vector<Annotation>",
+            "vec" : []
+          }
+        },
+        "type" : {
+          "Node_ID" : 8, 
+          "Node_Type" : "Type_Bits",
+          "size" : 24,
+          "isSigned" : false
+        },
+        "initializer" : {
+          "Node_ID" : 13, 
+          "Node_Type" : "Concat",
+          "type" : {
+            "Node_ID" : 0, 
+            "Node_Type" : "Type_Bits",
+            "size" : 32,
+            "isSigned" : false
+          },
+          "left" : {
+            "Node_ID" : 10, 
+            "Node_Type" : "Constant",
+            "type" : {
+              "Node_ID" : 9, 
+              "Node_Type" : "Type_Bits",
+              "size" : 16,
+              "isSigned" : false
+            },
+            "value" : 0,
+            "base" : 10
+          },
+          "right" : {
+            "Node_ID" : 12, 
+            "Node_Type" : "Constant",
+            "type" : {
+              "Node_ID" : 11, 
+              "Node_Type" : "Type_Bits",
+              "size" : 8,
+              "isSigned" : false
+            },
+            "value" : 1,
+            "base" : 10
+          }
+        }
+      }
+    ],
+    "declarations" : {
+      "a" : {
+        "Node_ID" : 15, 
+        "Node_Type" : "Declaration_Constant",
+        "name" : "a",
+        "declid" : 0,
+        "annotations" : {
+          "Node_ID" : 3
+        },
+        "type" : {
+          "Node_ID" : 8
+        },
+        "initializer" : {
+          "Node_ID" : 13
+        }
+      }
+    }
+  }
+}
