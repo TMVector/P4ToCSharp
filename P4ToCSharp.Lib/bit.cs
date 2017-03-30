@@ -436,4 +436,106 @@ namespace P4ToCSharp.Library
       return v.Value;
     }
   }
+
+  // We use a type parameter to statically enforce similar-width assignments, etc. without hardcoding
+  public struct bitw<TWidth> : IBitString where TWidth : N
+  {
+    public int BitWidth { get; }
+    public UInt16 Value { get; }
+
+    public bitw(UInt16 value) : this(N.GetValue<TWidth>(), value) { }
+    public bitw(int width, UInt16 value)
+    {
+      Debug.Assert(width == N.GetValue<TWidth>());
+      Debug.Assert(value < (1u << width));
+      BitWidth = width;
+      Value = value;
+    }
+
+    public static bool operator ==(bitw<TWidth> a, bitw<TWidth> b)
+    {
+      return a.BitWidth == b.BitWidth && a.Value == b.Value;
+    }
+    public static bool operator ==(bitw<TWidth> a, UInt16 b)
+    {
+      return a.Value == b;
+    }
+    public static bool operator !=(bitw<TWidth> a, bitw<TWidth> b)
+    {
+      return !(a == b);
+    }
+    public static bool operator !=(bitw<TWidth> a, UInt16 b)
+    {
+      return !(a == b);
+    }
+    public override bool Equals(object obj)
+    {
+      if (obj is bitw<TWidth>)
+        return this == (bitw<TWidth>)obj;
+      else if (obj is UInt16)
+        return this == (UInt16)obj;
+      else
+        return false;
+    }
+    public override int GetHashCode()
+    {
+      return (int)Value;
+    }
+
+    public static bitw<TWidth> operator +(bitw<TWidth> a, UInt16 i)
+    {
+      return new bitw<TWidth>(a.BitWidth, (UInt16)(a.Value - i));
+    }
+    public static bitw<TWidth> operator -(bitw<TWidth> a, UInt16 i)
+    {
+      return new bitw<TWidth>(a.BitWidth, (UInt16)(a.Value - i));
+    }
+
+    public static explicit operator bitw<TWidth>(ulong v)
+    {
+      int width = N.GetValue<TWidth>();
+      return new bitw<TWidth>(width, (UInt16)(v & ~(~0uL << width)));
+    }
+    public static explicit operator UInt16(bitw<TWidth> v)
+    {
+      return v.Value;
+    }
+  }
+
+  public class N
+  {
+    // Private ctor so effectively sealed to public
+    private N() { }
+
+    // Types to parameterise bitw by width
+    public sealed class N2 : N { }
+    public sealed class N3 : N { }
+    public sealed class N5 : N { }
+    public sealed class N6 : N { }
+    public sealed class N7 : N { }
+    public sealed class N9 : N { }
+    public sealed class N10 : N { }
+    public sealed class N11 : N { }
+    public sealed class N12 : N { }
+    public sealed class N13 : N { }
+    public sealed class N14 : N { }
+    public sealed class N15 : N { }
+
+    public static int GetValue<TN>() where TN : N
+    {
+      if (typeof(TN) == typeof(N2)) return 2;
+      if (typeof(TN) == typeof(N3)) return 3;
+      if (typeof(TN) == typeof(N5)) return 5;
+      if (typeof(TN) == typeof(N6)) return 6;
+      if (typeof(TN) == typeof(N7)) return 7;
+      if (typeof(TN) == typeof(N9)) return 9;
+      if (typeof(TN) == typeof(N10)) return 10;
+      if (typeof(TN) == typeof(N11)) return 11;
+      if (typeof(TN) == typeof(N12)) return 12;
+      if (typeof(TN) == typeof(N13)) return 13;
+      if (typeof(TN) == typeof(N14)) return 14;
+      if (typeof(TN) == typeof(N15)) return 15;
+      throw new NotImplementedException("Subtype of N not handled in N.GetValue");
+    }
+  }
 }
