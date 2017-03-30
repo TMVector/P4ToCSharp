@@ -508,14 +508,25 @@ and ofType (t : JsonTypes.Type) : Syntax.TypeSyntax =
 and nameOfType (fqType:TypeQualification) (t : JsonTypes.Type) : Syntax.NameSyntax =
   match t with
   | :? JsonTypes.Type_Bits as bits ->
-      match bits.size with
-      | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
-      | s when s <= 64 ->
-          let bitsName = SF.IdentifierName(sprintf "bit%d" s)
-          match fqType with
-          | UnqualifiedType -> upcast bitsName
-          | FullyQualifiedType -> upcast SF.QualifiedName(libraryName, bitsName)
-      | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
+      let bitsName : Syntax.SimpleNameSyntax =
+        match bits.size with
+        | s when s <= 0 ->
+            failwithf "Type_bits.size (=%d) must be greater than 0" s
+        | 1 | 4 | 8 | 16 | 32 | 48 | 64 as s ->
+            // These values are given hardcoded structs
+            upcast SF.IdentifierName(sprintf "bit%d" s)
+        | s when s < 16 ->
+            // Non-standard values < 16 are implemented with bitw<TWidth>
+            let cl = SF.GenericName("bitw")
+            let n = SF.IdentifierName(sprintf "N%d" s)
+            match fqType with
+            | UnqualifiedType -> upcast cl.WithTypeArgumentList(tArg (SF.QualifiedName(SF.IdentifierName("N"), n)))
+            | FullyQualifiedType -> upcast cl.WithTypeArgumentList(tArg (SF.QualifiedName(SF.QualifiedName(libraryName, SF.IdentifierName("N")), n)))
+        | s ->
+            failwithf "Type_bits.size (=%d) is not supported" s
+      match fqType with
+      | UnqualifiedType -> upcast bitsName
+      | FullyQualifiedType -> upcast SF.QualifiedName(libraryName, bitsName)
   | :? JsonTypes.Type_Name as n ->
       qualifiedTypeName n.path.name
   | :? JsonTypes.Type_Specialized as ts ->
