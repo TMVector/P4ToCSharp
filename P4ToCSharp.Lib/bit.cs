@@ -16,6 +16,54 @@ namespace P4ToCSharp.Library
     int BitWidth { get; }
   }
 
+  // Dynamic width bitstring (up to 64 wide)
+  public struct bitN : IBitString
+  {
+    public int BitWidth { get; }
+    int IBitString.BitWidth { get { return BitWidth; } }
+
+    public UInt64 Value { get; }
+
+    public bitN(int width, UInt64 val)
+    {
+      BitWidth = width;
+      Value = val; // FIXME mask?
+    }
+
+    public static bool operator ==(bitN a, bitN b)
+    {
+      return a.Value == b.Value;
+    }
+
+    public static bool operator ==(bitN a, UInt64 b)
+    {
+      return a.Value == b;
+    }
+    public static bool operator !=(bitN a, bitN b)
+    {
+      return !(a == b);
+    }
+    public static bool operator !=(bitN a, UInt64 b)
+    {
+      return !(a == b);
+    }
+    public override bool Equals(object obj)
+    {
+      if (obj is bitN)
+        return this == (bitN)obj;
+      else if (obj is UInt64)
+        return this == (UInt64)obj;
+      else
+        return false;
+    }
+    public override int GetHashCode()
+    {
+      return Value.GetHashCode();
+    }
+
+    // NOTE we don't support any arithmetic for this datatype
+  }
+
   public struct bit1 : IBitString
   {
     public const int BitWidth = 1;
