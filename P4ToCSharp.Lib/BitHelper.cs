@@ -19,19 +19,20 @@ namespace P4ToCSharp.Library
       return new bit1((byte)(data & 1));
     }
 
-    public static ushort ExtractBits(byte[] arr, uint bitOffset, uint bitLength)
+    public static bitw<TWidth> ExtractBits<TWidth>(byte[] arr, uint bitOffset, uint bitLength) where TWidth : N
     {
+      Debug.Assert(bitLength == N.GetValue<TWidth>());
       uint startByte = bitOffset / 8;
       uint localBitOffset = bitOffset % 8;
       uint data = Extract32(arr, startByte).Value; // FIXME is it okay to extract 32 bits when we don't know it's safe?
       data >>= (int)localBitOffset;
       data &= (~0u) >> (32 - (int)bitLength);
-      return (ushort)data;
+      return new bitw<TWidth>((ushort)data);
     }
 
     public static bit4 Extract4(byte[] arr, uint bitOffset)
     {
-      
+
     }
 
     public static bit8 Extract8(byte[] arr, uint bitOffset)

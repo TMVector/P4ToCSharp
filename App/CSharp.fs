@@ -61,10 +61,10 @@ type ScopeInfo =
             | (Some parent)::_ ->
                 match parent with
                 //| :? JsonTypes.Type_Enum as e -> Some parent // We want to return the enum itself, not the unhelpful Declaration_ID member
-                | _ -> 
+                | _ ->
                   let childName = m.member_
                   (parent.NamedChild(childName))::parentPath |> Some
-            | None::_ -> None::parentPath |> Some // cannot find a named child of None, so fill place with None 
+            | None::_ -> None::parentPath |> Some // cannot find a named child of None, so fill place with None
             | [] -> failwith "getP4For should never return an empty list")
       | _ -> failwith "Tried to follow a name expression that wasn't a valid name expression"
     getP4For nameExpr
@@ -85,7 +85,7 @@ type ScopeInfo =
     this.PathMap.TryFind(path.Node_ID)
   member this.GetReference(thisNode : JsonTypes.This) =
     this.ThisMap.TryFind(thisNode.Node_ID)
-    
+
 let nullLiteral = SF.LiteralExpression(SK.NullLiteralExpression)
 let trueLiteral = SF.LiteralExpression(SK.TrueLiteralExpression)
 let falseLiteral = SF.LiteralExpression(SK.FalseLiteralExpression)
@@ -141,7 +141,7 @@ let rec resolveType (scopeInfo:ScopeInfo) (typedefBehaviour:TypeDefBehaviour) (t
 let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
   match ty with
   | :? JsonTypes.Type_Bits as bits ->
-      SF.InvocationExpression(memberAccess (sprintf "BitHelper.Extract%d" bits.size))
+      SF.InvocationExpression(memberAccess (sprintf "BitHelper.Extract%d" bits.size)) // FIXME handle bitw
         .AddArgumentListArguments(SF.Argument(arrExpr),
                                   SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset))) // FIXME types in headers: bit fixed/var + int
   | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name)
@@ -230,7 +230,7 @@ let variableDeclaration (name:string) ty (initialiser:Syntax.ExpressionSyntax op
   let declarator =
     match initialiser with
     | Some ini -> declarator.WithInitializer(SF.EqualsValueClause(ini))
-    | None -> declarator 
+    | None -> declarator
   SF.VariableDeclaration(ty)
     .WithVariables(SF.SingletonSeparatedList(declarator))
 
@@ -257,7 +257,7 @@ type Syntax.PropertyDeclarationSyntax with
     | Property.Accessor.GetSet -> this.WithAccessorList(SF.AccessorList(SF.List([| getter; setter |])))
   member this.WithInitialiserExpr(expr) =
     this.WithInitializer(SF.EqualsValueClause(expr))
-    
+
 type Syntax.InvocationExpressionSyntax with
   member this.WithArguments(arguments : Syntax.ExpressionSyntax seq) =
     this.WithArgumentList(argList arguments)
@@ -270,7 +270,7 @@ type Syntax.MethodDeclarationSyntax with
   member this.WithTypeParameters(typeParameters : Syntax.TypeParameterSyntax seq) =
     if Seq.isEmpty typeParameters then this
     else this.WithTypeParameterList(SF.TypeParameterList(SF.SeparatedList(typeParameters)))
-    
+
 type Syntax.ConstructorDeclarationSyntax with
   member this.WithParameters(parameters : Syntax.ParameterSyntax seq) =
     this.WithParameterList(paramList parameters)
@@ -339,7 +339,7 @@ type Syntax.ClassDeclarationSyntax with
     else this.WithTypeParameterList(SF.TypeParameterList(SF.SeparatedList(tyParams)))
   member this.WithBaseTypes(tys : seq<Syntax.TypeSyntax>) =
     this.WithBaseList(SF.BaseList(SF.SeparatedList(tys |> Seq.map SF.SimpleBaseType |> Seq.cast<Syntax.BaseTypeSyntax>)))
-                                   
+
 let inStaticPartialClass (name:string) (node:Syntax.MemberDeclarationSyntax) =
   SF.ClassDeclaration(name)
     .WithModifiers(tokenList [ SK.StaticKeyword; SK.PartialKeyword ])
@@ -367,7 +367,7 @@ let saveToFile (compilationUnit : Syntax.CompilationUnitSyntax) (filename:string
   formattedNode.WriteTo(writer)
 
 let inferTypeOf (scope:ScopeInfo) (typedefBehaviour:TypeDefBehaviour) (expr:JsonTypes.Expression) : JsonTypes.Type =
-  scope.GetTypeOf(expr) // Doesn't respect/preserve typedefs... 
+  scope.GetTypeOf(expr) // Doesn't respect/preserve typedefs...
   |> Option.map (resolveType scope typedefBehaviour)
   |> Option.ifNone (fun () -> failwithf "Couldn't infer type of expression %s" expr.Node_Type)
 //  let rec getTypeOf (nameExpr : JsonTypes.Expression) =
@@ -383,10 +383,10 @@ let inferTypeOf (scope:ScopeInfo) (typedefBehaviour:TypeDefBehaviour) (expr:Json
 //            | parent::_ ->
 //                match parent with
 //                //| :? JsonTypes.Type_Enum as e -> Some parent // We want to return the enum itself, not the unhelpful Declaration_ID member
-//                | _ -> 
+//                | _ ->
 //                  let childName = m.member_
 //                  (parent.NamedChild(childName))::parentPath |> Some
-//            | None::_ -> None::parentPath |> Some // cannot find a named child of None, so fill place with None 
+//            | None::_ -> None::parentPath |> Some // cannot find a named child of None, so fill place with None
 //            | [] -> failwith "getP4For should never return an empty list")
 //      | _ -> failwith "Tried to follow a name expression that wasn't a valid name expression"
 //    getTypeOf expr
@@ -412,7 +412,7 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
       | :? JsonTypes.Div -> upcast SF.BinaryExpression(SK.DivideExpression, lExpr, rExpr)
       | :? JsonTypes.Mod -> upcast SF.BinaryExpression(SK.ModuloExpression, lExpr, rExpr)
       | :? JsonTypes.Add -> upcast SF.BinaryExpression(SK.AddExpression, lExpr, rExpr)
-      | :? JsonTypes.Sub -> upcast SF.BinaryExpression(SK.SubtractExpression, lExpr, rExpr) 
+      | :? JsonTypes.Sub -> upcast SF.BinaryExpression(SK.SubtractExpression, lExpr, rExpr)
       | :? JsonTypes.Shl -> upcast SF.BinaryExpression(SK.LeftShiftExpression, lExpr, rExpr)
       | :? JsonTypes.Shr -> upcast SF.BinaryExpression(SK.RightShiftExpression, lExpr, rExpr)
       | :? JsonTypes.Equ -> upcast SF.BinaryExpression(SK.EqualsExpression, lExpr, rExpr)
@@ -470,7 +470,7 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
       let m =
         if Seq.isEmpty mc.typeArguments.vec
         then ofExpr UnknownType mc.method_
-        else //FIXME this isn't right - you need to somehow use the type args here in the expression for the method. Presumably the type of the expression returned for the method is limited though?
+        else
           let typeArgs = tArgList <| Seq.map ofType mc.typeArguments.vec
           match ofExpr UnknownType mc.method_ with
           | :? Syntax.MemberAccessExpressionSyntax as ma ->
@@ -480,6 +480,8 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
               upcast SF.GenericName(n.Identifier)
                        .WithTypeArgumentList(typeArgs)
           | ng -> failwithf "Unhandled type of expression for JsonTypes.MethodCallException: %s" (ng.GetType().Name)
+      // FIXME check if the method is an action (is it ever not?), and if so, lookup which closure args are needed and pass them also
+      //   Perhaps it is a good idea to replace ClosureArgs with ActionLookup, so we can check which actions need which args
       upcast SF.InvocationExpression(m).WithArgumentList(mc.arguments.vec |> Seq.map (ofExpr UnknownType) |> argList)
   | :? JsonTypes.ConstructorCallExpression as cce ->
       upcast constructorCall (ofType cce.constructedType) (Seq.map (ofExpr UnknownType) cce.arguments.vec)
@@ -811,7 +813,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             let apply = SF.MethodDeclaration(voidType, "apply")
                           .WithParameters(applyParams |> Seq.map snd)
                           .AddBodyStatements(instantiateArgsClass |> Array.singleton)
-                          .AddBodyStatements(pc.body.components.vec |> Seq.map (ofStatOrDecl scopeInfo) |> Seq.toArray) // TODO FIXME We need to explicitly pass argsClass closure to all actions, etc. + create the closure arg
+                          .AddBodyStatements(pc.body.components.vec |> Seq.map (ofStatOrDecl thisScope) |> Seq.toArray) // TODO FIXME We need to explicitly pass argsClass closure to all actions, etc. + create the closure arg
             apply, argsClass, thisScope
           let locals = // NOTE locals can access ctor params through properties, and apply args through the argsClass which is passed to each action, etc.
             let usings, decls = pc.controlLocals.vec |> Seq.map (declarationOfNode thisScope) |> Seq.concat |> Transformed.partition
@@ -842,7 +844,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                         |> Seq.map (fun p -> p.type_) // FIXME check this isn't Type_Unknown
                         |> Seq.toList
             match types with
-            | [] -> None 
+            | [] -> None
             | [ty] -> ofType ty |> Some
             | types -> tupleTypeOf (Seq.map ofType types) |> Some
           let actionBaseType = SF.IdentifierName("ActionBase")
@@ -894,7 +896,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                       action
                       |> Option.ofType<_,JsonTypes.P4Action>
                       |> Option.ifNone (fun () -> failwith "Couldn't resolve name to P4Action")
-                  | _ -> failwith "GetP4PathForNameExpr returned an empty list" 
+                  | _ -> failwith "GetP4PathForNameExpr returned an empty list"
               | None -> failwithf "Couldn't resolve name (%s) to P4Action" (actionExpr.ToString())
             (name, expr, p4action) // So we have the P4AST for actions, but still can't be sure whether they should take e.g. TopPipe_Args?
           let actions =
@@ -958,7 +960,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                   | :? Syntax.InvocationExpressionSyntax as ies -> ies.Expression, ies.ArgumentList.Arguments
                   | _ -> failwith "Couldn't deconstruct action expression to an InvocationExpressionSyntax"
                 // FIXME It may be that not all scope args should be used! One method of avoiding this problem is redefining the method that *does* take them, and calling the actual method inside that one.
-                //        Still not the easiest though... Maybe add some info 
+                //        Still not the easiest though... Maybe add some info
                 // FIXME Should use user args (args), not just action parameters
                 let args = Seq.append (scopeInfo.ScopeParameterList |> Seq.map argForParam) actionArgs
                 onApply.WithBlockBody([SF.ExpressionStatement(SF.InvocationExpression(methodExpr, SF.ArgumentList(SF.SeparatedList(args |> Seq.toArray))))]))
