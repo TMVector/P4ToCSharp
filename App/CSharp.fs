@@ -138,21 +138,6 @@ let rec resolveType (scopeInfo:ScopeInfo) (typedefBehaviour:TypeDefBehaviour) (t
       | KeepTypeDef -> upcast td
       | ResolveTypeDef -> resolveType scopeInfo typedefBehaviour td.type_
   | _ -> ty
-let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
-  match ty with
-  | :? JsonTypes.Type_Bits as bits ->
-      SF.InvocationExpression(memberAccess (sprintf "BitHelper.Extract%d" bits.size))
-        .AddArgumentListArguments(SF.Argument(arrExpr),
-                                  SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset))) // FIXME types in headers: bit fixed/var + int
-  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name)
-let createWriteExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) fieldExpr =
-  match ty with
-  | :? JsonTypes.Type_Bits as bits ->
-      SF.InvocationExpression(memberAccess (sprintf "BitHelper.Write%d" bits.size))
-        .AddArgumentListArguments(SF.Argument(arrExpr),
-                                  SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset)),
-                                  SF.Argument(fieldExpr))
-  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name) // FIXME types in headers: bit fixed/var + int
 let typeNameString (names:Syntax.SimpleNameSyntax seq) : Syntax.NameSyntax =
   match names |> Seq.toList with
   | f::ns ->
@@ -213,6 +198,10 @@ let smallestTypeToHold (bitwidth:int) =
   | _ when bitwidth > 8 -> uint16Name
   | _ when bitwidth > 0 -> byteName
   | _ -> failwithf "Cannot handle bitwidth of %d" bitwidth
+let isFixedBitSize (size) =
+  match size with
+  | 1 | 4 | 8 | 16 | 32 | 64 -> true
+  | _ -> false
 
 let classNameFor (name:string) = name
 let argsClassNameFor (name:string) = sprintf "%s_Args" (classNameFor name)
@@ -237,6 +226,27 @@ let variableDeclaration (name:string) ty (initialiser:Syntax.ExpressionSyntax op
 let createEnum (name:string) (members:seq<string>) =
   SF.EnumDeclaration(name)
     .WithMembers(SF.SeparatedList(members |> Seq.map SF.EnumMemberDeclaration))
+    
+let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
+  match ty with
+  | :? JsonTypes.Type_Bits as bits ->
+      let fixedSize = isFixedBitSize bits.size
+      let N = if fixedSize then string bits.size else "N"
+      let invoc =
+        SF.InvocationExpression(memberAccess (sprintf "BitHelper.Extract%s" N))
+          .AddArgumentListArguments(SF.Argument(arrExpr),
+                                    SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset))) // FIXME types in headers: bit fixed/var + int
+      if fixedSize then invoc else invoc.AddArgumentListArguments(SF.Argument(literalInt bits.size))
+  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name)
+let createWriteExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) fieldExpr =
+  match ty with
+  | :? JsonTypes.Type_Bits as bits ->
+      let N = if isFixedBitSize bits.size then string bits.size else "N"
+      SF.InvocationExpression(memberAccess (sprintf "BitHelper.Write%s" N))
+        .AddArgumentListArguments(SF.Argument(arrExpr),
+                                  SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset)),
+                                  SF.Argument(fieldExpr))
+  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name) // FIXME types in headers: bit fixed/var + int
 
 type Syntax.ParameterSyntax with
   member this.WithDirection(direction:JsonTypes.Direction) =
@@ -367,7 +377,7 @@ let saveToFile (compilationUnit : Syntax.CompilationUnitSyntax) (filename:string
   formattedNode.WriteTo(writer)
 
 let inferTypeOf (scope:ScopeInfo) (typedefBehaviour:TypeDefBehaviour) (expr:JsonTypes.Expression) : JsonTypes.Type =
-  scope.GetTypeOf(expr) // Doesn't respect/preserve typedefs... 
+  scope.GetTypeOf(expr) // Doesn't respect/preserve typedefs... (FIXME is that true?)
   |> Option.map (resolveType scope typedefBehaviour)
   |> Option.ifNone (fun () -> failwithf "Couldn't infer type of expression %s" expr.Node_Type)
 //  let rec getTypeOf (nameExpr : JsonTypes.Expression) =
@@ -470,7 +480,7 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
       let m =
         if Seq.isEmpty mc.typeArguments.vec
         then ofExpr UnknownType mc.method_
-        else //FIXME this isn't right - you need to somehow use the type args here in the expression for the method. Presumably the type of the expression returned for the method is limited though?
+        else
           let typeArgs = tArgList <| Seq.map ofType mc.typeArguments.vec
           match ofExpr UnknownType mc.method_ with
           | :? Syntax.MemberAccessExpressionSyntax as ma ->
@@ -480,6 +490,8 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
               upcast SF.GenericName(n.Identifier)
                        .WithTypeArgumentList(typeArgs)
           | ng -> failwithf "Unhandled type of expression for JsonTypes.MethodCallException: %s" (ng.GetType().Name)
+      // FIXME check if the method is an action (is it ever not?), and if so, lookup which closure args are needed and pass them also
+      //   Perhaps it is a good idea to replace ClosureArgs with ActionLookup, so we can check which actions need which args
       upcast SF.InvocationExpression(m).WithArgumentList(mc.arguments.vec |> Seq.map (ofExpr UnknownType) |> argList)
   | :? JsonTypes.ConstructorCallExpression as cce ->
       upcast constructorCall (ofType cce.constructedType) (Seq.map (ofExpr UnknownType) cce.arguments.vec)
@@ -511,7 +523,11 @@ and nameOfType (fqType:TypeQualification) (t : JsonTypes.Type) : Syntax.NameSynt
       match bits.size with
       | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
       | s when s <= 64 ->
-          let bitsName = SF.IdentifierName(sprintf "bit%d" s)
+          let bitsName =
+            if isFixedBitSize s then
+              SF.IdentifierName(sprintf "bit%d" s)
+            else
+              SF.IdentifierName("bitN")
           match fqType with
           | UnqualifiedType -> upcast bitsName
           | FullyQualifiedType -> upcast SF.QualifiedName(libraryName, bitsName)
@@ -800,7 +816,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             let apply = SF.MethodDeclaration(voidType, "apply")
                           .WithParameters(applyParams |> Seq.map snd)
                           .AddBodyStatements(instantiateArgsClass |> Array.singleton)
-                          .AddBodyStatements(pc.body.components.vec |> Seq.map (ofStatOrDecl scopeInfo) |> Seq.toArray) // TODO FIXME We need to explicitly pass argsClass closure to all actions, etc. + create the closure arg
+                          .AddBodyStatements(pc.body.components.vec |> Seq.map (ofStatOrDecl thisScope) |> Seq.toArray) // TODO FIXME We need to explicitly pass argsClass closure to all actions, etc. + create the closure arg
             apply, argsClass, thisScope
           let locals = // NOTE locals can access ctor params through properties, and apply args through the argsClass which is passed to each action, etc.
             let usings, decls = pc.controlLocals.vec |> Seq.map (declarationOfNode thisScope) |> Seq.concat |> Transformed.partition
