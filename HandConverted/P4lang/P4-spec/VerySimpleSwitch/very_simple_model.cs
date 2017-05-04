@@ -92,27 +92,11 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
         this.send_packet((int)outCtrl.outputPort, packetOut.RawData, packetOut.Length);
       }
     }
-
-    public class Ck16 : IExternObject // User must provide implementations of IExternObjects
-    {
-      public Ck16()
-      {
-        throw new NotImplementedException();
-      }
-
-      public void clear()
-      {
-        throw new NotImplementedException();
-      }
-
-      // FIXME checksum unit handles both bitstrings and headers - perhaps a common interface could help? Or let overrides and generics match?
-      public void update(HeaderBase dt);
-      public void update(IBitString dt);
-
-      public bit16 get()
-      {
-        throw new NotImplementedException();
-      }
+    
+    public interface Ck16 : IExternObject {
+      void clear();
+      void update<T>(T dt);
+      bit16 get();
     }
   }
 }

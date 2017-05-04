@@ -226,6 +226,27 @@ let variableDeclaration (name:string) ty (initialiser:Syntax.ExpressionSyntax op
 let createEnum (name:string) (members:seq<string>) =
   SF.EnumDeclaration(name)
     .WithMembers(SF.SeparatedList(members |> Seq.map SF.EnumMemberDeclaration))
+    
+let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
+  match ty with
+  | :? JsonTypes.Type_Bits as bits ->
+      let fixedSize = isFixedBitSize bits.size
+      let N = if fixedSize then string bits.size else "N"
+      let invoc =
+        SF.InvocationExpression(memberAccess (sprintf "BitHelper.Extract%s" N))
+          .AddArgumentListArguments(SF.Argument(arrExpr),
+                                    SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset))) // FIXME types in headers: bit fixed/var + int
+      if fixedSize then invoc else invoc.AddArgumentListArguments(SF.Argument(literalInt bits.size))
+  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name)
+let createWriteExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) fieldExpr =
+  match ty with
+  | :? JsonTypes.Type_Bits as bits ->
+      let N = if isFixedBitSize bits.size then string bits.size else "N"
+      SF.InvocationExpression(memberAccess (sprintf "BitHelper.Write%s" N))
+        .AddArgumentListArguments(SF.Argument(arrExpr),
+                                  SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset)),
+                                  SF.Argument(fieldExpr))
+  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name) // FIXME types in headers: bit fixed/var + int
 
 let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
   match ty with
@@ -680,6 +701,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           |> Transformed.usingOf
           |> Transformed.addDecl intf
       | :? JsonTypes.P4Parser as p ->
+          // FIXME - handle errors properly. Wrap the start state in a try block, and throw errors in a wrapper exception.
           let className = p.name
           let ctor =
             let ctorParams =
