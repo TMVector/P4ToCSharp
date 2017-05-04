@@ -43,7 +43,7 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
         BitHelper.Write16(data, offset + 10, etherType);
       }
     }
-    
+
     public sealed class IPv4_h : HeaderBase
     {
       public bit4 version;
@@ -65,8 +65,8 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
 
       public override void Extract(byte[] arr, uint offset)
       {
-        version = (PortId)BitHelper.ExtractBits(arr, offset * 8, 4);
-        ihl = (PortId)BitHelper.ExtractBits(arr, offset * 8 + 4, 4);
+        version = (bit4)BitHelper.ExtractBits(arr, offset * 8, 4);
+        ihl = (bit4)BitHelper.ExtractBits(arr, offset * 8 + 4, 4);
         diffserv = BitHelper.Extract8(arr, offset + 1);
         totalLen = BitHelper.Extract16(arr, offset + 2);
         identification = BitHelper.Extract16(arr, offset + 4);
@@ -95,12 +95,12 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
         BitHelper.Write32(arr, offset + 16, dstAddr);
       }
     }
-    
+
     // NOTE in reality these would have been collated with core error by p4c
     public sealed class IPv4OptionsNotSupported : error { }
     public sealed class IPv4IncorrectVersion : error { }
     public sealed class IPv4ChecksumError : error { }
-    
+
     public sealed class Parsed_packet : IStruct
     {
       public Ethernet_h ethernet;
@@ -112,7 +112,7 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
       // parserLocals
       private Ck16 ck;
 
-      public void apply(packet_in b, out Parsed_packet p)
+      public void apply(packet_in b, out Parsed_packet p, out error parseError)
       {
         ck = new Ck16();  // FIXME how are we handling instantiation of externs?
 
@@ -127,9 +127,9 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
         switch (p.ethernet.etherType.Value) // NOTE P4 doesn't specify value
         {
           case 0x0800: // InfInt
-            parse_ipv4(b, p); // NOTE P4 just gives us parse_ipv4 - could it also give us more args?
+            return parse_ipv4(b, p); // NOTE P4 just gives us parse_ipv4 - could it also give us more args?
             break;
-          // no default rule: all other packets rejected FIXME do we need to generate code for this?
+          default: parseError = error.NoMatch; // no default rule: all other packets rejected FIXME do we need to generate code for this?
         }
       }
 
@@ -154,7 +154,7 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
         public error parseError { get; }
         public InControl inCtrl { get; }
         public OutControl outCtrl { get; set; } // out
-        
+
         public TopPipe_Args(Parsed_packet headers, core.error parseError, InControl inCtrl, OutControl outCtrl)
         {
           this.headers = headers;
@@ -262,7 +262,7 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
           // FIXME sort out copy-semantics for args
 
           apply_result result;
-          
+
           // Would chain lookups here if multiple fields
           ActionBase RA = table.Lookup(args.headers.ip.dstAddr);
           if (RA == null)
@@ -333,13 +333,13 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
             }
           }
         }
-        
+
         private ActionBase default_action { get; } = new ActionBase.NoAction_Action();
 
         public apply_result apply(TopPipe_Args args)
         {
           apply_result result;
-          
+
           ActionBase RA = table.Lookup(args.headers.ip.ttl);
           if (RA == null)
           {

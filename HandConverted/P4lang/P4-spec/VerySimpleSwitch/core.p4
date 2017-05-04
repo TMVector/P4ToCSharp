@@ -48,9 +48,6 @@ extern packet_out {
     void emit<T>(in bool condition, in T data);
 }
 
-// TODO: remove from this file, convert to built-in
-extern void verify(in bool check, in error toSignal);
-
 action NoAction() {}
 
 match_kind {

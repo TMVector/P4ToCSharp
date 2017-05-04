@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 
 namespace P4ToCSharp.Library
 {
+  // TODO add arithmetic operators for C#-widths
+  // TODO add signed equivalents (only for C#-widths?)
+  // TODO handle legal explicit casts from spec 8.9.1
+
   public interface IBitString
   {
     int BitWidth { get; }

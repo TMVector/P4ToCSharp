@@ -19,7 +19,7 @@ namespace P4ToCSharp.Library
       return new bit1((byte)(data & 1));
     }
 
-    public static bitN ExtractBits(byte[] arr, uint bitOffset, int bitLength)
+    public static bitN ExtractN(byte[] arr, uint bitOffset, int bitLength)
     {
       // TODO write some smarter logic for var width extraction
       Debug.Assert(bitLength > 0);
@@ -33,7 +33,7 @@ namespace P4ToCSharp.Library
 
     public static bit4 Extract4(byte[] arr, uint bitOffset)
     {
-      
+
     }
 
     public static bit8 Extract8(byte[] arr, uint bitOffset)
@@ -101,14 +101,14 @@ namespace P4ToCSharp.Library
       Write8(arr, startByte, new bit8(data));
     }
 
-    public static void WriteBits(byte[] arr, uint bitOffset, uint bitLength, ushort value)
+    public static void WriteN(byte[] arr, uint bitOffset, bitN value)
     {
       uint startByte = bitOffset / 8;
       int localBitOffset = (int)bitOffset % 8;
       uint data = Extract32(arr, startByte).Value;
-      uint mask = ((~0u) >> (32 - (int)bitLength)) << localBitOffset;
+      uint mask = ((~0u) >> (32 - (int)value.BitWidth)) << localBitOffset;
       data &= ~mask;
-      data |= (uint)(value << localBitOffset);
+      data |= (uint)(value.Value << localBitOffset);
       Write32(arr, startByte, new bit32(data));
     }
 

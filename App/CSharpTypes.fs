@@ -10,7 +10,7 @@ module CSharpTypes =
   module Property =
     type Modifier = Public | Private | Protected | Internal | Static // | Const/Readonly?
     type Accessor = Get | GetSet
-    
+
   open P4ToCSharp.App.IR
   open Microsoft.CodeAnalysis.CSharp
   type CJType =
@@ -35,20 +35,20 @@ module CSharpTypes =
       Seq.append t (declOf d)
     let addUsing (u :# Syntax.UsingDirectiveSyntax) (t:Declaration seq) =
       Seq.append t (usingOf u)
-    let declarations(decls:Declaration seq) = 
-      seq { 
-        for d in decls do 
-          match d with 
-          | Using _ -> () 
-          | Declaration vs -> yield vs 
+    let declarations(decls:Declaration seq) =
+      seq {
+        for d in decls do
+          match d with
+          | Using _ -> ()
+          | Declaration vs -> yield vs
       }
-    let usings(decls:Declaration seq) = 
-      seq { 
-        for d in decls do 
-          match d with 
-          | Declaration _ -> () 
-          | Using vs -> yield vs 
-      } 
+    let usings(decls:Declaration seq) =
+      seq {
+        for d in decls do
+          match d with
+          | Declaration _ -> ()
+          | Using vs -> yield vs
+      }
     let partition(decls:Declaration seq) =
       let decls = Seq.cache decls
       let usings = usings decls
