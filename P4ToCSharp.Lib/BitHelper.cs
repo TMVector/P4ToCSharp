@@ -19,8 +19,10 @@ namespace P4ToCSharp.Library
       return new bit1((byte)(data & 1));
     }
 
-    public static ushort ExtractBits(byte[] arr, uint bitOffset, uint bitLength)
+    public static bitN ExtractBits(byte[] arr, uint bitOffset, int bitLength)
     {
+      // TODO write some smarter logic for var width extraction
+      Debug.Assert(bitLength > 0);
       uint startByte = bitOffset / 8;
       uint localBitOffset = bitOffset % 8;
       uint data = Extract32(arr, startByte).Value; // FIXME is it okay to extract 32 bits when we don't know it's safe?
@@ -89,14 +91,13 @@ namespace P4ToCSharp.Library
 
     // FIXME: bounds on Write methods
 
-    public static void Write1(byte[] arr, uint bitOffset, bool value)
+    public static void Write1(byte[] arr, uint bitOffset, bit1 value)
     {
       uint startByte = bitOffset / 8;
       uint localBitOffset = bitOffset % 8;
       byte data = Extract8(arr, startByte).Value;
       data &= (byte)(~(1 << (int)bitOffset));
-      if (value)
-        data |= (byte)(1 << (int)bitOffset);
+      data |= (byte)(value.Value << (int)bitOffset);
       Write8(arr, startByte, new bit8(data));
     }
 

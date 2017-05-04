@@ -10,7 +10,7 @@ namespace HandConverted
     {
       public static error NoError { get; } = null;
     }
-    public sealed class PacketTooShort : error { } 
+    public sealed class PacketTooShort : error { }
     public sealed class NoMatch : error { }
     public sealed class StackOutOfBounds : error { }
     public sealed class OverwritingHeader : error { }
@@ -28,7 +28,7 @@ namespace HandConverted
       {
         RawData = data;
       }
-      
+
       // FIXME can this also be used with structs?
       // NOTE should set validy=true if succeeds
       public void extract<T>(out T hdr) where T : HeaderBase; // NOTE this constraint on T is not in the JSON - will this need to be a special case in the matching? (this is in an extern object, so user can specifiy?)
@@ -48,13 +48,6 @@ namespace HandConverted
       public void emit<T>(bool condition, T data) where T : HeaderBase;
     }
 
-    // extern
-    public interface verify_t : IExternFunction // NOTE need global, static instance of this. Added _t to handle name conflict
-    {
-      void apply(bool check, error toSignal); // NOTE only directionless parameters
-    }
-    public static verify_t verify = null; // NOTE need global, static instance of this
-    
     public static void NoAction() { }
 
     public enum match_kind

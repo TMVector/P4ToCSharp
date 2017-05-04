@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace P4ToCSharp.Library
 {
-  // FIXME make all these consistent and handle weird sizes either dynamically or by generating another struct type
-  // FIXME is arithmetic defined for bit<N>? vss-example does ttl-1. What about bitN op bitM?
-  //       In my proposal I said I would only handle arithmetic on types that are the same width as C# primitives.
+  // TODO add arithmetic operators for C#-widths
+  // TODO add signed equivalents (only for C#-widths?)
+  // TODO handle legal explicit casts from spec 8.9.1
 
   public interface IBitString
   {
@@ -27,7 +27,8 @@ namespace P4ToCSharp.Library
     public bitN(int width, UInt64 val)
     {
       BitWidth = width;
-      Value = val; // FIXME mask?
+      Debug.Assert(val < (1u << BitWidth));
+      Value = val; // FIXME mask? (Debug.Assert is not checked in Release)
     }
 
     public static bool operator ==(bitN a, bitN b)

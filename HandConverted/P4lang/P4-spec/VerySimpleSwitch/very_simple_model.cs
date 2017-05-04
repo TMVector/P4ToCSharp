@@ -17,30 +17,31 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
     {
       public PortId inputPort;
     }
-    
+
     public static readonly PortId RECIRCULATE_INPUT_PORT = (PortId)0xD; // NOTE literal is InfInt, v=13, base=16
 
     public static readonly PortId CPU_INPUT_PORT = (PortId)0xE;
-    
+
     public sealed class OutControl : IStruct
     {
       public PortId outputPort;
     }
-    
+
     public static readonly PortId DROP_PORT = (PortId)0xF;
 
     public static readonly PortId CPU_OUT_PORT = (PortId)0xE;
 
     public static readonly PortId RECIRCULATE_OUT_PORT = (PortId)0xD;
-    
+
     // NOTE as with externs, these interfaces won't be generated, they will be found in a referenced DLL and used.
     // However, for parser, controls, packages, P4 doesn't use explicit implements, so we need to check every definition against the relevant declarations and explicitly implement in C#
     public interface Parser<H> : IParser
     {
       void apply(packet_in b,
-                 out H parsedHeaders);
+                 out H parsedHeaders,
+                 out error parseError);
     }
-    
+
     public interface Pipe<H> : IControl
     {
       void apply(ref H headers,
@@ -48,13 +49,13 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
                  InControl inCtrl,
                  out OutControl outCtrl);
     }
-    
+
     public interface Deparser<H> : IControl
     {
       void apply(ref H outputHeaders,
                  packet_out b);
     }
-    
+
     public abstract class VSS<H> : Library.P4Program, IPackage where H : class // User must provide implementation of IPackages (should the skeletons be generated as separate source?)
     {
       Parser<H> p { get; }
@@ -91,14 +92,14 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
         this.send_packet((int)outCtrl.outputPort, packetOut.RawData, packetOut.Length);
       }
     }
-    
+
     public class Ck16 : IExternObject // User must provide implementations of IExternObjects
     {
       public Ck16()
       {
         throw new NotImplementedException();
       }
-      
+
       public void clear()
       {
         throw new NotImplementedException();
@@ -107,7 +108,7 @@ namespace HandConverted.P4lang.P4_spec.VerySimpleSwitch
       // FIXME checksum unit handles both bitstrings and headers - perhaps a common interface could help? Or let overrides and generics match?
       public void update(HeaderBase dt);
       public void update(IBitString dt);
-      
+
       public bit16 get()
       {
         throw new NotImplementedException();
