@@ -3,7 +3,7 @@ using packet_in = Bootstrapper.VSSModel.packet_in;
 using packet_out = Bootstrapper.VSSModel.packet_out;
 using PortId = P4ToCSharp.Library.bit4;
 using Ck16 = Bootstrapper.VSSModel.Ck16;
-using EthernetAddress = P4ToCSharp.Library.bit48;
+using EthernetAddress = P4ToCSharp.Library.bitN;
 using IPv4Address = P4ToCSharp.Library.bit32;
 
 public class Program
@@ -118,16 +118,16 @@ public class Program
         public override void Parse(byte[] data, uint offset)
         {
             offset *= 8;
-            dstAddr = BitHelper.Extract48(data, offset + 0);
-            srcAddr = BitHelper.Extract48(data, offset + 48);
+            dstAddr = BitHelper.ExtractN(data, offset + 0, 48);
+            srcAddr = BitHelper.ExtractN(data, offset + 48, 48);
             etherType = BitHelper.Extract16(data, offset + 96);
         }
 
         public override void Deparse(byte[] data, uint offset)
         {
             offset *= 8;
-            BitHelper.Write48(data, offset + 0, dstAddr);
-            BitHelper.Write48(data, offset + 48, srcAddr);
+            BitHelper.WriteN(data, offset + 0, dstAddr);
+            BitHelper.WriteN(data, offset + 48, srcAddr);
             BitHelper.Write16(data, offset + 96, etherType);
         }
     }
@@ -139,8 +139,8 @@ public class Program
         public bit8 diffserv { get; set; }
         public bit16 totalLen { get; set; }
         public bit16 identification { get; set; }
-        public bit3 flags { get; set; }
-        public bit13 fragOffset { get; set; }
+        public bitN flags { get; set; }
+        public bitN fragOffset { get; set; }
         public bit8 ttl { get; set; }
         public bit8 protocol { get; set; }
         public bit16 hdrChecksum { get; set; }
@@ -155,8 +155,8 @@ public class Program
             diffserv = BitHelper.Extract8(data, offset + 8);
             totalLen = BitHelper.Extract16(data, offset + 16);
             identification = BitHelper.Extract16(data, offset + 32);
-            flags = BitHelper.Extract3(data, offset + 48);
-            fragOffset = BitHelper.Extract13(data, offset + 51);
+            flags = BitHelper.ExtractN(data, offset + 48, 3);
+            fragOffset = BitHelper.ExtractN(data, offset + 51, 13);
             ttl = BitHelper.Extract8(data, offset + 64);
             protocol = BitHelper.Extract8(data, offset + 72);
             hdrChecksum = BitHelper.Extract16(data, offset + 80);
@@ -172,8 +172,8 @@ public class Program
             BitHelper.Write8(data, offset + 8, diffserv);
             BitHelper.Write16(data, offset + 16, totalLen);
             BitHelper.Write16(data, offset + 32, identification);
-            BitHelper.Write3(data, offset + 48, flags);
-            BitHelper.Write13(data, offset + 51, fragOffset);
+            BitHelper.WriteN(data, offset + 48, flags);
+            BitHelper.WriteN(data, offset + 51, fragOffset);
             BitHelper.Write8(data, offset + 64, ttl);
             BitHelper.Write8(data, offset + 72, protocol);
             BitHelper.Write16(data, offset + 80, hdrChecksum);
@@ -201,7 +201,7 @@ public class Program
 
         void start(packet_in b, Parsed_packet p)
         {
-            b.extract<Ethernet_h>(p.ethernet);
+            b.extract(p.ethernet);
             switch ((System.UInt16)p.ethernet.etherType)
             {
                 case 0x800:

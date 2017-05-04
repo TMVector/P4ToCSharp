@@ -524,34 +524,34 @@ module JsonTypes =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
   [<AbstractClass>]
-  type Literal(node_id, node_type, type_) = 
+  type Literal(node_id, node_type, type_) =
     inherit Expression(node_id, node_type, type_)
     interface ICompileTimeValue
 
   [<Sealed>]
-  type Constant(node_id, node_type, type_, value, base_) = 
+  type Constant(node_id, node_type, type_, value, base_) =
     inherit Literal(node_id, node_type, type_)
     member this.value : int = value // FIXME can also be bigint
     [<JsonProperty("base")>]
     member this.base_ : uint32 = base_ // base
 
   [<Sealed>]
-  type BoolLiteral(node_id, node_type, type_, value) = 
+  type BoolLiteral(node_id, node_type, type_, value) =
     inherit Literal(node_id, node_type, type_)
     member this.value : bool = value
 
   [<Sealed>]
-  type StringLiteral(node_id, node_type, type_, value) = 
+  type StringLiteral(node_id, node_type, type_, value) =
     inherit Literal(node_id, node_type, type_)
     member this.value : string = value
 
   [<Sealed>]
-  type PathExpression(node_id, node_type, type_, path) = 
+  type PathExpression(node_id, node_type, type_, path) =
     inherit Expression(node_id, node_type, type_)
     member this.path : Path = path
 
   [<Sealed>]
-  type TypeNameExpression(node_id, node_type, type_, typeName) = 
+  type TypeNameExpression(node_id, node_type, type_, typeName) =
     inherit Expression(node_id, node_type, type_)
     member this.typeName : Type_Name = typeName
 
@@ -586,11 +586,11 @@ module JsonTypes =
     inherit Operation_Ternary(node_id, node_type, type_, e0, e1, e2)
 
   [<Sealed>]
-  type DefaultExpression(node_id, node_type, type_) = 
+  type DefaultExpression(node_id, node_type, type_) =
     inherit Expression(node_id, node_type, type_)
 
   [<Sealed>]
-  type This(node_id, node_type, type_) = 
+  type This(node_id, node_type, type_) =
     inherit Expression(node_id, node_type, type_)
 
   [<Sealed>]
@@ -605,18 +605,18 @@ module JsonTypes =
     member this.state : PathExpression = state
 
   [<Sealed>]
-  type ListExpression(node_id, node_type, type_, components) = 
+  type ListExpression(node_id, node_type, type_, components) =
     inherit Expression(node_id, node_type, type_)
     member this.components : Vector<Expression> = components
 
   [<Sealed>]
-  type SelectExpression(node_id, node_type, type_, select, selectCases) = 
+  type SelectExpression(node_id, node_type, type_, select, selectCases) =
     inherit Expression(node_id, node_type, type_)
     member this.select : ListExpression = select
     member this.selectCases : Vector<SelectCase> = selectCases
 
   [<Sealed>]
-  type MethodCallExpression(node_id, node_type, type_, method_, typeArguments, arguments) = 
+  type MethodCallExpression(node_id, node_type, type_, method_, typeArguments, arguments) =
     inherit Expression(node_id, node_type, type_)
     [<JsonProperty("method")>]
     member this.method_ : Expression = method_ // method
@@ -624,13 +624,13 @@ module JsonTypes =
     member this.arguments : Vector<Expression> = arguments
 
   [<Sealed>]
-  type ConstructorCallExpression(node_id, node_type, type_, arguments) = 
+  type ConstructorCallExpression(node_id, node_type, type_, arguments) =
     inherit Expression(node_id, node_type, type_)
     member this.constructedType : Type = this.type_
     member this.arguments : Vector<Expression> = arguments
 
   [<Sealed>]
-  type ParserState(node_id, node_type, name, declid, annotations, components, selectExpression) = 
+  type ParserState(node_id, node_type, name, declid, annotations, components, selectExpression) =
     inherit Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
     member this.components : IndexedVector<StatOrDecl> = components // NOTE parser internals are not publically visible?
@@ -1124,7 +1124,7 @@ module JsonTypes =
     inherit Operation_Unary(node_id, node_type, type_, expr)
     member this.width : uint32 = width
 
-  
+
   let TypeLookup, Types =
     let TypeNames = // FIXME Could this be constructed by reflection of all types : Node in this module + the others?
       [|
@@ -1322,7 +1322,7 @@ module JsonTypes =
       Key : 'key;
       Value : 'value;
     }
-    
+
   type TypeMap =
     {
       Map : KeyValuePair<int,Type> seq

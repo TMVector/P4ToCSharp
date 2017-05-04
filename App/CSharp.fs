@@ -200,7 +200,7 @@ let smallestTypeToHold (bitwidth:int) =
   | _ -> failwithf "Cannot handle bitwidth of %d" bitwidth
 let isFixedBitSize (size) =
   match size with
-  | 1 | 4 | 8 | 16 | 32 | 64 -> true
+  | 1 | 4 | 8 | 16 | 32 | 48 | 64 -> true
   | _ -> false
 
 let classNameFor (name:string) = name
@@ -226,27 +226,6 @@ let variableDeclaration (name:string) ty (initialiser:Syntax.ExpressionSyntax op
 let createEnum (name:string) (members:seq<string>) =
   SF.EnumDeclaration(name)
     .WithMembers(SF.SeparatedList(members |> Seq.map SF.EnumMemberDeclaration))
-    
-let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
-  match ty with
-  | :? JsonTypes.Type_Bits as bits ->
-      let fixedSize = isFixedBitSize bits.size
-      let N = if fixedSize then string bits.size else "N"
-      let invoc =
-        SF.InvocationExpression(memberAccess (sprintf "BitHelper.Extract%s" N))
-          .AddArgumentListArguments(SF.Argument(arrExpr),
-                                    SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset))) // FIXME types in headers: bit fixed/var + int
-      if fixedSize then invoc else invoc.AddArgumentListArguments(SF.Argument(literalInt bits.size))
-  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name)
-let createWriteExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) fieldExpr =
-  match ty with
-  | :? JsonTypes.Type_Bits as bits ->
-      let N = if isFixedBitSize bits.size then string bits.size else "N"
-      SF.InvocationExpression(memberAccess (sprintf "BitHelper.Write%s" N))
-        .AddArgumentListArguments(SF.Argument(arrExpr),
-                                  SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset)),
-                                  SF.Argument(fieldExpr))
-  | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name) // FIXME types in headers: bit fixed/var + int
 
 let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
   match ty with
@@ -254,7 +233,7 @@ let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
       let fixedSize = isFixedBitSize bits.size
       let N = if fixedSize then string bits.size else "N"
       let invoc =
-        SF.InvocationExpression(memberAccess (sprintf "BitHelper.Extract%s" N)) // TODO Check against the semantics given in the spec 11.8.1/11.8.2
+        SF.InvocationExpression(memberAccess (sprintf "BitHelper.Extract%s" N))
           .AddArgumentListArguments(SF.Argument(arrExpr),
                                     SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset))) // FIXME types in headers: bit fixed/var + int
       if fixedSize then invoc else invoc.AddArgumentListArguments(SF.Argument(literalInt bits.size))
@@ -701,22 +680,42 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           |> Transformed.usingOf
           |> Transformed.addDecl intf
       | :? JsonTypes.P4Parser as p ->
+          // TODO no type parameters, but may implement a parser decl that has type parameters. May be easiest to work backwards from packages to decide what interfaces need declaring.
+          // parameterList -> apply parameters
+          // optConstructorParameters -> constructor parameters
+          // parserLocals: constants, variables, instantiation -> fields, initialised
+          // parserStates -> methods.
           // FIXME - handle errors properly. Wrap the start state in a try block, and throw errors in a wrapper exception.
+
           let className = p.name
+
+          let locals =
+            let usings, decls = p.parserLocals.vec |> Seq.map (declarationOfNode scopeInfo) |> Seq.concat |> Transformed.partition
+            if Seq.isEmpty usings |> not then failwithf "Usings declared within P4Control - currently unhandled" // FIXME E.g. Type_Typedef - could be solved by scoping the control in its own namespace?
+            decls |> Seq.toArray
+
           let ctor =
             let ctorParams =
               p.constructorParams.parameters.vec
-              |> Seq.map (fun cp -> SF.Parameter(SF.Identifier(cp.name)).WithType(ofType cp.type_)(*NOTE presumably constructor(functor) parameters cannot be out*))
+              |> Seq.map (fun cp -> SF.Parameter(SF.Identifier(cp.name)).WithType(ofType cp.type_)(*NOTE presumably constructor(functor) parameters cannot be out?*))
+            let ctorBody =
+              // FIXME constructor body - set readonly fields and initialise external blocks?
+              // Locals should only be field declarations without initialisers. Initialisation should be done in the constructor where the ctor params are in scope
+              []
             SF.ConstructorDeclaration(className)
               .WithModifiers(tokenList [SK.PublicKeyword])
               .WithParameterList(paramList ctorParams)
-              .WithBody(SF.Block([ (* FIXME constructor body - set readonly fields and initialise external blocks? *) ]))
+              .WithBody(SF.Block(ctorBody))
+
+          // Parser parameters need to be passed to each state manually
           let stateParams =
             p.type_.applyParams.parameters.vec
             |> Seq.map (parameter ofType)
           let stateArgs =
             p.type_.applyParams.parameters.vec
             |> Seq.map (fun param -> SF.IdentifierName(param.name)) |> Seq.cast
+
+          // Apply method - corresponds to invoking the parser
           let apply =
             let applyParams =
               p.type_.applyParams.parameters.vec
@@ -1117,7 +1116,7 @@ and ofProgram (program : JsonTypes.Program) (externNamespace : string option) : 
       |> Seq.map (fun (name,node) -> (name, [node :?> JsonTypes.Node]))
       |> Seq.toList
     let globalScope =
-      { GetExprForName=(fun name -> SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, SF.IdentifierName(topLevelName), SF.IdentifierName(name)) :> Expr |> Some);
+      { GetExprForName=(fun name -> None);//SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, SF.IdentifierName(topLevelName), SF.IdentifierName(name)) :> Expr |> Some);
         P4AstPaths=p4Paths;
         ScopeParameterList=Array.empty;
         P4AstPath=[];
@@ -1135,6 +1134,6 @@ and ofProgram (program : JsonTypes.Program) (externNamespace : string option) : 
   SF.CompilationUnit()
     .AddUsings(SF.UsingDirective(libraryName))
     .AddUsings(usings |> Seq.toArray)
-    .AddMembers(SF.ClassDeclaration(toplevelName)
+    .AddMembers(SF.ClassDeclaration(topLevelName)
                   .WithModifiers(tokenList [SK.PublicKeyword])
                   .AddMembers(declarations |> Seq.toArray))
