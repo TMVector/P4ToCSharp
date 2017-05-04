@@ -3,7 +3,7 @@ using packet_in = Bootstrapper.VSSModel.packet_in;
 using packet_out = Bootstrapper.VSSModel.packet_out;
 using PortId = P4ToCSharp.Library.bit4;
 using Ck16 = Bootstrapper.VSSModel.Ck16;
-using EthernetAddress = P4ToCSharp.Library.bitN;
+using EthernetAddress = P4ToCSharp.Library.bit48;
 using IPv4Address = P4ToCSharp.Library.bit32;
 
 public class Program
@@ -103,7 +103,6 @@ public class Program
 
     public interface Ck16
     {
-        void Ck16();
         void clear();
         void update<T>(T data);
         bit16 get();
@@ -118,16 +117,16 @@ public class Program
         public override void Parse(byte[] data, uint offset)
         {
             offset *= 8;
-            dstAddr = BitHelper.ExtractN(data, offset + 0, 48);
-            srcAddr = BitHelper.ExtractN(data, offset + 48, 48);
+            dstAddr = BitHelper.Extract48(data, offset + 0);
+            srcAddr = BitHelper.Extract48(data, offset + 48);
             etherType = BitHelper.Extract16(data, offset + 96);
         }
 
         public override void Deparse(byte[] data, uint offset)
         {
             offset *= 8;
-            BitHelper.WriteN(data, offset + 0, dstAddr);
-            BitHelper.WriteN(data, offset + 48, srcAddr);
+            BitHelper.Write48(data, offset + 0, dstAddr);
+            BitHelper.Write48(data, offset + 48, srcAddr);
             BitHelper.Write16(data, offset + 96, etherType);
         }
     }
@@ -190,8 +189,11 @@ public class Program
 
     sealed class TopParser : IParser
     {
+        Ck16 ck;
+
         public TopParser()
         {
+            ck = new Ck16();
         }
 
         void Apply(packet_in b, ref Parsed_packet p)
@@ -201,7 +203,7 @@ public class Program
 
         void start(packet_in b, Parsed_packet p)
         {
-            b.extract(p.ethernet);
+            b.extract<Ethernet_h>(p.ethernet);
             switch ((System.UInt16)p.ethernet.etherType)
             {
                 case 0x800:

@@ -12,5 +12,9 @@ namespace Bootstrapper
     static void Main(string[] args)
     {
     }
+
+    public class Ck16
+    {
+    }
   }
 }

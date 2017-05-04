@@ -21,7 +21,7 @@ namespace Bootstrapper
     {
 
     }
-    public sealed class Ck16
+    public sealed class Ck16 : Program.
     {
 
     }

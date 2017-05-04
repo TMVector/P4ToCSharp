@@ -11,7 +11,9 @@ namespace P4ToCSharp.App
 module Main =
   let convertFile filename exterNamespace =
     let ir = P4ToCSharp.App.IR.JsonParsing.deserialise filename
-    let cs = P4ToCSharp.App.CSharp.ofProgram ir exterNamespace
+    let arch, cs = P4ToCSharp.App.CSharp.ofProgram ir exterNamespace
+    let archFilename = sprintf "%s.arch.cs" filename
+    P4ToCSharp.App.CSharp.saveToFile cs archFilename
     let outputFilename = sprintf "%s.gen.cs" filename
     P4ToCSharp.App.CSharp.saveToFile cs outputFilename
 
