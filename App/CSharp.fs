@@ -678,6 +678,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           |> Transformed.usingOf
           |> Transformed.addDecl intf
       | :? JsonTypes.P4Parser as p ->
+          // FIXME - handle errors properly. Wrap the start state in a try block, and throw errors in a wrapper exception.
           let className = p.name
           let ctor =
             let ctorParams =
