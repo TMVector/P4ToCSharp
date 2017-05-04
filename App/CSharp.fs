@@ -595,6 +595,63 @@ and ofStatOrDecl (scopeInfo:ScopeInfo) (n : JsonTypes.StatOrDecl) =
   | :? JsonTypes.Statement as statement -> ofStatement scopeInfo statement
   | :? JsonTypes.Declaration as decl -> statementOfDeclaration scopeInfo decl
   | _ -> failwithf "Unhandled subtype of JsonTypes.StatOrDecl: %s" (n.GetType().Name)
+and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Syntax.MemberDeclarationSyntax seq =
+  match n with
+  | :? JsonTypes.Type_Declaration as tyDec->
+      match tyDec with
+      | :? JsonTypes.Type_ArchBlock as archBlock ->
+          match archBlock with
+          | :? JsonTypes.Type_Package as tp ->
+              SF.ClassDeclaration(tp.name)
+                .AddBaseListTypes(packageBaseBaseType)
+                .WithTypeParameters(tp.typeParameters.parameters.vec |> Seq.map (fun tv -> SF.TypeParameter(tv.name)))
+                .AddMembers(tp.constructorParams.parameters.vec
+                            |> Seq.map (fun p -> SF.PropertyDeclaration(ofType p.type_, csFieldNameOf p.name)
+                                                    .WithAccessors(Property.Accessor.Get))
+                            |> Seq.cast
+                            |> Seq.toArray)
+                .AddMembers(SF.ConstructorDeclaration(tp.name)
+                              .WithParameters(Seq.map (parameter ofType) tp.constructorParams.parameters.vec)
+                              .WithBlockBody(tp.constructorParams.parameters.vec
+                                              |> Seq.map (fun p -> assignment (eMemberAccess (SF.ThisExpression()) [p.name]) (SF.IdentifierName(p.name)))
+                                              |> Seq.cast))
+              |> Transformed.memberOf
+          | :? JsonTypes.Type_Parser as tp -> // FIXME this C# decl should be in a different file to be shared between impl and arch
+              SF.InterfaceDeclaration(tp.name) // FIXME all applicable parsers need to implement this
+                .AddBaseListTypes(parserBaseBaseType)
+                .WithTypeParameters(tp.typeParameters.parameters.vec |> Seq.map (fun tv -> SF.TypeParameter(tv.name)))
+                .AddMembers(SF.MethodDeclaration(voidType, "Apply") // FIXME type params
+                              .WithParameters(tp.applyParams.parameters.vec |> Seq.map (fun p -> (parameter ofType p).WithDirection(p.direction)))
+                              .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
+              |> Transformed.memberOf
+          | :? JsonTypes.Type_Control as tc -> // FIXME this C# decl should be in a different file to be shared between impl and arch
+              SF.InterfaceDeclaration(tc.name) // FIXME all applicable controls need to implement this
+                .AddBaseListTypes(controlBaseBaseType)
+                .WithTypeParameters(tc.typeParameters.parameters.vec |> Seq.map (fun tv -> SF.TypeParameter(tv.name)))
+                .AddMembers(SF.MethodDeclaration(voidType, "Apply") // FIXME type params
+                              .WithParameters(tc.applyParams.parameters.vec |> Seq.map (fun p -> (parameter ofType p).WithDirection(p.direction)))
+                              .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
+              |> Transformed.memberOf
+          | _ -> failwithf "Unhandled subtype of JsonTypes.Type_ArchBlock: %s" (archBlock.GetType().Name)
+      | :? JsonTypes.Type_Extern as ext -> // FIXME this C# decl should be in a different file to be shared between impl and arch
+          if ext.typeParameters.parameters.vec |> Seq.isNotEmpty then failwith "Cannot handle type parameters in extern types"
+          // Generate the interface for the extern type. This allows the implementer to check they have the right signature
+          SF.InterfaceDeclaration(ext.name)
+            .WithModifiers(tokenList [SK.PublicKeyword])
+            .AddMembers(
+              ext.methods.vec
+              |> Seq.filter (fun m -> m.name <> ext.name) // Exclude constructors; C# doesn't allow them in interfaces
+              |> Seq.map (fun m ->
+                  SF.MethodDeclaration(m.type_.returnType |> Option.map ofType |> Option.ifNoneValue voidType, m.name)
+                    .WithTypeParameters(m.type_.typeParameters.parameters.vec |> Seq.map (fun p -> SF.TypeParameter(p.name)))
+                    .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter ofType))
+                    .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
+              |> Seq.cast |> Seq.toArray)
+          |> Transformed.memberOf
+      | :? JsonTypes.
+      | _ ->
+          // We only convert architecture elements here, so anything else is ignored
+          Seq.empty
 and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Declaration seq =
   match n with
   | :? JsonTypes.Type_Declaration as tyDec->
@@ -621,39 +678,8 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
               |> Transformed.declOf
           | _ -> failwithf "Unhandled subtype of JsonTypes.Type_StructLike: %s" (structLike.GetType().Name)
       | :? JsonTypes.Type_ArchBlock as archBlock ->
-          match archBlock with
-          | :? JsonTypes.Type_Package as tp -> // FIXME this C# decl should be in a different file to be shared between impl and arch
-              SF.ClassDeclaration(tp.name)
-                .AddBaseListTypes(packageBaseBaseType)
-                .WithTypeParameters(tp.typeParameters.parameters.vec |> Seq.map (fun tv -> SF.TypeParameter(tv.name)))
-                .AddMembers(tp.constructorParams.parameters.vec
-                            |> Seq.map (fun p -> SF.PropertyDeclaration(ofType p.type_, csFieldNameOf p.name)
-                                                    .WithAccessors(Property.Accessor.Get))
-                            |> Seq.cast
-                            |> Seq.toArray)
-                .AddMembers(SF.ConstructorDeclaration(tp.name)
-                              .WithParameters(Seq.map (parameter ofType) tp.constructorParams.parameters.vec)
-                              .WithBlockBody(tp.constructorParams.parameters.vec
-                                              |> Seq.map (fun p -> assignment (eMemberAccess (SF.ThisExpression()) [p.name]) (SF.IdentifierName(p.name)))
-                                              |> Seq.cast))
-              |> Transformed.declOf
-          | :? JsonTypes.Type_Parser as tp -> // FIXME this C# decl should be in a different file to be shared between impl and arch
-              SF.InterfaceDeclaration(tp.name) // FIXME all applicable parsers need to implement this
-                .AddBaseListTypes(parserBaseBaseType)
-                .WithTypeParameters(tp.typeParameters.parameters.vec |> Seq.map (fun tv -> SF.TypeParameter(tv.name)))
-                .AddMembers(SF.MethodDeclaration(voidType, "Apply") // FIXME type params
-                              .WithParameters(tp.applyParams.parameters.vec |> Seq.map (fun p -> (parameter ofType p).WithDirection(p.direction)))
-                              .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
-              |> Transformed.declOf
-          | :? JsonTypes.Type_Control as tc -> // FIXME this C# decl should be in a different file to be shared between impl and arch
-              SF.InterfaceDeclaration(tc.name) // FIXME all applicable controls need to implement this
-                .AddBaseListTypes(controlBaseBaseType)
-                .WithTypeParameters(tc.typeParameters.parameters.vec |> Seq.map (fun tv -> SF.TypeParameter(tv.name)))
-                .AddMembers(SF.MethodDeclaration(voidType, "Apply") // FIXME type params
-                              .WithParameters(tc.applyParams.parameters.vec |> Seq.map (fun p -> (parameter ofType p).WithDirection(p.direction)))
-                              .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
-              |> Transformed.declOf
-          | _ -> failwithf "Unhandled subtype of JsonTypes.Type_ArchBlock: %s" (archBlock.GetType().Name)
+          // We don't generate architecture code in this file, only in the arch file
+          Seq.empty
       | :? JsonTypes.Type_Enum as te ->
           createEnum te.name (te.members.vec |> Seq.map (fun memb -> memb.name))
           |> Transformed.declOf
@@ -661,24 +687,12 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           SF.UsingDirective(nameOfType FullyQualifiedType td.type_)
             .WithAlias(SF.NameEquals(SF.IdentifierName(td.name)))
           |> Transformed.usingOf
-      | :? JsonTypes.Type_Extern as ext -> // FIXME this C# decl should be in a different file to be shared between impl and arch
-          if ext.typeParameters.parameters.vec |> Seq.isNotEmpty then failwith "Cannot handle type parameters in extern types"
-          // Generate the interface for the extern type. This allows the implementer to check they have the right signature
-          let intf =
-            SF.InterfaceDeclaration(ext.name)
-              .WithModifiers(tokenList [SK.PublicKeyword])
-              .AddMembers(
-                ext.methods.vec
-                |> Seq.map (fun m ->
-                    SF.MethodDeclaration(m.type_.returnType |> Option.map ofType |> Option.ifNoneValue voidType, m.name)
-                      .WithTypeParameters(m.type_.typeParameters.parameters.vec |> Seq.map (fun p -> SF.TypeParameter(p.name)))
-                      .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter ofType))
-                      .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
-                |> Seq.cast |> Seq.toArray)
+      | :? JsonTypes.Type_Extern as ext ->
+          // We don't generate architecture code in this file, only in the arch file
+          // However, we do generate a typedef for this name, pointing to the impl
           SF.UsingDirective(sprintf "%s.%s" scopeInfo.ExternNamespace ext.name |> qualifiedTypeName)
             .WithAlias(SF.NameEquals(SF.IdentifierName(ext.name)))
           |> Transformed.usingOf
-          |> Transformed.addDecl intf
       | :? JsonTypes.P4Parser as p ->
           // TODO no type parameters, but may implement a parser decl that has type parameters. May be easiest to work backwards from packages to decide what interfaces need declaring.
           // parameterList -> apply parameters
@@ -689,19 +703,29 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
 
           let className = p.name
 
-          let locals =
-            let usings, decls = p.parserLocals.vec |> Seq.map (declarationOfNode scopeInfo) |> Seq.concat |> Transformed.partition
-            if Seq.isEmpty usings |> not then failwithf "Usings declared within P4Control - currently unhandled" // FIXME E.g. Type_Typedef - could be solved by scoping the control in its own namespace?
-            decls |> Seq.toArray
+          let fieldOfParserLocal decl =
+            match decl :> obj with
+            | :? JsonTypes.Declaration_Constant as constant -> failwith "parserLocal constant not handled"
+            | :? JsonTypes.Declaration_Variable as variable -> failwith "parserLocal variable not handled"
+            | :? JsonTypes.Declaration_Instance as instance ->
+                let ty = ofType instance.type_ // FIXME handle this being an extern type
+                let fieldName = csFieldNameOf instance.name
+                let field = uninitialisedField ty fieldName
+                let initialiser = assignment (SF.IdentifierName(fieldName)) (constructorCall ty (Seq.map (ofExpr scopeInfo UnknownType) instance.arguments.vec))
+                (field :> Syntax.MemberDeclarationSyntax, Some (initialiser :> Syntax.StatementSyntax))
+            | unhandled -> failwithf "Unexpected type %s in parserLocals" (unhandled.GetType().Name)
+
+          let fields, initialisers =
+            let locals = p.parserLocals.vec |> Array.map fieldOfParserLocal
+            let fields = locals |> Array.map fst
+            let ctorInitialisers = locals |> Array.choose snd
+            (fields, ctorInitialisers)
 
           let ctor =
             let ctorParams =
               p.constructorParams.parameters.vec
               |> Seq.map (fun cp -> SF.Parameter(SF.Identifier(cp.name)).WithType(ofType cp.type_)(*NOTE presumably constructor(functor) parameters cannot be out?*))
-            let ctorBody =
-              // FIXME constructor body - set readonly fields and initialise external blocks?
-              // Locals should only be field declarations without initialisers. Initialisation should be done in the constructor where the ctor params are in scope
-              []
+            let ctorBody = initialisers
             SF.ConstructorDeclaration(className)
               .WithModifiers(tokenList [SK.PublicKeyword])
               .WithParameterList(paramList ctorParams)
@@ -775,6 +799,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           SF.ClassDeclaration(className)
             .AddBaseListTypes(parserBaseBaseType)
             .WithModifiers(tokenList [ SK.SealedKeyword ])
+            .AddMembers(fields)
             .AddMembers(ctor, apply)
             .AddMembers(states |> Seq.cast |> Seq.toArray)
           |> Transformed.declOf
@@ -1108,7 +1133,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       createEnum "MatchKind" (mk.members.vec |> Seq.map (fun memb -> memb.name))
       |> Transformed.declOf
   | _ -> failwithf "Unhandled subtype of JsonTypes.Node in declarationOfNode: %s" (n.GetType().Name) // FIXME check exhaustive
-and ofProgram (program : JsonTypes.Program) (externNamespace : string option) : Syntax.CompilationUnitSyntax =
+and ofProgram (program : JsonTypes.Program) (externNamespace : string option) : (Syntax.CompilationUnitSyntax * Syntax.CompilationUnitSyntax) =
   let topLevelName = "Program"
   let scope : ScopeInfo =
     let p4Paths =
@@ -1126,14 +1151,24 @@ and ofProgram (program : JsonTypes.Program) (externNamespace : string option) : 
         ThisMap=program.ThisMap;
         ExternNamespace=externNamespace |> Option.ifNoneValue "YourExternNamespace"; }
     { globalScope with GlobalScope = Some globalScope }
+  let archDecls =
+    program.P4.declarations.vec
+    |> Seq.map (architectureOf scope)
+    |> Seq.concat
   let usings, declarations =
     program.P4.declarations.vec
     |> Seq.map (declarationOfNode scope)
     |> Seq.concat
     |> Transformed.partition
-  SF.CompilationUnit()
-    .AddUsings(SF.UsingDirective(libraryName))
-    .AddUsings(usings |> Seq.toArray)
-    .AddMembers(SF.ClassDeclaration(topLevelName)
-                  .WithModifiers(tokenList [SK.PublicKeyword])
-                  .AddMembers(declarations |> Seq.toArray))
+
+  let commonCode =
+    SF.CompilationUnit()
+      .AddUsings(SF.UsingDirective(libraryName))
+      .AddUsings(usings |> Seq.toArray)
+  let archCode =
+    commonCode.AddMembers(archDecls |> Seq.toArray)
+  let genCode =
+    commonCode.AddMembers(SF.ClassDeclaration(topLevelName)
+                            .WithModifiers(tokenList [SK.PublicKeyword])
+                            .AddMembers(declarations |> Seq.toArray))
+  (archCode, genCode)

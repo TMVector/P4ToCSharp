@@ -27,6 +27,8 @@ module CSharpTypes =
     type Declaration =
       | Declaration of Syntax.MemberDeclarationSyntax
       | Using of Syntax.UsingDirectiveSyntax
+    let memberOf (d :# Syntax.MemberDeclarationSyntax) : Syntax.MemberDeclarationSyntax seq =
+      [d] |> Seq.cast
     let declOf (d :# Syntax.MemberDeclarationSyntax) =
       Declaration d |> Seq.singleton
     let usingOf (u :# Syntax.UsingDirectiveSyntax) =
