@@ -479,6 +479,8 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
   | :? JsonTypes.MethodCallExpression as mc ->
       // FIXME need to handle copy-in/copy-out semantics in case where a ref arg is also a ref arg to a method call in another arg. See 6.7.
       // C# handles e.g. arr[a].z, f(ref a) fine already, but not ref a, f(ref a). Could aliasing also be an issue?
+
+      // FIXME handle verify as a built-in
       let m =
         if Seq.isEmpty mc.typeArguments.vec
         then ofExpr UnknownType mc.method_
@@ -648,10 +650,33 @@ and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Syntax.MemberDec
                     .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
               |> Seq.cast |> Seq.toArray)
           |> Transformed.memberOf
-      | :? JsonTypes.
+      | :? JsonTypes.Method as m -> failwith "Type_Method unhandled"
+          // Extern function
+          // We are expecting a static method, so we cannot provide an interface for a class
+          // Instead, we generate a comment?
+          let typeParameterNames : string[] = m.type_.typeParameters.parameters.vec |> Seq.map (fun p -> p.name) |> Seq.toArray
+          let fullName : Syntax.ExpressionSyntax =
+            let fqTy = qualifiedTypeName scopeInfo.ExternNamespace
+            if Seq.isEmpty typeParameterNames then
+              eMemberAccess fqTy [m.name]
+            else
+              upcast SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, fqTy,
+                      SF.GenericName("FQMethodName")
+                        .AddTypeArgumentListArguments(typeParameterNames |> Seq.map SF.IdentifierName |> Seq.cast |> Seq.toArray))
+          SF.MethodDeclaration(m.type_.returnType |> Option.map (ofType) |> Option.ifNoneValue voidType, m.name)
+            .WithModifiers(tokenList [SK.StaticKeyword])
+            .WithTypeParameters(typeParameterNames |> Seq.map (fun name -> SF.TypeParameter(name)))
+            .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter ofType))
+            .WithBlockBody([SF.ExpressionStatement(
+                              SF.InvocationExpression(fullName)
+                                .WithArguments(m.type_.parameters.parameters.vec |> Seq.map (fun p -> upcast SF.IdentifierName(p.name))))])
+          Seq.empty
       | _ ->
           // We only convert architecture elements here, so anything else is ignored
           Seq.empty
+  | _ ->
+      // We only convert architecture elements here, so anything else is ignored
+      Seq.empty
 and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Declaration seq =
   match n with
   | :? JsonTypes.Type_Declaration as tyDec->
@@ -1080,6 +1105,8 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           Transformed.declOf tableClass
           |> Transformed.addDecl tableInstance
       | :? JsonTypes.Method as m ->
+          // Extern function
+          // Generate a wrapper method
           let typeParameterNames : string[] = m.type_.typeParameters.parameters.vec |> Seq.map (fun p -> p.name) |> Seq.toArray
           let fullName : Syntax.ExpressionSyntax =
             let fqTy = qualifiedTypeName scopeInfo.ExternNamespace

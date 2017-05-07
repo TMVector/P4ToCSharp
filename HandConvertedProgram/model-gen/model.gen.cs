@@ -30,6 +30,7 @@ namespace HandConvertedProgram
     [P4("packet_in", P4Type.ExternObject)]
     public interface packet_in : IExternObject
     {
+      // NOTE the target manufacturer could add a T:new() constraint
       void extract<T>(ref T hdr); // FIXME change this back to `out`? Spec is removing OverwritingHeader error?
       void extract<T>(ref T variableSizeHeader,
                       bit32 variableFieldSizeInBits);

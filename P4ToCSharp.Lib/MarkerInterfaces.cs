@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace P4ToCSharp.Library
 {
-  public interface ITable { }
+  public interface IControl { }
   public interface IExternObject { }
   public interface IExternFunction { }
-  public interface IStruct { }
-  public interface IParser { }
-  public interface IControl { }
   public interface IPackage { }
+  public interface IParser { }
+  public interface IStruct { }
+  public interface ITable { }
 }
