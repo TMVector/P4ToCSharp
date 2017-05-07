@@ -9,6 +9,8 @@ namespace P4ToCSharp.Library
 {
   public static class BitHelper
   {
+    // FIXME throw errors like pp.65/66 in spec
+
     // FIXME perhaps better to have internal methods that extract C# datatypes, and public ones that wrap it as bitN?
     public static bit1 Extract1(byte[] arr, uint bitOffset)
     {
