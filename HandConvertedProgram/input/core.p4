@@ -31,9 +31,9 @@ error {
 
 extern packet_in {
     // T must be a fixed-size header type
-    void extract<T>(inout T hdr); // NOTE I changed from out -> inout (looks like it might go back to out?)
+    void extract<T>(out T hdr);
     // T must be a header containing exactly 1 varbit field
-    void extract<T>(inout T variableSizeHeader, // NOTE I changed from out -> inout
+    void extract<T>(out T variableSizeHeader,
                     in bit<32> variableFieldSizeInBits);
     // does not advance the cursor
     T lookahead<T>();

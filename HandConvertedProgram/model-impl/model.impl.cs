@@ -18,8 +18,7 @@ namespace HandConvertedProgram
       }
       //void packet_in.extract<T>(out T headerLValue) // NOTE: I am working on the assumption this should actually be `inout`
       //{
-      //  // Either ignore this line, (allow overwriting), or change core.p4 to have inout param?
-      //  ParserModel.verify(!headerLValue.valid$, error.OverwritingHeader); // <= How come they are accessing an out param? MAYBE treat packet_in/out as special cases?
+      //  //ParserModel.verify(!headerLValue.valid$, error.OverwritingHeader); // Removed
       //  bitsToExtract = sizeofInBits(headerLValue);
       //  lastBitNeeded = this.nextBitIndex + bitsToExtract;
       //  ParserModel.verify(this.lengthInBits >= lastBitNeeded, error.PacketTooShort);
@@ -32,14 +31,14 @@ namespace HandConvertedProgram
       //  this.nextBitIndex += bitsToExtract;
       //}
 
-      public void extract<T>(ref T variableSizeHeader, bit32 variableFieldSizeInBits)
+      public void extract<T>(out T variableSizeHeader, bit32 variableFieldSizeInBits)
       {
         throw new NotImplementedException();
       }
       //void packet_in.extract<T>(out T headerLvalue,
       //                          in bit<32> variableFieldSize)
       //{
-      //  ParserModel.verify(!headerLvalue.valid$, error.OverwritingHeader);
+      //  //ParserModel.verify(!headerLvalue.valid$, error.OverwritingHeader); // Removed
       //  bitsToExtract = sizeOfFixedPart(headerLvalue) + variableFieldSize;
       //  lastBitNeeded = this.nextBitIndex + bitsToExtract;
       //  ParserModel.verify(this.lengthInBits >= lastBitNeeded, error.PacketTooShort);
