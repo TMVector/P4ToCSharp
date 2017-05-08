@@ -54,5 +54,6 @@ namespace P4ToCSharp.Library
     public P4LookupAttribute(Enum matchKind) : this(matchKind.ToString("G"))
     {
     }
+
   }
 }

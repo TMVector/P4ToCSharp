@@ -8,7 +8,7 @@
     <ProjectGuid>2f52afed-a977-483a-89e5-5fc0219c7eb7</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>App</RootNamespace>
-    <AssemblyName>App</AssemblyName>
+    <AssemblyName>p4tocs</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFSharpCoreVersion>4.4.0.0</TargetFSharpCoreVersion>
@@ -66,12 +66,14 @@
     <Compile Include="AssemblyInfo.fs" />
     <None Include="App.config" />
     <None Include="paket.references" />
+    <Compile Include="Common.fs" />
     <Compile Include="Util.fs" />
     <Compile Include="Regex.fs" />
     <Compile Include="JsonTypes.fs" />
     <Compile Include="JsonParsing.fs" />
     <Compile Include="CSharpTypes.fs" />
     <Compile Include="CSharp\Common.fs" />
+    <Compile Include="CSharp\Reflection.fs" />
     <Compile Include="CSharp\Parsers.fs" />
     <Compile Include="CSharp.fs" />
     <Compile Include="Program.fs" />
@@ -84,6 +86,13 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\P4ToCSharp.Lib\P4ToCSharp.Lib.csproj">
+      <Name>P4ToCSharp.Lib</Name>
+      <Project>{4ac851b0-bb98-40e4-b338-746733ed44d1}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
   <Choose>
     <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And $(TargetFrameworkVersion) == 'v4.5'">

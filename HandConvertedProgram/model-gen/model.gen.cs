@@ -46,9 +46,19 @@ namespace HandConvertedProgram
       void emit<T>(bool condition, T data);
     }
 
+    // NOTE since these are static methods, we cannot generate interfaces, so we generate an example
+    [P4("verify", P4Type.ExternFunction)]
+    static void verify(bool cond, error err)
+    {
+      throw new NotImplementedException();
+    }
+
     // NOTE - not model, just stdlib
     [P4("NoAction", P4Type.Action)]
-    static void NoAction() { }
+    static void NoAction()
+    {
+      throw new NotImplementedException();
+    }
 
     // FIXME - What about how tables are grabbed, etc?
     [P4("match_kind", P4Type.MatchKind)]
