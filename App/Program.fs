@@ -43,14 +43,19 @@ module Main =
   // The package is a call to arch which starts the program?
 
   let deserialise = P4ToCSharp.App.IR.JsonParsing.deserialise
-  let convert = P4ToCSharp.App.CSharp.ofProgram
+  let convertModel = P4ToCSharp.App.CSharp.ofModel
+  let convertProgram = P4ToCSharp.App.CSharp.ofProgram
   let saveCs = P4ToCSharp.App.CSharp.saveToFile
 
-  let convertFile filename exterNamespace =
+  let generateModel filename =
     let ir = deserialise filename
-    let cs = convert ir exterNamespace
+    let cs = convertModel ir
     let archFilename = sprintf "%s.arch.cs" filename
     saveCs cs archFilename
+  let generateProgram filename dllFilename =
+    let ir = deserialise filename
+    let (warnings, p4Map, lookupMap) = mapArchDll dllFilename
+    let cs = convertProgram ir dll
     let outputFilename = sprintf "%s.gen.cs" filename
     saveCs cs outputFilename
 
@@ -61,28 +66,13 @@ module Main =
       match args.GetSubCommand() with
       | Generate_Model modelArgs ->
           let p4File = modelArgs.GetResult <@ ModelArgs.P4_File @>
-          convertFile p4File ""
+          printfn "Generating model from %s" filename
+          generateModel p4File
+          printfn "Done."
       | Generate_Program programArgs ->
           let p4File = programArgs.GetResult <@ ProgramArgs.P4_File @>
           let archDll = programArgs.GetResult <@ ProgramArgs.Architecture_Library @>
-          convertFile p4File ""
-
-      let filename = Array.tryItem 0 argv
-      let externNamespace = Array.tryItem 1 argv
-      match filename with
-      | Some filename when System.IO.File.Exists filename ->
           printfn "Converting %s" filename
-          convertFile filename externNamespace
+          generateProgram p4File archDll
           printfn "Done."
-          0
-      | _ ->
-          printfn "Syntax: App p4-json-file-to-convert extern-namespace"
-          printfn "Please provide a valid path"
-          1
-
-
-#if INTERACTIVE
-// FIXME this is testing code only
-let p4file = """C:\temp\vss\simple-switch-example.p4.json"""
-Main.convertFile p4file
-#endif
+      0
