@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace P4ToCSharp.Library
 {
   // TODO add arithmetic operators for C#-widths
-  // TODO add signed equivalents (only for C#-widths?)
+  // TODO add signed equivalents (only for C#-widths?) int32, etc
   // TODO handle legal explicit casts from spec 8.9.1
 
   public interface IBitString
@@ -113,12 +113,12 @@ namespace P4ToCSharp.Library
       return Value;
     }
 
-    public static explicit operator bit1(uint v)
+    public static implicit operator bit1(uint v)
     {
       Debug.Assert(v < (1u << BitWidth));
       return new bit1((byte)(v & ~(~0u << BitWidth)));
     }
-    public static explicit operator uint(bit1 v)
+    public static implicit operator uint(bit1 v)
     {
       return v.Value;
     }
@@ -170,12 +170,12 @@ namespace P4ToCSharp.Library
       return Value;
     }
 
-    public static explicit operator bit4(uint v)
+    public static implicit operator bit4(uint v)
     {
       Debug.Assert(v < (1u << BitWidth));
       return new bit4((byte)(v & ~(~0u << BitWidth)));
     }
-    public static explicit operator uint(bit4 v)
+    public static implicit operator uint(bit4 v)
     {
       return v.Value;
     }
@@ -232,12 +232,12 @@ namespace P4ToCSharp.Library
       return new bit8((byte)(a.Value - i)); // FIXME overflow
     }
 
-    public static explicit operator bit8(uint v)
+    public static implicit operator bit8(uint v)
     {
       Debug.Assert(v < (1u << BitWidth));
       return new bit8((byte)(v & ~(~0u << BitWidth)));
     }
-    public static explicit operator uint(bit8 v)
+    public static implicit operator uint(bit8 v)
     {
       return v.Value;
     }
@@ -294,12 +294,12 @@ namespace P4ToCSharp.Library
       return new bit16((UInt16)(a.Value - i)); // FIXME overflow
     }
 
-    public static explicit operator bit16(uint v)
+    public static implicit operator bit16(uint v)
     {
       Debug.Assert(v < (1u << BitWidth));
       return new bit16((UInt16)(v & ~(~0u << BitWidth)));
     }
-    public static explicit operator uint(bit16 v)
+    public static implicit operator uint(bit16 v)
     {
       return v.Value;
     }
@@ -356,12 +356,12 @@ namespace P4ToCSharp.Library
       return new bit32(a.Value - i);
     }
 
-    public static explicit operator bit32(uint v)
+    public static implicit operator bit32(uint v)
     {
       Debug.Assert(v < (1u << BitWidth));
       return new bit32(v & ~(~0u << BitWidth));
     }
-    public static explicit operator uint(bit32 v)
+    public static implicit operator uint(bit32 v)
     {
       return v.Value;
     }
@@ -413,12 +413,12 @@ namespace P4ToCSharp.Library
       return (int)Value;
     }
 
-    public static explicit operator bit48(ulong v)
+    public static implicit operator bit48(ulong v)
     {
       Debug.Assert(v < (1uL << BitWidth));
       return new bit48(v & ~(~0uL << BitWidth));
     }
-    public static explicit operator ulong(bit48 v)
+    public static implicit operator ulong(bit48 v)
     {
       return v.Value;
     }
@@ -475,12 +475,12 @@ namespace P4ToCSharp.Library
       return new bit64(a.Value - i);
     }
 
-    public static explicit operator bit64(ulong v)
+    public static implicit operator bit64(ulong v)
     {
       Debug.Assert(v < (1uL << BitWidth));
       return new bit64(v & ~(~0uL << BitWidth));
     }
-    public static explicit operator ulong(bit64 v)
+    public static implicit operator ulong(bit64 v)
     {
       return v.Value;
     }

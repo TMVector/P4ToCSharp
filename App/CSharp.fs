@@ -33,7 +33,7 @@ type ScopeInfo =
     TypeMap : Map<int, JsonTypes.Type>;
     PathMap : Map<int, JsonTypes.IDeclaration>;
     ThisMap : Map<int, JsonTypes.IDeclaration>;
-    ExternNamespace : string;
+    ArchResolver : JsonTypes.Node -> Syntax.NameSyntax; // FIXME replace this with P4 -> C# resolution, using reflection
   } with
   member this.GetP4Path(name : string) =
     this.P4AstPaths
@@ -479,6 +479,8 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
   | :? JsonTypes.MethodCallExpression as mc ->
       // FIXME need to handle copy-in/copy-out semantics in case where a ref arg is also a ref arg to a method call in another arg. See 6.7.
       // C# handles e.g. arr[a].z, f(ref a) fine already, but not ref a, f(ref a). Could aliasing also be an issue?
+
+      // FIXME handle verify as a built-in (Or will p4c be updated to produce a separate token?)
       let m =
         if Seq.isEmpty mc.typeArguments.vec
         then ofExpr UnknownType mc.method_
@@ -648,10 +650,34 @@ and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Syntax.MemberDec
                     .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
               |> Seq.cast |> Seq.toArray)
           |> Transformed.memberOf
-      | :? JsonTypes.
       | _ ->
           // We only convert architecture elements here, so anything else is ignored
           Seq.empty
+    | :? JsonTypes.Method as m ->
+        failwith "Type_Method unhandled"
+        // Extern function
+        // We are expecting a static method, so we cannot provide an interface for a class
+        // Instead, we generate a comment?
+        let typeParameterNames : string[] = m.type_.typeParameters.parameters.vec |> Seq.map (fun p -> p.name) |> Seq.toArray
+        let fullName : Syntax.ExpressionSyntax =
+          let fqTy = qualifiedTypeName scopeInfo.ExternNamespace
+          if Seq.isEmpty typeParameterNames then
+            eMemberAccess fqTy [m.name]
+          else
+            upcast SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, fqTy,
+                    SF.GenericName("FQMethodName")
+                      .AddTypeArgumentListArguments(typeParameterNames |> Seq.map SF.IdentifierName |> Seq.cast |> Seq.toArray))
+        SF.MethodDeclaration(m.type_.returnType |> Option.map (ofType) |> Option.ifNoneValue voidType, m.name)
+          .WithModifiers(tokenList [SK.StaticKeyword])
+          .WithTypeParameters(typeParameterNames |> Seq.map (fun name -> SF.TypeParameter(name)))
+          .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter ofType))
+          .WithBlockBody([SF.ExpressionStatement(
+                            SF.InvocationExpression(fullName)
+                              .WithArguments(m.type_.parameters.parameters.vec |> Seq.map (fun p -> upcast SF.IdentifierName(p.name))))])
+        Seq.empty
+  | _ ->
+      // We only convert architecture elements here, so anything else is ignored
+      Seq.empty
 and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Declaration seq =
   match n with
   | :? JsonTypes.Type_Declaration as tyDec->
@@ -1080,6 +1106,8 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           Transformed.declOf tableClass
           |> Transformed.addDecl tableInstance
       | :? JsonTypes.Method as m ->
+          // Extern function
+          // Generate a wrapper method
           let typeParameterNames : string[] = m.type_.typeParameters.parameters.vec |> Seq.map (fun p -> p.name) |> Seq.toArray
           let fullName : Syntax.ExpressionSyntax =
             let fqTy = qualifiedTypeName scopeInfo.ExternNamespace
@@ -1133,7 +1161,26 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       createEnum "MatchKind" (mk.members.vec |> Seq.map (fun memb -> memb.name))
       |> Transformed.declOf
   | _ -> failwithf "Unhandled subtype of JsonTypes.Node in declarationOfNode: %s" (n.GetType().Name) // FIXME check exhaustive
-and ofProgram (program : JsonTypes.Program) (externNamespace : string option) : (Syntax.CompilationUnitSyntax * Syntax.CompilationUnitSyntax) =
+
+let initScopeFor (program : JsonTypes.Program) : ScopeInfo =
+  let p4Paths =
+    program.P4.declarations.declarations
+    |> Seq.map (fun (name,node) -> (name, [node :?> JsonTypes.Node]))
+    |> Seq.toList
+  let globalScope =
+    { GetExprForName=(fun name -> None);//SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, SF.IdentifierName(topLevelName), SF.IdentifierName(name)) :> Expr |> Some);
+      P4AstPaths=p4Paths;
+      ScopeParameterList=Array.empty;
+      P4AstPath=[];
+      GlobalScope=None;
+      TypeMap=program.TypeMap;
+      PathMap=program.PathMap;
+      ThisMap=program.ThisMap; }
+  { globalScope with GlobalScope = Some globalScope }
+
+let ofModel (model : JsonTypes.Program) : Syntax.CompilationUnitSyntax =
+  null
+let ofProgram (program : JsonTypes.Program) (externNamespace : string option) : Syntax.CompilationUnitSyntax =
   let topLevelName = "Program"
   let scope : ScopeInfo =
     let p4Paths =
