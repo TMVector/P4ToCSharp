@@ -21,6 +21,7 @@ namespace P4ToCSharp.Library
       return new bit1((byte)(data & 1));
     }
 
+    // FIXME redo this method
     public static bitN ExtractN(byte[] arr, uint bitOffset, int bitLength)
     {
       // TODO write some smarter logic for var width extraction
@@ -30,12 +31,16 @@ namespace P4ToCSharp.Library
       uint data = Extract32(arr, startByte).Value; // FIXME is it okay to extract 32 bits when we don't know it's safe?
       data >>= (int)localBitOffset;
       data &= (~0u) >> (32 - (int)bitLength);
-      return (ushort)data;
+      return new bitN(bitLength, data);
     }
 
     public static bit4 Extract4(byte[] arr, uint bitOffset)
     {
-
+      uint startByte = bitOffset / 8;
+      uint localBitOffset = bitOffset % 8;
+      byte data = Extract8(arr, startByte).Value;
+      data >>= (int)localBitOffset;
+      return new bit4((byte)(data & 0xF));
     }
 
     public static bit8 Extract8(byte[] arr, uint bitOffset)

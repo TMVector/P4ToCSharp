@@ -22,20 +22,20 @@ module JsonParsing =
   // From https://gist.github.com/eulerfx/4464462
   type OptionConverter() =
     inherit JsonConverter()
-    override x.CanConvert(t) = 
+    override x.CanConvert(t) =
       t.IsGenericType && t.GetGenericTypeDefinition() = typedefof<option<_>>
     override x.WriteJson(writer, value, serializer) =
-      let value = 
+      let value =
         if value = null then null
-        else 
+        else
           let _,fields = FSharpValue.GetUnionFields(value, value.GetType())
-          fields.[0]  
+          fields.[0]
       serializer.Serialize(writer, value)
-    override x.ReadJson(reader, t, existingValue, serializer) =        
+    override x.ReadJson(reader, t, existingValue, serializer) =
       let innerType = t.GetGenericArguments().[0]
-      let innerType = 
+      let innerType =
         if innerType.IsValueType then (typedefof<Nullable<_>>).MakeGenericType([|innerType|])
-        else innerType        
+        else innerType
       let value = serializer.Deserialize(reader, innerType)
       let cases = FSharpType.GetUnionCases(t)
       if value = null then FSharpValue.MakeUnion(cases.[0], [||])
@@ -44,7 +44,7 @@ module JsonParsing =
   // JSON converter for our OrderedMap type
   type OrderedMapConverter() =
     inherit JsonConverter()
-    // Get the 
+    // Get the
     static member private getPairTypes (t:System.Type) =
       if t.IsArray && FSharpType.IsTuple(t.GetElementType()) then
         let elt = t.GetElementType()
@@ -148,8 +148,8 @@ module JsonParsing =
 
   // This JSON reader allows us to pattern match on recent tokens and change them (see IRReader)
   open FSharpx.Collections
-  type private AdvReader(reader, onRead) = 
-    inherit JsonTextReader(reader) 
+  type private AdvReader(reader, onRead) =
+    inherit JsonTextReader(reader)
     let mutable queue = Deque.empty
     let mutable resumeQueue = Deque.empty
     member private this.OnRead = onRead
@@ -252,7 +252,7 @@ module JsonParsing =
     serialiser.Converters.Add(new DirectionJsonConverter()) // FIXME Can this be attached to the type with an attribute?
     let ast = serialiser.Deserialize<JsonTypes.P4Program>(new IRReader(reader))
     let mapOf (m : JsonTypes.KeyValuePair<int,'a> seq) =
-      m |> Seq.map (fun kv -> (kv.Key, kv.Value)) |> Map.ofSeq 
+      m |> Seq.map (fun kv -> (kv.Key, kv.Value)) |> Map.ofSeq
     let typeMapFile = sprintf "%s.typeMap.json" filename
     let typeMap =
       if File.Exists typeMapFile then
