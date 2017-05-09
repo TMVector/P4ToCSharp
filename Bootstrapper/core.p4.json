@@ -1,5 +1,5 @@
 {
-  "Node_ID" : 107, 
+  "Node_ID" : 117, 
   "Node_Type" : "P4Program",
   "declarations" : {
     "Node_ID" : 5, 
@@ -731,31 +731,129 @@
         }
       },
       {
-        "Node_ID" : 101, 
+        "Node_ID" : 106, 
+        "Node_Type" : "Method",
+        "name" : "verify",
+        "declid" : 23,
+        "type" : {
+          "Node_ID" : 105, 
+          "Node_Type" : "Type_Method",
+          "typeParameters" : {
+            "Node_ID" : 97, 
+            "Node_Type" : "TypeParameters",
+            "parameters" : {
+              "Node_ID" : 98, 
+              "Node_Type" : "IndexedVector<Type_Var>",
+              "vec" : [],
+              "declarations" : {}
+            }
+          },
+          "returnType" : {
+            "Node_ID" : 18
+          },
+          "parameters" : {
+            "Node_ID" : 104, 
+            "Node_Type" : "ParameterList",
+            "parameters" : {
+              "Node_ID" : 100, 
+              "Node_Type" : "IndexedVector<Parameter>",
+              "vec" : [
+                {
+                  "Node_ID" : 99, 
+                  "Node_Type" : "Parameter",
+                  "name" : "condition",
+                  "declid" : 21,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "in",
+                  "type" : {
+                    "Node_ID" : 86
+                  }
+                },
+                {
+                  "Node_ID" : 103, 
+                  "Node_Type" : "Parameter",
+                  "name" : "err",
+                  "declid" : 22,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "in",
+                  "type" : {
+                    "Node_ID" : 102, 
+                    "Node_Type" : "Type_Name",
+                    "path" : {
+                      "Node_ID" : 101, 
+                      "Node_Type" : "Path",
+                      "name" : "error",
+                      "absolute" : false
+                    }
+                  }
+                }
+              ],
+              "declarations" : {
+                "condition" : {
+                  "Node_ID" : 99, 
+                  "Node_Type" : "Parameter",
+                  "name" : "condition",
+                  "declid" : 21,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "in",
+                  "type" : {
+                    "Node_ID" : 86
+                  }
+                },
+                "err" : {
+                  "Node_ID" : 103, 
+                  "Node_Type" : "Parameter",
+                  "name" : "err",
+                  "declid" : 22,
+                  "annotations" : {
+                    "Node_ID" : 3
+                  },
+                  "direction" : "in",
+                  "type" : {
+                    "Node_ID" : 102
+                  }
+                }
+              }
+            }
+          }
+        },
+        "isAbstract" : false,
+        "annotations" : {
+          "Node_ID" : 3
+        }
+      },
+      {
+        "Node_ID" : 111, 
         "Node_Type" : "P4Action",
         "name" : "NoAction",
-        "declid" : 21,
+        "declid" : 24,
         "annotations" : {
           "Node_ID" : 3
         },
         "parameters" : {
-          "Node_ID" : 100, 
+          "Node_ID" : 110, 
           "Node_Type" : "ParameterList",
           "parameters" : {
-            "Node_ID" : 97, 
+            "Node_ID" : 107, 
             "Node_Type" : "IndexedVector<Parameter>",
             "vec" : [],
             "declarations" : {}
           }
         },
         "body" : {
-          "Node_ID" : 99, 
+          "Node_ID" : 109, 
           "Node_Type" : "BlockStatement",
           "annotations" : {
             "Node_ID" : 3
           },
           "components" : {
-            "Node_ID" : 98, 
+            "Node_ID" : 108, 
             "Node_Type" : "IndexedVector<StatOrDecl>",
             "vec" : [],
             "declarations" : {}
@@ -763,49 +861,49 @@
         }
       },
       {
-        "Node_ID" : 106, 
+        "Node_ID" : 116, 
         "Node_Type" : "Declaration_MatchKind",
         "members" : {
-          "Node_ID" : 102, 
+          "Node_ID" : 112, 
           "Node_Type" : "IndexedVector<Declaration_ID>",
           "vec" : [
             {
-              "Node_ID" : 103, 
+              "Node_ID" : 113, 
               "Node_Type" : "Declaration_ID",
               "name" : "exact",
-              "declid" : 22
+              "declid" : 25
             },
             {
-              "Node_ID" : 104, 
+              "Node_ID" : 114, 
               "Node_Type" : "Declaration_ID",
               "name" : "ternary",
-              "declid" : 23
+              "declid" : 26
             },
             {
-              "Node_ID" : 105, 
+              "Node_ID" : 115, 
               "Node_Type" : "Declaration_ID",
               "name" : "lpm",
-              "declid" : 24
+              "declid" : 27
             }
           ],
           "declarations" : {
             "exact" : {
-              "Node_ID" : 103, 
+              "Node_ID" : 113, 
               "Node_Type" : "Declaration_ID",
               "name" : "exact",
-              "declid" : 22
+              "declid" : 25
             },
             "ternary" : {
-              "Node_ID" : 104, 
+              "Node_ID" : 114, 
               "Node_Type" : "Declaration_ID",
               "name" : "ternary",
-              "declid" : 23
+              "declid" : 26
             },
             "lpm" : {
-              "Node_ID" : 105, 
+              "Node_ID" : 115, 
               "Node_Type" : "Declaration_ID",
               "name" : "lpm",
-              "declid" : 24
+              "declid" : 27
             }
           }
         }
@@ -857,19 +955,32 @@
           "Node_ID" : 3
         }
       },
+      "verify" : {
+        "Node_ID" : 106, 
+        "Node_Type" : "Method",
+        "name" : "verify",
+        "declid" : 23,
+        "type" : {
+          "Node_ID" : 105
+        },
+        "isAbstract" : false,
+        "annotations" : {
+          "Node_ID" : 3
+        }
+      },
       "NoAction" : {
-        "Node_ID" : 101, 
+        "Node_ID" : 111, 
         "Node_Type" : "P4Action",
         "name" : "NoAction",
-        "declid" : 21,
+        "declid" : 24,
         "annotations" : {
           "Node_ID" : 3
         },
         "parameters" : {
-          "Node_ID" : 100
+          "Node_ID" : 110
         },
         "body" : {
-          "Node_ID" : 99
+          "Node_ID" : 109
         }
       }
     }
