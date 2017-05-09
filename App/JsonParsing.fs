@@ -216,7 +216,7 @@ module JsonParsing =
 
   // This type tells JSON.NET how to deserialise nodes based on their Node_Type field (since it is rewritten to $type)
   type private IRBinder() =
-    inherit System.Runtime.Serialization.SerializationBinder()
+    inherit Newtonsoft.Json.Serialization.DefaultSerializationBinder()
     override this.BindToType(assemblyName, typeName) =
       GetTypeOf typeName
 
@@ -243,7 +243,7 @@ module JsonParsing =
     let serialiser = new JsonSerializer()
     serialiser.TypeNameHandling <- TypeNameHandling.Auto
     serialiser.MetadataPropertyHandling <- MetadataPropertyHandling.ReadAhead // why do we still need this even though we are reordering? (we still do)
-    serialiser.Binder <- new IRBinder()
+    serialiser.SerializationBinder <- new IRBinder()
     serialiser.PreserveReferencesHandling <- PreserveReferencesHandling.Objects
     serialiser.ReferenceResolver <- new IRReferenceResolver()
     serialiser.Converters.Add(new OptionConverter())

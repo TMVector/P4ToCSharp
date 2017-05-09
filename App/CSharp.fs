@@ -37,7 +37,7 @@ type ScopeInfo =
     ArchMap : Map<P4Type*string,string>;
     LookupMap : Map<string,string>;
   } with
-  member this.AppendToPath(node :# JsonTypes.Node) =
+  member this.AppendToPath(node : JsonTypes.Node) =
     { this with P4AstPath = node::this.P4AstPath }
   member this.PathString =
     let names =
@@ -103,7 +103,7 @@ type ScopeInfo =
   member this.GetArchName(p4Type : P4Type) =
     this.ArchMap.TryFind((p4Type, this.PathString))
     |> Option.map (fun typeName -> SF.ParseName(typeName))
-    |> Option.ifNone (fun () -> failwith "Could not find architecture element for %s" this.PathString)
+    |> Option.ifNone (fun () -> failwithf "Could not find architecture element for %s" this.PathString)
   member this.GetLookupType(matchKind : string) =
     this.LookupMap.TryFind(matchKind)
     |> Option.map (fun typeName -> SF.ParseTypeName(typeName))
@@ -632,11 +632,19 @@ and ofStatOrDecl (scopeInfo:ScopeInfo) (n : JsonTypes.StatOrDecl) =
   | :? JsonTypes.Statement as statement -> ofStatement scopeInfo statement
   | :? JsonTypes.Declaration as decl -> statementOfDeclaration scopeInfo decl
   | _ -> failwithf "Unhandled subtype of JsonTypes.StatOrDecl: %s" (n.GetType().Name)
-and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Syntax.MemberDeclarationSyntax seq =
+and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Declaration seq =
   let scopeInfo = scopeInfo.AppendToPath(n)
   match n with
   | :? JsonTypes.Type_Declaration as tyDec->
       match tyDec with
+      | :? JsonTypes.Type_Var
+      | :? JsonTypes.Type_StructLike
+      | :? JsonTypes.Type_Enum
+      | :? JsonTypes.Type_Typedef
+      | :? JsonTypes.Type_Error ->
+          // These types can be translated exactly the same as if they were in a program
+          // FIXME this isn't true if we are putting arch errors in 0-127 and program errors in 128+
+          declarationOfNode scopeInfo n
       | :? JsonTypes.Type_ArchBlock as archBlock ->
           match archBlock with
           | :? JsonTypes.Type_Package as tp ->
@@ -653,7 +661,7 @@ and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Syntax.MemberDec
                               .WithBlockBody(tp.constructorParams.parameters.vec
                                               |> Seq.map (fun p -> assignment (eMemberAccess (SF.ThisExpression()) [p.name]) (SF.IdentifierName(p.name)))
                                               |> Seq.cast))
-              |> Transformed.memberOf
+              |> Transformed.declOf
           | :? JsonTypes.Type_Parser as tp ->
               SF.InterfaceDeclaration(tp.name) // FIXME all applicable parsers need to implement this
                 .AddBaseListTypes(parserBaseBaseType)
@@ -661,7 +669,7 @@ and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Syntax.MemberDec
                 .AddMembers(SF.MethodDeclaration(voidType, "Apply") // FIXME type params
                               .WithParameters(tp.applyParams.parameters.vec |> Seq.map (fun p -> (parameter ofType p).WithDirection(p.direction)))
                               .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
-              |> Transformed.memberOf
+              |> Transformed.declOf
           | :? JsonTypes.Type_Control as tc ->
               SF.InterfaceDeclaration(tc.name) // FIXME all applicable controls need to implement this
                 .AddBaseListTypes(controlBaseBaseType)
@@ -669,7 +677,7 @@ and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Syntax.MemberDec
                 .AddMembers(SF.MethodDeclaration(voidType, "Apply") // FIXME type params
                               .WithParameters(tc.applyParams.parameters.vec |> Seq.map (fun p -> (parameter ofType p).WithDirection(p.direction)))
                               .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
-              |> Transformed.memberOf
+              |> Transformed.declOf
           | _ -> failwithf "Unhandled subtype of JsonTypes.Type_ArchBlock: %s" (archBlock.GetType().Name)
       | :? JsonTypes.Type_Extern as ext ->
           if ext.typeParameters.parameters.vec |> Seq.isNotEmpty then failwith "Cannot handle type parameters in extern types"
@@ -685,7 +693,7 @@ and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Syntax.MemberDec
                     .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter ofType))
                     .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
               |> Seq.cast |> Seq.toArray)
-          |> Transformed.memberOf
+          |> Transformed.declOf
       | _ ->
           // We only convert architecture elements here, so anything else is ignored
           Seq.empty
@@ -698,7 +706,7 @@ and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Syntax.MemberDec
           .WithTypeParameters(typeParameterNames |> Seq.map (fun name -> SF.TypeParameter(name)))
           .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter ofType))
           .WithBlockBody([SF.ParseStatement "throw new NotImplementedException();"])
-        |> Transformed.memberOf
+        |> Transformed.declOf
   | _ ->
       // We only convert architecture elements here, so anything else is ignored
       Seq.empty
@@ -741,7 +749,8 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       | :? JsonTypes.Type_Extern as ext ->
           // We don't generate architecture code in this file, only in the arch file
           // However, we do generate a typedef for this name, pointing to the impl
-          SF.UsingDirective(sprintf "%s.%s" scopeInfo.ExternNamespace ext.name |> qualifiedTypeName)
+          let extName = scopeInfo.GetArchName(P4Type.ExternObject)
+          SF.UsingDirective(extName)
             .WithAlias(SF.NameEquals(SF.IdentifierName(ext.name)))
           |> Transformed.usingOf
       | :? JsonTypes.P4Parser as p ->
@@ -1204,29 +1213,36 @@ let initScopeFor (program : JsonTypes.Program) : ScopeInfo =
   { globalScope with GlobalScope = Some globalScope }
 
 let ofModel (model : JsonTypes.Program) : Syntax.CompilationUnitSyntax =
-  null
-  // TODO implement this function
-let ofProgram (program : JsonTypes.Program) (p4Map : Map<P4Type*string,string>) (lookupMap : Map<string,string>) : Syntax.CompilationUnitSyntax =
-  let topLevelName = "Program"
-  let scope : ScopeInfo = initScopeFor program
-  let archDecls =
-    program.P4.declarations.vec
+  let topLevelName = "Architecture"
+  let scope : ScopeInfo = initScopeFor model
+  let usings, declarations =
+    model.P4.declarations.vec
     |> Seq.map (architectureOf scope)
     |> Seq.concat
+    |> Transformed.partition
+
+  SF.CompilationUnit()
+    .AddUsings(SF.UsingDirective(libraryName))
+    .AddUsings(usings |> Seq.toArray)
+    .AddMembers(SF.ClassDeclaration(topLevelName)
+                  .WithModifiers(tokenList [SK.PublicKeyword])
+                  .AddMembers(declarations |> Seq.toArray))
+let ofProgram (program : JsonTypes.Program) (p4Map : Map<P4Type*string,string>) (lookupMap : Map<string,string>) : Syntax.CompilationUnitSyntax =
+  let topLevelName = "Program"
+  let scope : ScopeInfo =
+    let scope = initScopeFor program
+    { scope with
+        ArchMap = Map.union scope.ArchMap p4Map;
+        LookupMap = Map.union scope.LookupMap lookupMap }
   let usings, declarations =
     program.P4.declarations.vec
     |> Seq.map (declarationOfNode scope)
     |> Seq.concat
     |> Transformed.partition
 
-  let commonCode =
-    SF.CompilationUnit()
-      .AddUsings(SF.UsingDirective(libraryName))
-      .AddUsings(usings |> Seq.toArray)
-  let archCode =
-    commonCode.AddMembers(archDecls |> Seq.toArray)
-  let genCode =
-    commonCode.AddMembers(SF.ClassDeclaration(topLevelName)
-                            .WithModifiers(tokenList [SK.PublicKeyword])
-                            .AddMembers(declarations |> Seq.toArray))
-  (archCode, genCode)
+  SF.CompilationUnit()
+    .AddUsings(SF.UsingDirective(libraryName))
+    .AddUsings(usings |> Seq.toArray)
+    .AddMembers(SF.ClassDeclaration(topLevelName)
+                  .WithModifiers(tokenList [SK.PublicKeyword])
+                  .AddMembers(declarations |> Seq.toArray))

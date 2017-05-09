@@ -29,13 +29,13 @@ module CSharpTypes =
       | Using of Syntax.UsingDirectiveSyntax
     let memberOf (d :# Syntax.MemberDeclarationSyntax) : Syntax.MemberDeclarationSyntax seq =
       [d] |> Seq.cast
-    let declOf (d :# Syntax.MemberDeclarationSyntax) =
+    let declOf (d : Syntax.MemberDeclarationSyntax) =
       Declaration d |> Seq.singleton
-    let usingOf (u :# Syntax.UsingDirectiveSyntax) =
+    let usingOf (u : Syntax.UsingDirectiveSyntax) =
       Using u |> Seq.singleton
-    let addDecl (d :# Syntax.MemberDeclarationSyntax) (t:Declaration seq) =
+    let addDecl (d : Syntax.MemberDeclarationSyntax) (t:Declaration seq) =
       Seq.append t (declOf d)
-    let addUsing (u :# Syntax.UsingDirectiveSyntax) (t:Declaration seq) =
+    let addUsing (u : Syntax.UsingDirectiveSyntax) (t:Declaration seq) =
       Seq.append t (usingOf u)
     let declarations(decls:Declaration seq) =
       seq {

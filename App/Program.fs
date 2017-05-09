@@ -60,13 +60,13 @@ module Main =
     let ir = deserialise filename // FIXME also compile P4->JSON in this step instead of requiring precompilation
 
     // Load P4 definitions from architecture model
-    let (warnings, p4Map, lookupMap) = mapArchDll dllFilename
+    let (warnings, p4Map, lookupMap) = Reflection.mapArchDll dllFilename
 
     // Print warnings
     compilerError.Print(warnings |> List.rev)
 
     // Convert P4 to C#
-    let cs = convertProgram ir (p4Map, lookupMap)
+    let cs = convertProgram ir p4Map lookupMap
 
     // Save the C# to a file
     let outputFilename = sprintf "%s.gen.cs" filename
@@ -81,13 +81,13 @@ module Main =
       match args.GetSubCommand() with
       | Generate_Model modelArgs ->
           let p4File = modelArgs.GetResult <@ ModelArgs.P4_File @>
-          printfn "Generating model from %s" filename
+          printfn "Generating model from %s" p4File
           generateModel p4File
           printfn "Done."
       | Generate_Program programArgs ->
           let p4File = programArgs.GetResult <@ ProgramArgs.P4_File @>
           let archDll = programArgs.GetResult <@ ProgramArgs.Architecture_Library @>
-          printfn "Converting %s" filename
+          printfn "Converting %s" p4File
           generateProgram p4File archDll
           printfn "Done."
       0
