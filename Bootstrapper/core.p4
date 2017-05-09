@@ -48,6 +48,8 @@ extern packet_out {
     void emit<T>(in bool condition, in T data);
 }
 
+extern void verify(in bool condition, in error err);
+
 action NoAction() {}
 
 match_kind {
