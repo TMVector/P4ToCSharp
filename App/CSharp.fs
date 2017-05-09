@@ -195,7 +195,8 @@ let qualifiedGenericTypeName (name:string) (tyArgs:Syntax.TypeSyntax seq) : Synt
   else failwith "qualifiedGenericTypeName received an empty name"
 
 // CS types for convenience
-let libraryName = SF.QualifiedName(SF.IdentifierName("P4ToCSharp"), SF.IdentifierName("Library"))
+let libraryNameString = "P4ToCSharp.Library"
+let libraryName = SF.ParseName libraryNameString
 let headerBaseName = SF.IdentifierName("HeaderBase")
 let headerBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(headerBaseName)
 let structBaseName = SF.IdentifierName("IStruct")
@@ -634,16 +635,21 @@ and ofStatOrDecl (scopeInfo:ScopeInfo) (n : JsonTypes.StatOrDecl) =
   | _ -> failwithf "Unhandled subtype of JsonTypes.StatOrDecl: %s" (n.GetType().Name)
 and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Declaration seq =
   let scopeInfo = scopeInfo.AppendToPath(n)
+  // FIXME annotate these C# elements with P4Attribute(scope.GetPathString(), P4Type)
+  error
   match n with
   | :? JsonTypes.Type_Declaration as tyDec->
       match tyDec with
       | :? JsonTypes.Type_Var
       | :? JsonTypes.Type_StructLike
       | :? JsonTypes.Type_Enum
-      | :? JsonTypes.Type_Typedef
       | :? JsonTypes.Type_Error ->
           // These types can be translated exactly the same as if they were in a program
           // FIXME this isn't true if we are putting arch errors in 0-127 and program errors in 128+
+          declarationOfNode scopeInfo n
+      | :? JsonTypes.Type_Typedef ->
+          // These types can be translated exactly the same as if they were in a program
+          // NOTE we do not annotate a typedef
           declarationOfNode scopeInfo n
       | :? JsonTypes.Type_ArchBlock as archBlock ->
           match archBlock with
@@ -1211,6 +1217,9 @@ let initScopeFor (program : JsonTypes.Program) : ScopeInfo =
       ArchMap=Map.empty;
       LookupMap=Reflection.getLibMap(); }
   { globalScope with GlobalScope = Some globalScope }
+let standardUsings =
+  [| "System"; libraryNameString |]
+  |> Array.map (fun ns -> SF.UsingDirective(SF.ParseName ns))
 
 let ofModel (model : JsonTypes.Program) : Syntax.CompilationUnitSyntax =
   let topLevelName = "Architecture"
@@ -1222,7 +1231,7 @@ let ofModel (model : JsonTypes.Program) : Syntax.CompilationUnitSyntax =
     |> Transformed.partition
 
   SF.CompilationUnit()
-    .AddUsings(SF.UsingDirective(libraryName))
+    .AddUsings(standardUsings)
     .AddUsings(usings |> Seq.toArray)
     .AddMembers(SF.ClassDeclaration(topLevelName)
                   .WithModifiers(tokenList [SK.PublicKeyword])
@@ -1241,7 +1250,7 @@ let ofProgram (program : JsonTypes.Program) (p4Map : Map<P4Type*string,string>) 
     |> Transformed.partition
 
   SF.CompilationUnit()
-    .AddUsings(SF.UsingDirective(libraryName))
+    .AddUsings(standardUsings)
     .AddUsings(usings |> Seq.toArray)
     .AddMembers(SF.ClassDeclaration(topLevelName)
                   .WithModifiers(tokenList [SK.PublicKeyword])
