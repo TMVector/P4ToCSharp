@@ -14,8 +14,6 @@ open P4ToCSharp.App.Util
 open P4ToCSharp.App.IR
 open P4ToCSharp.App.CSharpTypes
 
-type DllInfo = Assembly
-
 // Short names for attribute types
 type p4Type = P4ToCSharp.Library.P4Type
 type p4Attribute = P4ToCSharp.Library.P4Attribute
@@ -68,8 +66,7 @@ let private validCsForP4 (p4:p4Attribute) (cs:TypeOrMember) : (AnnotationVerdict
   // Should be Type/Member, but is Member/Type
   | _ -> (Invalid, [ warningf "P4Attribute(\"%s\", %A) cannot annotate a %s." p4.P4Path p4.Type cs.CategoryString ])
 
-let mapArchDll (filename:string) =
-  let dll = Assembly.LoadFile(filename)
+let mapArchAssembly (dll:Assembly) =
   // Search for types and members which have been annotated with the P4Attribute
   //  and for types annotated with P4LookupAttribute
   let warnings,lookups,types,members =
@@ -134,3 +131,14 @@ let mapArchDll (filename:string) =
         (key, value))
     |> Map.ofSeq
   (warnings, p4Map, lookupMap)
+
+let mapArchDll (filename:string) =
+  let dll = Assembly.LoadFile(filename)
+  mapArchAssembly dll
+
+let getLibMap() =
+  let (warnings, p4Map, lookupMap) as rv =
+    Assembly.GetAssembly(typeof<P4ToCSharp.Library.LpmTable<_,_>>) // Get Library dll
+    |> mapArchAssembly
+  assert warnings.IsEmpty
+  lookupMap
