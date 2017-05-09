@@ -45,6 +45,11 @@ module Util =
       for x in (Seq.rev xs) do
         ys <- x::ys
       ys
+  module Map =
+    let union<'k,'v when 'k : comparison> (map1 : Map<'k,'v>) (map2 : Map<'k,'v>) : Map<'k,'v> =
+      // Add the smaller map's entries to the larger map
+      let (largerMap, smallerMap) = if map1.Count >= map2.Count then (map1, map2) else (map2, map1)
+      smallerMap |> Map.fold (fun m k v -> Map.add k v m) largerMap
 
   let inline fst3 (a,_,_) = a
   let inline snd3 (_,b,_) = b
