@@ -90,4 +90,9 @@ module Main =
           printfn "Converting %s" p4File
           generateProgram p4File archDll
           printfn "Done."
+
+      #if DEBUG
+      System.Console.ReadKey() |> ignore
+      #endif
+
       0
