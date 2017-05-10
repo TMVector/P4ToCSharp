@@ -24,6 +24,7 @@ module JsonTypes =
     abstract member Name : ID
 
   // Marker interfaces
+  // FIXME it's really annoying how these don't guarantee they are Nodes
   type INode = interface end
   type IDeclaration = inherit INode
   type IContainer = inherit IDeclaration
@@ -47,6 +48,9 @@ module JsonTypes =
     member this.Node_Type : string = node_type
     abstract member NamedChild : string -> Node option
     default this.NamedChild(name) = None
+    // Gets any elements which could be accessed by an identifier in this or a child scope
+    abstract member NamedInScope : string -> Node option
+    default this.NamedInScope(name) = None
 
   type Vector<'T>(node_id, node_type, vec) =
     inherit Node(node_id, node_type)
@@ -58,7 +62,11 @@ module JsonTypes =
     member this.declarations : OrderedMap<string, IDeclaration> = declarations // value is json dictionary
     member this.declarationsMap = declarations |> Map.ofSeq
     override this.NamedChild(name) =
-      this.declarationsMap.TryFind name |> Option.cast
+      match this.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
+    override this.NamedInScope(name) =
+      this.NamedChild(name)
 
   [<Sealed>]
   type NameMap<'T>(node_id, node_type, symbols) =
@@ -133,7 +141,7 @@ module JsonTypes =
       |> Seq.cast<'a>
       |> Seq.tryFirst
 
-  type Direction = None | In | Out | InOut (*  NOTE P4 has copy-in/copy-out semantics *)
+  type Direction = NoDirection | In | Out | InOut (*  NOTE P4 has copy-in/copy-out semantics *)
 
   [<Sealed>]
   type Type_Type(node_id, node_type, type_) =
@@ -211,6 +219,12 @@ module JsonTypes =
     inherit Type_Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
     member this.fields : IndexedVector<StructField> = fields
+    override this.NamedInScope(name) =
+      // If something of type Type_StructLike was in scope, the fields could be accessed
+      // E.g. { structTy s; s.a; } would resolve like s -> structTy; (in structTy) a -> field
+      match this.fields.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type Type_Struct(node_id, node_type, name, declid, annotations, fields) =
@@ -238,7 +252,7 @@ module JsonTypes =
   type Type_ArchBlock(node_id, node_type, name, declid, annotations, typeParameters) =
     inherit Type_Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
-    member this.typeParameters : TypeParameters = typeParameters
+    member this.typeParameters : TypeParameters = typeParameterssasdasdasd // TODO Continue adding NameInScope from here
 
   [<Sealed>]
   type Type_Package(node_id, node_type, name, declid, annotations, typeParameters, constructorParams) =

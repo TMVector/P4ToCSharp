@@ -40,14 +40,14 @@ type ScopeInfo =
   } with
   member this.AppendToPath(node : JsonTypes.Node) =
     { this with P4AstPath = node::this.P4AstPath }
+  member this.PathNames =
+    this.P4AstPath
+    |> Seq.choose (fun node ->
+          match node :> obj with
+          | :? JsonTypes.INamed as named -> Some named.Name
+          | _ -> None)
   member this.PathString =
-    let names =
-      this.P4AstPath
-      |> Seq.choose (fun node ->
-            match node :> obj with
-            | :? JsonTypes.INamed as named -> Some named.Name
-            | _ -> None)
-    System.String.Join(".", names)
+    System.String.Join(".", this.PathNames)
   member this.GetP4Path(name : string) =
     this.P4AstPaths
     |> Seq.filter (fun (n,p) -> n = name)
@@ -295,7 +295,7 @@ type Syntax.ParameterSyntax with
   member this.WithDirection(direction:JsonTypes.Direction) =
     let modifiers =
       match direction with
-      | JsonTypes.Direction.None
+      | JsonTypes.Direction.NoDirection
       | JsonTypes.Direction.In -> []
       | JsonTypes.Direction.InOut -> [SK.RefKeyword]
       | JsonTypes.Direction.Out -> [SK.OutKeyword]
@@ -549,8 +549,15 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
       // FIXME need to handle copy-in/copy-out semantics in case where a ref arg is also a ref arg to a method call in another arg. See 6.7.
       // C# handles e.g. arr[a].z, f(ref a) fine already, but not ref a, f(ref a). Could aliasing also be an issue?
 
-      // FIXME handle verify as a built-in (Or will p4c be updated to produce a separate token?)
       let m =
+        // FIXME check if this method is a reference to an extern (or is defined on an arch type? Is that a thing?)
+        match mc.method_ with
+        | :? JsonTypes.PathExpression as pathExpr ->
+            let ref = scopeInfo.GetReference pathExpr.path // FIXME this still has no scoping info though??
+            // FIXME maybe going back up the P4Path is better, checking each one for names via NameInScope?
+            error
+            ()
+        | _ -> failwithf "Unhandled type %s as method in JsonTypes.MethodCallExpresion" (mc.method_.GetType().Name)
         if Seq.isEmpty mc.typeArguments.vec
         then ofExpr UnknownType mc.method_
         else
@@ -918,7 +925,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let properties =
             let accessorsFor (dir : JsonTypes.Direction) =
               match dir with
-              | JsonTypes.Direction.None | JsonTypes.Direction.In -> Property.Get
+              | JsonTypes.Direction.NoDirection | JsonTypes.Direction.In -> Property.Get
               | JsonTypes.Direction.Out | JsonTypes.Direction.InOut -> Property.GetSet
             applyParams
             |> Seq.map (fun (p,cp) -> SF.PropertyDeclaration(cp.Type, cp.Identifier)
@@ -1049,7 +1056,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                             .WithBlockBody([]))
           let directedParams =
             pt.parameters.parameters.vec
-            |> Seq.filter (fun p -> p.direction <> JsonTypes.Direction.None)
+            |> Seq.filter (fun p -> p.direction <> JsonTypes.Direction.NoDirection)
             |> Seq.map (fun p -> (parameter ofType p).WithDirection(p.direction))
           let onApply =
             SF.MethodDeclaration(voidType, "OnApply")
@@ -1066,7 +1073,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             let className = sprintf "%s_Action" name
             let directionlessParams =
               p4action.parameters.parameters.vec
-              |> Seq.filter (fun p -> p.direction = JsonTypes.Direction.None)
+              |> Seq.filter (fun p -> p.direction = JsonTypes.Direction.NoDirection)
             let actionArgs =
               p4action.parameters.parameters.vec
               |> Seq.map (fun p -> let arg = SF.Argument(SF.IdentifierName(p.name)) // FIXME are parameters guaranteed to have the same name in this scope?
@@ -1196,7 +1203,8 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword; SK.ReadOnlyKeyword])
           |> Transformed.declOf
       | :? JsonTypes.Declaration_Instance as di ->
-          // TODO FIXME How to handle this? Is this where we need to start interacting with the device? Are these always packages?
+          // Either an instantiation in a control/parser block, or a package instantiation
+          // TODO FIXME Packages should now be generated as a main method that does: new package().Use(...)
           // FIXME handle initialiser
           let ty = ofType di.type_
           field ty (csFieldNameOf di.name) (constructorCall ty (Seq.map (ofExpr scopeInfo UnknownType) di.arguments.vec))
