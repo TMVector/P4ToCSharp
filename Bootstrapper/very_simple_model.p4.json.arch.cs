@@ -4,6 +4,7 @@ using PortId = P4ToCSharp.Library.bit4;
 
 public class Architecture
 {
+    [P4(P4Type.Error, "error")]
     public enum error
     {
         NoError,
@@ -15,65 +16,74 @@ public class Architecture
         ParserTimeout
     }
 
+    [P4(P4Type.ExternObject, "packet_in")]
     public interface packet_in
     {
-        void extract<T>(T hdr);
-        void extract<T>(T variableSizeHeader, bit32 variableFieldSizeInBits);
+        void extract<T>(out T hdr);
+        void extract<T>(out T variableSizeHeader, bit32 variableFieldSizeInBits);
         T lookahead<T>();
         void advance(bit32 sizeInBits);
         bit32 length();
     }
 
+    [P4(P4Type.ExternObject, "packet_out")]
     public interface packet_out
     {
         void emit<T>(T hdr);
         void emit<T>(bool condition, T data);
     }
 
-    static void verify(bool check, error toSignal)
+    [P4(P4Type.ExternFunction, "verify")]
+    static void verify(bool condition, error err)
     {
         throw new NotImplementedException();
     }
 
+    [P4(P4Type.MatchKind, "")]
+    public enum MatchKind
+    {
+        exact,
+        ternary,
+        lpm
+    }
+
+    [P4(P4Type.Struct, "InControl")]
     public sealed class InControl : IStruct
     {
         public PortId inputPort { get; set; }
     }
 
+    [P4(P4Type.Struct, "OutControl")]
     public sealed class OutControl : IStruct
     {
         public PortId outputPort { get; set; }
     }
 
-    interface Parser<H> : IParser
+    [P4(P4Type.Parser, "Parser")]
+    public interface Parser<H> : IParser
     {
-        void Apply(packet_in b, ref H parsedHeaders);
+        void Apply(packet_in b, out H parsedHeaders);
     }
 
-    interface Pipe<H> : IControl
+    [P4(P4Type.Control, "Pipe")]
+    public interface Pipe<H> : IControl
     {
-        void Apply(ref H headers, error parseError, InControl inCtrl, ref OutControl outCtrl);
+        void Apply(ref H headers, error parseError, InControl inCtrl, out OutControl outCtrl);
     }
 
-    interface Deparser<H> : IControl
+    [P4(P4Type.Control, "Deparser")]
+    public interface Deparser<H> : IControl
     {
         void Apply(ref H outputHeaders, packet_out b);
     }
 
-    class VSS<H> : IPackage
+    [P4(P4Type.Package, "VSS")]
+    public interface VSS<H> : IPackage
     {
-        Parser<H> p { get; }
-        Pipe<H> map { get; }
-        Deparser<H> d { get; }
-
-        VSS(Parser<H> p, Pipe<H> map, Deparser<H> d)
-        {
-            this.p = p;
-            this.map = map;
-            this.d = d;
-        }
+        void Use(Parser<H> p, Pipe<H> map, Deparser<H> d);
     }
 
+    [P4(P4Type.ExternObject, "Ck16")]
     public interface Ck16
     {
         void clear();

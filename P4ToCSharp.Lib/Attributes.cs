@@ -9,17 +9,17 @@ namespace P4ToCSharp.Library
   // See the attribute guidelines at http://go.microsoft.com/fwlink/?LinkId=85236
 
   [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Enum | AttributeTargets.Method | AttributeTargets.Struct | AttributeTargets.Field,
-                  Inherited = true, AllowMultiple = false)]
+                  Inherited = false, AllowMultiple = false)]
   public sealed class P4Attribute : Attribute
   {
-    public string P4Path { get; }
-
     public P4Type Type { get; }
 
-    public P4Attribute(string p4Path, P4Type @type)
+    public string P4Path { get; }
+
+    public P4Attribute(P4Type @type, string p4Path)
     {
-      P4Path = p4Path;
       Type = @type;
+      P4Path = p4Path;
     }
   }
 
@@ -40,7 +40,7 @@ namespace P4ToCSharp.Library
   }
 
   [AttributeUsage(AttributeTargets.Class,
-                  Inherited = true, AllowMultiple = false)]
+                  Inherited = false, AllowMultiple = false)]
   public sealed class P4LookupAttribute : Attribute
   {
     public string MatchKind { get; }

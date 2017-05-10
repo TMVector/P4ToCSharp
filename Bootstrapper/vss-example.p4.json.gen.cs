@@ -1,8 +1,15 @@
+using System;
 using P4ToCSharp.Library;
-using packet_in = Bootstrapper.VSSModel.packet_in;
-using packet_out = Bootstrapper.VSSModel.packet_out;
+using packet_in = Bootstrapper.VSSModel.packet_in_impl;
+using packet_out = Bootstrapper.VSSModel.packet_out_impl;
 using PortId = P4ToCSharp.Library.bit4;
-using Ck16 = Bootstrapper.VSSModel.Ck16;
+using InControl = Architecture.InControl;
+using OutControl = Architecture.OutControl;
+using Parser = Architecture.Parser`1;
+using Pipe = Architecture.Pipe`1;
+using Deparser = Architecture.Deparser`1;
+using VSS = Bootstrapper.VSSModel.VSS_impl`1;
+using Ck16 = Bootstrapper.VSSModel.Ck16_impl;
 using EthernetAddress = P4ToCSharp.Library.bit48;
 using IPv4Address = P4ToCSharp.Library.bit32;
 
@@ -22,91 +29,21 @@ public class Program
         IPv4ChecksumError
     }
 
-    public interface packet_in
+    static void verify(bool condition, error err)
     {
-        void extract<T>(T hdr);
-        void extract<T>(T variableSizeHeader, bit32 variableFieldSizeInBits);
-        T lookahead<T>();
-        void advance(bit32 sizeInBits);
-        bit32 length();
-    }
-
-    public interface packet_out
-    {
-        void emit<T>(T hdr);
-        void emit<T>(bool condition, T data);
-    }
-
-    static void verify(bool check, error toSignal)
-    {
-        Bootstrapper.VSSModel.verify(check, toSignal);
+        Bootstrapper.VSSModel.verify(condition, err);
     }
 
     static void NoAction()
     {
     }
 
-    enum MatchKind
-    {
-        exact,
-        ternary,
-        lpm
-    }
-
     public static readonly PortId REAL_PORT_COUNT = (PortId)8;
-
-    public sealed class InControl : IStruct
-    {
-        public PortId inputPort { get; set; }
-    }
-
     public static readonly PortId RECIRCULATE_IN_PORT = (PortId)0xD;
     public static readonly PortId CPU_IN_PORT = (PortId)0xE;
-
-    public sealed class OutControl : IStruct
-    {
-        public PortId outputPort { get; set; }
-    }
-
     public static readonly PortId DROP_PORT = (PortId)0xF;
     public static readonly PortId CPU_OUT_PORT = (PortId)0xE;
     public static readonly PortId RECIRCULATE_OUT_PORT = (PortId)0xD;
-
-    interface Parser<H> : IParser
-    {
-        void Apply(packet_in b, ref H parsedHeaders);
-    }
-
-    interface Pipe<H> : IControl
-    {
-        void Apply(ref H headers, error parseError, InControl inCtrl, ref OutControl outCtrl);
-    }
-
-    interface Deparser<H> : IControl
-    {
-        void Apply(ref H outputHeaders, packet_out b);
-    }
-
-    class VSS<H> : IPackage
-    {
-        Parser<H> p { get; }
-        Pipe<H> map { get; }
-        Deparser<H> d { get; }
-
-        VSS(Parser<H> p, Pipe<H> map, Deparser<H> d)
-        {
-            this.p = p;
-            this.map = map;
-            this.d = d;
-        }
-    }
-
-    public interface Ck16
-    {
-        void clear();
-        void update<T>(T data);
-        bit16 get();
-    }
 
     public sealed class Ethernet_h : HeaderBase
     {
@@ -196,8 +133,9 @@ public class Program
             ck = new Ck16();
         }
 
-        void Apply(packet_in b, ref Parsed_packet p)
+        void Apply(packet_in b, out Parsed_packet p)
         {
+            p = new Parsed_packet();
             start(b, p);
         }
 
@@ -254,7 +192,7 @@ public class Program
         {
         }
 
-        void apply(ref Parsed_packet headers, error parseError, InControl inCtrl, ref OutControl outCtrl)
+        void apply(ref Parsed_packet headers, error parseError, InControl inCtrl, out OutControl outCtrl)
         {
             TopPipe_Args TopPipe_Args = new TopPipe_Args(headers, parseError, inCtrl, outCtrl);
             IPv4Address nextHop;
@@ -281,18 +219,20 @@ public class Program
             TopPipe_Args.outCtrl.outputPort = DROP_PORT;
         }
 
-        static void Set_nhop(TopPipe_Args TopPipe_Args, ref IPv4Address nextHop, IPv4Address ipv4_dest, PortId port)
+        static void Set_nhop(TopPipe_Args TopPipe_Args, out IPv4Address nextHop, IPv4Address ipv4_dest, PortId port)
         {
             nextHop = ipv4_dest;
             TopPipe_Args.headers.ip.ttl = TopPipe_Args.headers.ip.ttl - 1;
             TopPipe_Args.outCtrl.outputPort = port;
         }
 
+        ipv4_match_t ipv4_match = new ipv4_match_t();
+
         private sealed class ipv4_match_t
         {
             LpmTable<bit32, ActionBase> lookup = new LpmTable<bit32, ActionBase>();
 
-            public apply_result apply(TopPipe_Args TopPipe_Args, ref IPv4Address nextHop)
+            public apply_result apply(TopPipe_Args TopPipe_Args, out IPv4Address nextHop)
             {
                 apply_result result;
                 ActionBase RA = lookup?[TopPipe_Args.headers.ip.dstAddr];
@@ -300,7 +240,7 @@ public class Program
                     result = new apply_result(false, default_action.Action);
                 else
                     result = new apply_result(true, RA.Action);
-                RA.OnApply(TopPipe_Args, ref nextHop);
+                RA.OnApply(TopPipe_Args, nextHop);
                 return result;
             }
 
@@ -326,7 +266,7 @@ public class Program
                     this.Action = action;
                 }
 
-                public abstract void OnApply(TopPipe_Args TopPipe_Args, ref IPv4Address nextHop);
+                public abstract void OnApply(TopPipe_Args TopPipe_Args, out IPv4Address nextHop);
 
                 public sealed class Drop_action_Action : ActionBase
                 {
@@ -334,7 +274,7 @@ public class Program
                     {
                     }
 
-                    public override void OnApply(TopPipe_Args TopPipe_Args, ref IPv4Address nextHop)
+                    public override void OnApply(TopPipe_Args TopPipe_Args, out IPv4Address nextHop)
                     {
                         Drop_action(TopPipe_Args);
                     }
@@ -351,7 +291,7 @@ public class Program
                         this.port = port;
                     }
 
-                    public override void OnApply(TopPipe_Args TopPipe_Args, ref IPv4Address nextHop)
+                    public override void OnApply(TopPipe_Args TopPipe_Args, out IPv4Address nextHop)
                     {
                         Set_nhop(TopPipe_Args, ref nextHop, ipv4_dest, port);
                     }
@@ -361,12 +301,12 @@ public class Program
             private ActionBase default_action = new ActionBase.Drop_action_Action();
         }
 
-        ipv4_match_t ipv4_match = new ipv4_match_t();
-
         static void Send_to_cpu(TopPipe_Args TopPipe_Args)
         {
             TopPipe_Args.outCtrl.outputPort = CPU_OUT_PORT;
         }
+
+        check_ttl_t check_ttl = new check_ttl_t();
 
         private sealed class check_ttl_t
         {
@@ -436,12 +376,12 @@ public class Program
             private ActionBase default_action = new ActionBase.NoAction_Action();
         }
 
-        check_ttl_t check_ttl = new check_ttl_t();
-
         static void Set_dmac(TopPipe_Args TopPipe_Args, EthernetAddress dmac)
         {
             TopPipe_Args.headers.ethernet.dstAddr = dmac;
         }
+
+        dmac_t dmac = new dmac_t();
 
         private sealed class dmac_t
         {
@@ -514,12 +454,12 @@ public class Program
             private ActionBase default_action = new ActionBase.Drop_action_Action();
         }
 
-        dmac_t dmac = new dmac_t();
-
         static void Set_smac(TopPipe_Args TopPipe_Args, EthernetAddress smac)
         {
             TopPipe_Args.headers.ethernet.srcAddr = smac;
         }
+
+        smac_t smac = new smac_t();
 
         private sealed class smac_t
         {
@@ -591,8 +531,6 @@ public class Program
 
             private ActionBase default_action = new ActionBase.Drop_action_Action();
         }
-
-        smac_t smac = new smac_t();
     }
 
     sealed class TopDeparser : IControl

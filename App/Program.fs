@@ -92,6 +92,8 @@ module Main =
           printfn "Done."
 
       #if DEBUG
+      // Hold the window open
+      printfn "Press any key to continue."
       System.Console.ReadKey() |> ignore
       #endif
 

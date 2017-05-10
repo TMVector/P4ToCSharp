@@ -45,6 +45,7 @@ module Util =
       for x in (Seq.rev xs) do
         ys <- x::ys
       ys
+    let isNotEmpty xs = List.isEmpty xs |> not
   module Map =
     let union<'k,'v when 'k : comparison> (map1 : Map<'k,'v>) (map2 : Map<'k,'v>) : Map<'k,'v> =
       // Add the smaller map's entries to the larger map

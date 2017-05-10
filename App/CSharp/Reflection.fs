@@ -66,18 +66,29 @@ let private validCsForP4 (p4:p4Attribute) (cs:TypeOrMember) : (AnnotationVerdict
   // Should be Type/Member, but is Member/Type
   | _ -> (Invalid, [ warningf "P4Attribute(\"%s\", %A) cannot annotate a %s." p4.P4Path p4.Type cs.CategoryString ])
 
+let rec getAttr<'Attr when 'Attr :> Attribute> (ty : Type) =
+  if Attribute.IsDefined(ty, typeof<'Attr>) then
+    (ty.GetCustomAttribute<'Attr>(), ty) |> Some
+  else if ty.IsInterface then
+    None
+  else
+    ty.GetInterfaces()
+    |> Seq.choose (getAttr)
+    |> Seq.tryFirst
+
 let mapArchAssembly (dll:Assembly) =
   // Search for types and members which have been annotated with the P4Attribute
   //  and for types annotated with P4LookupAttribute
   let warnings,lookups,types,members =
     // Search public types
     dll.ExportedTypes
+    |> Seq.map (fun ty -> ty.GetTypeInfo())
     |> Seq.fold (fun (warnings,lus,tys,ms) ty ->
           // Add this type or its members if they have a p4 attribute, keeping a list of warnings
           let mutable warnings = warnings
           let warn message = warnings <- (Warning message)::warnings // NOTE warnings are in reverse order
           let lus =
-            if Attribute.IsDefined(ty, p4LookupAttributeType) then
+            if Attribute.IsDefined(ty, p4LookupAttributeType) then // We only check for the lookup attribute directly on a class
               // TODO check that this attribute is on a valid class
               // If it is an interface, is it an impl intf or one we generated? If not, we don't care unless in 'check' mode (when we will also want to check that every required att/impl is present)
               // If it is a class, does it implement the correct intf?
@@ -85,12 +96,14 @@ let mapArchAssembly (dll:Assembly) =
               ty::lus
             else lus
           let tys =
-            if Attribute.IsDefined(ty, p4AttributeType) then ty::tys else tys
+            match getAttr<p4Attribute> ty with
+            | Some (attr, defTy) -> (ty, attr, defTy)::tys
+            | None -> tys
           let ms =
             let newMs =
               // We are interested in static methods and const/static-readonly fields/properties
               ty.GetMembers(BindingFlags.Public ||| BindingFlags.Static)
-              |> Seq.filter (fun meth -> Attribute.IsDefined(ty, p4AttributeType))
+              |> Seq.filter (fun m -> Attribute.IsDefined(m, p4AttributeType))
               |> List.ofSeq
             newMs @ ms
           (warnings, lus, tys, ms)
@@ -102,24 +115,26 @@ let mapArchAssembly (dll:Assembly) =
   // Create maps of p4-info -> c# name
   let p4Map =
     types
-    |> Seq.choose (fun ty ->
-        let attr = ty.GetCustomAttribute<p4Attribute>()
+    |> Seq.choose (fun (ty, attr, defTy) -> // FIXME use interface type (defTy) instead of concrete type
         let (verdict, warnings) = validCsForP4 attr (Type ty)
         addWarnings warnings
         let key = (attr.Type, attr.P4Path)
-        let value = ty.FullName
+        let value = ty.FullName.Replace('+', '.') // Nested members are ty+mem, we need ty.mem
         match verdict with
         | Model -> Some (key, value)
         | Gen | Invalid -> None)
     |> Seq.append (members |> Seq.choose (fun m ->
         let attr = m.GetCustomAttribute<p4Attribute>()
-        let (verdict, warnings) = validCsForP4 attr (Member m)
-        addWarnings warnings
-        let key = (attr.Type, attr.P4Path)
-        let value = sprintf "%s.%s" m.DeclaringType.FullName m.Name
-        match verdict with
-        | Model -> Some (key, value)
-        | Gen | Invalid -> None))
+        if attr = null then None
+        else
+          let (verdict, warnings) = validCsForP4 attr (Member m)
+          addWarnings warnings
+          let key = (attr.Type, attr.P4Path)
+          let value = sprintf "%s.%s" m.DeclaringType.FullName m.Name
+          let value = value.Replace('+', '.') // Nested members are ty+mem, we need ty.mem
+          match verdict with
+          | Model -> Some (key, value)
+          | Gen | Invalid -> None))
     |> Map.ofSeq
   // FIXME could check if declared match-kind actually matches a valid match_kind declared in this dll?
   let lookupMap =
@@ -133,7 +148,7 @@ let mapArchAssembly (dll:Assembly) =
   (warnings, p4Map, lookupMap)
 
 let mapArchDll (filename:string) =
-  let dll = Assembly.LoadFile(filename)
+  let dll = Assembly.LoadFile(System.IO.FileInfo(filename).FullName)
   mapArchAssembly dll
 
 let getLibMap() =
