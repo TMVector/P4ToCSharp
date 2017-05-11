@@ -16,6 +16,7 @@ namespace Bootstrapper
       throw new NotImplementedException();
     }
 
+    //[P4(P4Type.ExternObject, "packet_in")]
     public sealed class packet_in_impl : packet_in
     {
       public void extract<T>(out T hdr)
@@ -91,6 +92,7 @@ namespace Bootstrapper
       }
     }
 
+    //[P4(P4Type.ExternObject, "packet_out")]
     public sealed class packet_out_impl : packet_out
     {
       byte[] data;
@@ -182,6 +184,7 @@ namespace Bootstrapper
     //Appending a bit-string or integer value to a packet_out writes the value starting with the mostsignificant
     //bit.This process is the inverse of data extraction.
 
+    //[P4(P4Type.Package, "VSS")]
     public sealed class VSS_impl<H> : VSS<H>
     {
       public void Use(Parser<H> p, Pipe<H> map, Deparser<H> d)
@@ -191,6 +194,7 @@ namespace Bootstrapper
       }
     }
 
+    //[P4(P4Type.ExternObject, "Ck16")]
     public sealed class Ck16_impl : Ck16
     {
       public Ck16_impl()

@@ -153,11 +153,11 @@ public class Program
         void parse_ipv4(packet_in b, Parsed_packet p)
         {
             b.extract<Ipv4_h>(p.ip);
-            verify(p.ip.version == 4, error.IPv4IncorrectVersion);
-            verify(p.ip.ihl == 5, error.IPv4OptionsNotSupported);
+            Bootstrapper.VSSModel.verify(p.ip.version == 4, error.IPv4IncorrectVersion);
+            Bootstrapper.VSSModel.verify(p.ip.ihl == 5, error.IPv4OptionsNotSupported);
             ck.clear();
             ck.update<Ipv4_h>(p.ip);
-            verify(ck.get() == 0, error.IPv4ChecksumError);
+            Bootstrapper.VSSModel.verify(ck.get() == 0, error.IPv4ChecksumError);
             accept(b, p);
         }
 
@@ -192,26 +192,28 @@ public class Program
         {
         }
 
-        void apply(ref Parsed_packet headers, error parseError, InControl inCtrl, out OutControl outCtrl)
+        void apply(Parsed_packet headers_capture, ref Parsed_packet headers, error parseError, InControl inCtrl, out OutControl outCtrl)
         {
+            outCtrl = new OutControl();
+            headers = headers_capture;
             TopPipe_Args TopPipe_Args = new TopPipe_Args(headers, parseError, inCtrl, outCtrl);
             IPv4Address nextHop;
             if (TopPipe_Args.parseError != error.NoError)
             {
-                Drop_action();
+                Drop_action(TopPipe_Args);
                 return;
             }
 
-            ipv4_match.apply(nextHop);
+            ipv4_match.apply(TopPipe_Args, nextHop);
             if (TopPipe_Args.outCtrl.outputPort == DROP_PORT)
                 return;
-            check_ttl.apply();
+            check_ttl.apply(TopPipe_Args);
             if (TopPipe_Args.outCtrl.outputPort == CPU_OUT_PORT)
                 return;
-            dmac.apply(nextHop);
+            dmac.apply(TopPipe_Args, nextHop);
             if (TopPipe_Args.outCtrl.outputPort == DROP_PORT)
                 return;
-            smac.apply();
+            smac.apply(TopPipe_Args);
         }
 
         static void Drop_action(TopPipe_Args TopPipe_Args)
@@ -221,6 +223,7 @@ public class Program
 
         static void Set_nhop(TopPipe_Args TopPipe_Args, out IPv4Address nextHop, IPv4Address ipv4_dest, PortId port)
         {
+            nextHop = new IPv4Address();
             nextHop = ipv4_dest;
             TopPipe_Args.headers.ip.ttl = TopPipe_Args.headers.ip.ttl - 1;
             TopPipe_Args.outCtrl.outputPort = port;
@@ -234,20 +237,21 @@ public class Program
 
             public apply_result apply(TopPipe_Args TopPipe_Args, out IPv4Address nextHop)
             {
+                nextHop = new IPv4Address();
                 apply_result result;
                 ActionBase RA = lookup?[TopPipe_Args.headers.ip.dstAddr];
                 if (RA == null)
                     result = new apply_result(false, default_action.Action);
                 else
                     result = new apply_result(true, RA.Action);
-                RA.OnApply(TopPipe_Args, nextHop);
+                RA.OnApply(TopPipe_Args, out nextHop);
                 return result;
             }
 
             public enum action_list
             {
-                Drop_action,
-                Set_nhopnextHop
+                Drop_actionTopPipe_Args,
+                Set_nhopTopPipe_ArgsnextHop
             }
 
             public sealed class apply_result : apply_result<action_list>
@@ -268,9 +272,9 @@ public class Program
 
                 public abstract void OnApply(TopPipe_Args TopPipe_Args, out IPv4Address nextHop);
 
-                public sealed class Drop_action_Action : ActionBase
+                public sealed class Drop_actionTopPipe_Args_Action : ActionBase
                 {
-                    public Drop_action_Action() : base(action_list.Drop_action)
+                    public Drop_actionTopPipe_Args_Action() : base(action_list.Drop_actionTopPipe_Args)
                     {
                     }
 
@@ -280,12 +284,12 @@ public class Program
                     }
                 }
 
-                public sealed class Set_nhopnextHop_Action : ActionBase
+                public sealed class Set_nhopTopPipe_ArgsnextHop_Action : ActionBase
                 {
                     readonly IPv4Address ipv4_dest;
                     readonly PortId port;
 
-                    public Set_nhopnextHop_Action(IPv4Address ipv4_dest, PortId port) : base(action_list.Set_nhopnextHop)
+                    public Set_nhopTopPipe_ArgsnextHop_Action(IPv4Address ipv4_dest, PortId port) : base(action_list.Set_nhopTopPipe_ArgsnextHop)
                     {
                         this.ipv4_dest = ipv4_dest;
                         this.port = port;
@@ -293,12 +297,12 @@ public class Program
 
                     public override void OnApply(TopPipe_Args TopPipe_Args, out IPv4Address nextHop)
                     {
-                        Set_nhop(TopPipe_Args, ref nextHop, ipv4_dest, port);
+                        Set_nhop(TopPipe_Args, out nextHop, ipv4_dest, port);
                     }
                 }
             }
 
-            private ActionBase default_action = new ActionBase.Drop_action_Action();
+            private ActionBase default_action = new ActionBase.Drop_actionTopPipe_Args_Action();
         }
 
         static void Send_to_cpu(TopPipe_Args TopPipe_Args)
@@ -326,7 +330,7 @@ public class Program
 
             public enum action_list
             {
-                Send_to_cpu,
+                Send_to_cpuTopPipe_Args,
                 NoAction
             }
 
@@ -348,9 +352,9 @@ public class Program
 
                 public abstract void OnApply(TopPipe_Args TopPipe_Args);
 
-                public sealed class Send_to_cpu_Action : ActionBase
+                public sealed class Send_to_cpuTopPipe_Args_Action : ActionBase
                 {
-                    public Send_to_cpu_Action() : base(action_list.Send_to_cpu)
+                    public Send_to_cpuTopPipe_Args_Action() : base(action_list.Send_to_cpuTopPipe_Args)
                     {
                     }
 
@@ -401,8 +405,8 @@ public class Program
 
             public enum action_list
             {
-                Drop_action,
-                Set_dmac
+                Drop_actionTopPipe_Args,
+                Set_dmacTopPipe_Args
             }
 
             public sealed class apply_result : apply_result<action_list>
@@ -423,9 +427,9 @@ public class Program
 
                 public abstract void OnApply(TopPipe_Args TopPipe_Args, IPv4Address nextHop);
 
-                public sealed class Drop_action_Action : ActionBase
+                public sealed class Drop_actionTopPipe_Args_Action : ActionBase
                 {
-                    public Drop_action_Action() : base(action_list.Drop_action)
+                    public Drop_actionTopPipe_Args_Action() : base(action_list.Drop_actionTopPipe_Args)
                     {
                     }
 
@@ -435,11 +439,11 @@ public class Program
                     }
                 }
 
-                public sealed class Set_dmac_Action : ActionBase
+                public sealed class Set_dmacTopPipe_Args_Action : ActionBase
                 {
                     readonly EthernetAddress dmac;
 
-                    public Set_dmac_Action(EthernetAddress dmac) : base(action_list.Set_dmac)
+                    public Set_dmacTopPipe_Args_Action(EthernetAddress dmac) : base(action_list.Set_dmacTopPipe_Args)
                     {
                         this.dmac = dmac;
                     }
@@ -451,7 +455,7 @@ public class Program
                 }
             }
 
-            private ActionBase default_action = new ActionBase.Drop_action_Action();
+            private ActionBase default_action = new ActionBase.Drop_actionTopPipe_Args_Action();
         }
 
         static void Set_smac(TopPipe_Args TopPipe_Args, EthernetAddress smac)
@@ -479,8 +483,8 @@ public class Program
 
             public enum action_list
             {
-                Drop_action,
-                Set_smac
+                Drop_actionTopPipe_Args,
+                Set_smacTopPipe_Args
             }
 
             public sealed class apply_result : apply_result<action_list>
@@ -501,9 +505,9 @@ public class Program
 
                 public abstract void OnApply(TopPipe_Args TopPipe_Args);
 
-                public sealed class Drop_action_Action : ActionBase
+                public sealed class Drop_actionTopPipe_Args_Action : ActionBase
                 {
-                    public Drop_action_Action() : base(action_list.Drop_action)
+                    public Drop_actionTopPipe_Args_Action() : base(action_list.Drop_actionTopPipe_Args)
                     {
                     }
 
@@ -513,11 +517,11 @@ public class Program
                     }
                 }
 
-                public sealed class Set_smac_Action : ActionBase
+                public sealed class Set_smacTopPipe_Args_Action : ActionBase
                 {
                     readonly EthernetAddress smac;
 
-                    public Set_smac_Action(EthernetAddress smac) : base(action_list.Set_smac)
+                    public Set_smacTopPipe_Args_Action(EthernetAddress smac) : base(action_list.Set_smacTopPipe_Args)
                     {
                         this.smac = smac;
                     }
@@ -529,7 +533,7 @@ public class Program
                 }
             }
 
-            private ActionBase default_action = new ActionBase.Drop_action_Action();
+            private ActionBase default_action = new ActionBase.Drop_actionTopPipe_Args_Action();
         }
     }
 
@@ -551,8 +555,9 @@ public class Program
         {
         }
 
-        void apply(ref Parsed_packet p, packet_out b)
+        void apply(Parsed_packet p_capture, ref Parsed_packet p, packet_out b)
         {
+            p = p_capture;
             TopDeparser_Args TopDeparser_Args = new TopDeparser_Args(p, b);
             TopDeparser_Args.b.emit<Ethernet_h>(TopDeparser_Args.p.ethernet);
             if (TopDeparser_Args.p.ip.isValid())
