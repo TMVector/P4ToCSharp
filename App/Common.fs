@@ -15,3 +15,9 @@ type compilerError =
       System.Console.WriteLine(err.Message)
 let inline warningf fmt = ksprintf Warning fmt
 let inline errorf fmt = ksprintf Error fmt
+let inline errorNowf warnings fmt =
+  ksprintf (fun errorMessage ->
+    compilerError.Print (Seq.append warnings [Error errorMessage])
+    failwith errorMessage
+  ) fmt
+

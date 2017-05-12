@@ -1,15 +1,7 @@
 using System;
 using P4ToCSharp.Library;
-using packet_in = Bootstrapper.VSSModel.packet_in_impl;
-using packet_out = Bootstrapper.VSSModel.packet_out_impl;
+using static Architecture;
 using PortId = P4ToCSharp.Library.bit4;
-using InControl = Architecture.InControl;
-using OutControl = Architecture.OutControl;
-using Parser = Architecture.Parser`1;
-using Pipe = Architecture.Pipe`1;
-using Deparser = Architecture.Deparser`1;
-using VSS = Bootstrapper.VSSModel.VSS_impl`1;
-using Ck16 = Bootstrapper.VSSModel.Ck16_impl;
 using EthernetAddress = P4ToCSharp.Library.bit48;
 using IPv4Address = P4ToCSharp.Library.bit32;
 
@@ -29,7 +21,7 @@ public class Program
         IPv4ChecksumError
     }
 
-    static void verify(bool condition, error err)
+    static void verify(bool condition, Architecture.error err)
     {
         Bootstrapper.VSSModel.verify(condition, err);
     }
@@ -47,9 +39,9 @@ public class Program
 
     public sealed class Ethernet_h : HeaderBase
     {
-        public EthernetAddress dstAddr { get; set; }
-        public EthernetAddress srcAddr { get; set; }
-        public bit16 etherType { get; set; }
+        public EthernetAddress dstAddr;
+        public EthernetAddress srcAddr;
+        public bit16 etherType;
 
         public override void Parse(byte[] data, uint offset)
         {
@@ -70,18 +62,18 @@ public class Program
 
     public sealed class Ipv4_h : HeaderBase
     {
-        public bit4 version { get; set; }
-        public bit4 ihl { get; set; }
-        public bit8 diffserv { get; set; }
-        public bit16 totalLen { get; set; }
-        public bit16 identification { get; set; }
-        public bitN flags { get; set; }
-        public bitN fragOffset { get; set; }
-        public bit8 ttl { get; set; }
-        public bit8 protocol { get; set; }
-        public bit16 hdrChecksum { get; set; }
-        public IPv4Address srcAddr { get; set; }
-        public IPv4Address dstAddr { get; set; }
+        public bit4 version;
+        public bit4 ihl;
+        public bit8 diffserv;
+        public bit16 totalLen;
+        public bit16 identification;
+        public bitN flags;
+        public bitN fragOffset;
+        public bit8 ttl;
+        public bit8 protocol;
+        public bit16 hdrChecksum;
+        public IPv4Address srcAddr;
+        public IPv4Address dstAddr;
 
         public override void Parse(byte[] data, uint offset)
         {
@@ -120,20 +112,20 @@ public class Program
 
     public sealed class Parsed_packet : IStruct
     {
-        public Ethernet_h ethernet { get; set; }
-        public Ipv4_h ip { get; set; }
+        public Ethernet_h ethernet;
+        public Ipv4_h ip;
     }
 
-    sealed class TopParser : IParser
-    {
+    sealed class TopParser : Architecture.Parser<Parsed_packet>
+  {
         Ck16 ck;
 
         public TopParser()
         {
-            ck = new Ck16();
+            ck = new Bootstrapper.VSSModel.Ck16_impl();
         }
 
-        void Apply(packet_in b, out Parsed_packet p)
+        public void apply(packet_in b, out Parsed_packet p)
         {
             p = new Parsed_packet();
             start(b, p);
@@ -141,7 +133,7 @@ public class Program
 
         void start(packet_in b, Parsed_packet p)
         {
-            b.extract<Ethernet_h>(p.ethernet);
+            b.extract<Ethernet_h>(out p.ethernet);
             switch ((System.UInt16)p.ethernet.etherType)
             {
                 case 0x800:
@@ -152,12 +144,12 @@ public class Program
 
         void parse_ipv4(packet_in b, Parsed_packet p)
         {
-            b.extract<Ipv4_h>(p.ip);
-            Bootstrapper.VSSModel.verify(p.ip.version == 4, error.IPv4IncorrectVersion);
-            Bootstrapper.VSSModel.verify(p.ip.ihl == 5, error.IPv4OptionsNotSupported);
+            b.extract<Ipv4_h>(out p.ip);
+            Bootstrapper.VSSModel.verify(p.ip.version == 4, Architecture.error.IPv4IncorrectVersion);
+            Bootstrapper.VSSModel.verify(p.ip.ihl == 5, Architecture.error.IPv4OptionsNotSupported);
             ck.clear();
             ck.update<Ipv4_h>(p.ip);
-            Bootstrapper.VSSModel.verify(ck.get() == 0, error.IPv4ChecksumError);
+            Bootstrapper.VSSModel.verify(ck.get() == 0, Architecture.error.IPv4ChecksumError);
             accept(b, p);
         }
 
@@ -170,16 +162,16 @@ public class Program
         }
     }
 
-    sealed class TopPipe : IControl
-    {
+    sealed class TopPipe : Architecture.Pipe<Parsed_packet>
+  {
         class TopPipe_Args
         {
             public Parsed_packet headers { get; set; }
-            public error parseError { get; }
+            public Architecture.error parseError { get; }
             public InControl inCtrl { get; }
             public OutControl outCtrl { get; set; }
 
-            public TopPipe_Args(Parsed_packet headers, error parseError, InControl inCtrl, OutControl outCtrl)
+            public TopPipe_Args(Parsed_packet headers, Architecture.error parseError, InControl inCtrl, OutControl outCtrl)
             {
                 this.headers = headers;
                 this.parseError = parseError;
@@ -192,19 +184,19 @@ public class Program
         {
         }
 
-        void apply(Parsed_packet headers_capture, ref Parsed_packet headers, error parseError, InControl inCtrl, out OutControl outCtrl)
+        public void apply(Parsed_packet headers_capture, ref Parsed_packet headers, Architecture.error parseError, InControl inCtrl, out OutControl outCtrl)
         {
             outCtrl = new OutControl();
             headers = headers_capture;
             TopPipe_Args TopPipe_Args = new TopPipe_Args(headers, parseError, inCtrl, outCtrl);
             IPv4Address nextHop;
-            if (TopPipe_Args.parseError != error.NoError)
+            if (TopPipe_Args.parseError != Architecture.error.NoError)
             {
                 Drop_action(TopPipe_Args);
                 return;
             }
 
-            ipv4_match.apply(TopPipe_Args, nextHop);
+            ipv4_match.apply(TopPipe_Args, out nextHop);
             if (TopPipe_Args.outCtrl.outputPort == DROP_PORT)
                 return;
             check_ttl.apply(TopPipe_Args);
@@ -251,7 +243,7 @@ public class Program
             public enum action_list
             {
                 Drop_actionTopPipe_Args,
-                Set_nhopTopPipe_ArgsnextHop
+                Set_nhopTopPipe_ArgsoutnextHop
             }
 
             public sealed class apply_result : apply_result<action_list>
@@ -280,16 +272,17 @@ public class Program
 
                     public override void OnApply(TopPipe_Args TopPipe_Args, out IPv4Address nextHop)
                     {
+                        nextHop = new IPv4Address();
                         Drop_action(TopPipe_Args);
                     }
                 }
 
-                public sealed class Set_nhopTopPipe_ArgsnextHop_Action : ActionBase
+                public sealed class Set_nhopTopPipe_ArgsoutnextHop_Action : ActionBase
                 {
                     readonly IPv4Address ipv4_dest;
                     readonly PortId port;
 
-                    public Set_nhopTopPipe_ArgsnextHop_Action(IPv4Address ipv4_dest, PortId port) : base(action_list.Set_nhopTopPipe_ArgsnextHop)
+                    public Set_nhopTopPipe_ArgsoutnextHop_Action(IPv4Address ipv4_dest, PortId port) : base(action_list.Set_nhopTopPipe_ArgsoutnextHop)
                     {
                         this.ipv4_dest = ipv4_dest;
                         this.port = port;
@@ -297,6 +290,7 @@ public class Program
 
                     public override void OnApply(TopPipe_Args TopPipe_Args, out IPv4Address nextHop)
                     {
+                        nextHop = new IPv4Address();
                         Set_nhop(TopPipe_Args, out nextHop, ipv4_dest, port);
                     }
                 }
@@ -372,7 +366,7 @@ public class Program
 
                     public override void OnApply(TopPipe_Args TopPipe_Args)
                     {
-                        NoAction(TopPipe_Args);
+                        NoAction();
                     }
                 }
             }
@@ -537,7 +531,7 @@ public class Program
         }
     }
 
-    sealed class TopDeparser : IControl
+    sealed class TopDeparser : Architecture.Deparser<Parsed_packet>
     {
         class TopDeparser_Args
         {
@@ -555,7 +549,7 @@ public class Program
         {
         }
 
-        void apply(Parsed_packet p_capture, ref Parsed_packet p, packet_out b)
+        public void apply(Parsed_packet p_capture, ref Parsed_packet p, packet_out b)
         {
             p = p_capture;
             TopDeparser_Args TopDeparser_Args = new TopDeparser_Args(p, b);
@@ -571,8 +565,11 @@ public class Program
             TopDeparser_Args.b.emit<Ipv4_h>(TopDeparser_Args.p.ip);
         }
 
-        Ck16 ck = new Ck16();
+        Ck16 ck = new Bootstrapper.VSSModel.Ck16_impl();
     }
 
-    VSS<Parsed_packet> main = new VSS<Parsed_packet>(new TopParser(), new TopPipe(), new TopDeparser());
+    public static void Main()
+    {
+        new Bootstrapper.VSSModel.VSS_impl<Parsed_packet>().Use(new TopParser(), new TopPipe(), new TopDeparser());
+    }
 }

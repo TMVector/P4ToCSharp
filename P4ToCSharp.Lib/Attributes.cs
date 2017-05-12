@@ -8,6 +8,11 @@ namespace P4ToCSharp.Library
 {
   // See the attribute guidelines at http://go.microsoft.com/fwlink/?LinkId=85236
 
+  [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+  public sealed class P4ArchitectureAttribute : Attribute
+  {
+  }
+
   [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Enum | AttributeTargets.Method | AttributeTargets.Struct | AttributeTargets.Field,
                   Inherited = false, AllowMultiple = false)]
   public sealed class P4Attribute : Attribute

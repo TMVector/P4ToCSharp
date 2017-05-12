@@ -18,8 +18,10 @@ open P4ToCSharp.App.CSharpTypes
 type p4Type = P4ToCSharp.Library.P4Type
 type p4Attribute = P4ToCSharp.Library.P4Attribute
 type p4LookupAttribute = P4ToCSharp.Library.P4LookupAttribute
+type p4ArchitectureAttribute = P4ToCSharp.Library.P4ArchitectureAttribute
 let p4AttributeType = typeof<p4Attribute>
 let p4LookupAttributeType = typeof<p4LookupAttribute>
+let p4ArchitectureAttributeType = typeof<p4ArchitectureAttribute>
 
 type AnnotationVerdict =
   | Gen // Generated ONLY for the purpose of the interface
@@ -28,6 +30,7 @@ type AnnotationVerdict =
 type TypeOrMember = Type of Type | Member of MemberInfo
   with
   member this.CategoryString = match this with Type _ -> "type" | Member _ -> "member"
+type ArchClassRequirement = RequireArchClass | DontRequireArchClass
 let private validCsForP4 (p4:p4Attribute) (cs:TypeOrMember) : (AnnotationVerdict * compilerError list) = // NOTE this doesn't check signatures etc.; maybe rename to avoid confustion
   match p4.Type, cs with
   // Gen items (we use a when clause so control will continue to Model checks if this isn't Gen)
@@ -76,16 +79,17 @@ let rec getAttr<'Attr when 'Attr :> Attribute> (ty : Type) =
     |> Seq.choose (getAttr)
     |> Seq.tryFirst
 
-let mapArchAssembly (dll:Assembly) =
+let mapArchAssembly (archClassRequirement:ArchClassRequirement) (dll:Assembly) =
   // Search for types and members which have been annotated with the P4Attribute
   //  and for types annotated with P4LookupAttribute
-  let warnings,lookups,types,members =
+  let warnings,lookups,types,arch,members =
     // Search public types
     dll.ExportedTypes
     |> Seq.map (fun ty -> ty.GetTypeInfo())
-    |> Seq.fold (fun (warnings,lus,tys,ms) ty ->
+    |> Seq.fold (fun (warnings,lus,tys,arch,ms) ty ->
           // Add this type or its members if they have a p4 attribute, keeping a list of warnings
           let mutable warnings = warnings
+          let addMessage message = warnings <- message::warnings
           let warn message = warnings <- (Warning message)::warnings // NOTE warnings are in reverse order
           let lus =
             if Attribute.IsDefined(ty, p4LookupAttributeType) then // We only check for the lookup attribute directly on a class
@@ -99,6 +103,15 @@ let mapArchAssembly (dll:Assembly) =
             match getAttr<p4Attribute> ty with
             | Some (attr, defTy) -> (ty, attr, defTy)::tys
             | None -> tys
+          let arch =
+            match archClassRequirement with
+            | RequireArchClass ->
+                match Attribute.IsDefined(ty, p4ArchitectureAttributeType), arch with
+                | true, Some (existingArch:TypeInfo) ->
+                    errorNowf warnings "There must only be one class annotated with P4ArchitectureAttribute. Found %s and %s." ty.Name existingArch.Name
+                | true, None -> Some ty
+                | false, arch -> arch
+            | DontRequireArchClass -> arch
           let ms =
             let newMs =
               // We are interested in static methods and const/static-readonly fields/properties
@@ -106,11 +119,20 @@ let mapArchAssembly (dll:Assembly) =
               |> Seq.filter (fun m -> Attribute.IsDefined(m, p4AttributeType))
               |> List.ofSeq
             newMs @ ms
-          (warnings, lus, tys, ms)
-        ) ([], [], [], [])
+          (warnings, lus, tys, arch, ms)
+        ) ([], [], [], None, [])
   let mutable warnings = warnings
   let addWarning warning = warnings <- warning::warnings
   let addWarnings warning = warnings <- warning@warnings
+
+  let isArch : MemberInfo -> bool =
+    match archClassRequirement, arch with
+    | RequireArchClass, Some arch -> (=) (arch :> MemberInfo)
+    | RequireArchClass, None ->  errorNowf warnings "No class annotated with P4ArchitectureAttribute was found. Exactly one such class must be publically declared."
+    | DontRequireArchClass, _ -> fun _ -> true
+
+  let rec isDefinedInArch (m : MemberInfo) =
+    isArch m || isDefinedInArch m.DeclaringType
 
   // Create maps of p4-info -> c# name
   let p4Map =
@@ -119,10 +141,15 @@ let mapArchAssembly (dll:Assembly) =
         let (verdict, warnings) = validCsForP4 attr (Type ty)
         addWarnings warnings
         let key = (attr.Type, attr.P4Path)
-        let value = ty.FullName.Replace('+', '.') // Nested members are ty+mem, we need ty.mem
+        let value =
+          let tyName = ty.FullName.Replace('+', '.') // Nested members are ty+mem, we need ty.mem
+          if ty.ContainsGenericParameters then
+            tyName.Substring(0,  tyName.IndexOf('`')) // FIXME a bit hacky...
+          else tyName
         match verdict with
         | Model -> Some (key, value)
-        | Gen | Invalid -> None)
+        | Gen -> if isDefinedInArch ty then None else errorNowf warnings "Architecture members (%s) must be declared in the class annotated with P4ArchitectureAttribute" (ty.FullName)
+        | Invalid -> None)
     |> Seq.append (members |> Seq.choose (fun m ->
         let attr = m.GetCustomAttribute<p4Attribute>()
         if attr = null then None
@@ -134,7 +161,8 @@ let mapArchAssembly (dll:Assembly) =
           let value = value.Replace('+', '.') // Nested members are ty+mem, we need ty.mem
           match verdict with
           | Model -> Some (key, value)
-          | Gen | Invalid -> None))
+          | Gen -> if isDefinedInArch m then None else errorNowf warnings "Architecture members (%s) must be declared in the class annotated with P4ArchitectureAttribute" (m.Name)
+          | Invalid -> None))
     |> Map.ofSeq
   // FIXME could check if declared match-kind actually matches a valid match_kind declared in this dll?
   let lookupMap =
@@ -145,15 +173,16 @@ let mapArchAssembly (dll:Assembly) =
         let value = lu.FullName
         (key, value))
     |> Map.ofSeq
-  (warnings, p4Map, lookupMap)
+  let architectureClassName = arch |> Option.map (fun arch -> arch.FullName.Replace('+', '.')) |> Option.ifNoneValue ""
+  (warnings, p4Map, lookupMap, architectureClassName)
 
 let mapArchDll (filename:string) =
   let dll = Assembly.LoadFile(System.IO.FileInfo(filename).FullName)
-  mapArchAssembly dll
+  mapArchAssembly RequireArchClass dll
 
 let getLibMap() =
-  let (warnings, p4Map, lookupMap) as rv =
+  let (warnings, p4Map, lookupMap, arch) as rv =
     Assembly.GetAssembly(typeof<P4ToCSharp.Library.LpmTable<_,_>>) // Get Library dll
-    |> mapArchAssembly
+    |> mapArchAssembly DontRequireArchClass
   assert warnings.IsEmpty
   lookupMap

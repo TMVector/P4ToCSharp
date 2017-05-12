@@ -1494,15 +1494,15 @@ module JsonTypes =
     match node with
     | :? P4Action -> P4Type.Action
     | :? Declaration_Constant -> P4Type.Const
-    | :? Type_Control -> P4Type.Control
+    | :? Type_Control | :? P4Control -> P4Type.Control
     | :? Type_Enum -> P4Type.Enum
     | :? Type_Error -> P4Type.Error
     | :? Method -> P4Type.ExternFunction
     | :? Type_Extern -> P4Type.ExternObject
     | :? Type_Header -> P4Type.Header
     | :? Declaration_MatchKind -> P4Type.MatchKind
-    | :? Type_Package -> P4Type.Package
-    | :? Type_Parser -> P4Type.Parser
+    | :? Type_Package | :? Declaration_Instance -> P4Type.Package // NOTE Declaration_Instance could also be an extern local, but this function isn't used in that case (I think)
+    | :? Type_Parser | :? P4Parser -> P4Type.Parser
     | :? Type_Struct -> P4Type.Struct
     | _ -> failwithf "JsonTypes.%s does not have a corresponding P4Type" (node.GetType().Name)
     // FIXME Check these are the correct JsonTypes types
