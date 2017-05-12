@@ -21,7 +21,7 @@ public class Program
         IPv4ChecksumError
     }
 
-    static void verify(bool condition, Architecture.error err)
+    static void verify(bool condition, error err)
     {
         Bootstrapper.VSSModel.verify(condition, err);
     }
@@ -117,7 +117,7 @@ public class Program
     }
 
     sealed class TopParser : Architecture.Parser<Parsed_packet>
-  {
+    {
         Ck16 ck;
 
         public TopParser()
@@ -145,11 +145,11 @@ public class Program
         void parse_ipv4(packet_in b, Parsed_packet p)
         {
             b.extract<Ipv4_h>(out p.ip);
-            Bootstrapper.VSSModel.verify(p.ip.version == 4, Architecture.error.IPv4IncorrectVersion);
-            Bootstrapper.VSSModel.verify(p.ip.ihl == 5, Architecture.error.IPv4OptionsNotSupported);
+            Bootstrapper.VSSModel.verify(p.ip.version == 4, error.IPv4IncorrectVersion);
+            Bootstrapper.VSSModel.verify(p.ip.ihl == 5, error.IPv4OptionsNotSupported);
             ck.clear();
             ck.update<Ipv4_h>(p.ip);
-            Bootstrapper.VSSModel.verify(ck.get() == 0, Architecture.error.IPv4ChecksumError);
+            Bootstrapper.VSSModel.verify(ck.get() == 0, error.IPv4ChecksumError);
             accept(b, p);
         }
 
@@ -163,15 +163,15 @@ public class Program
     }
 
     sealed class TopPipe : Architecture.Pipe<Parsed_packet>
-  {
+    {
         class TopPipe_Args
         {
             public Parsed_packet headers { get; set; }
-            public Architecture.error parseError { get; }
+            public error parseError { get; }
             public InControl inCtrl { get; }
             public OutControl outCtrl { get; set; }
 
-            public TopPipe_Args(Parsed_packet headers, Architecture.error parseError, InControl inCtrl, OutControl outCtrl)
+            public TopPipe_Args(Parsed_packet headers, error parseError, InControl inCtrl, OutControl outCtrl)
             {
                 this.headers = headers;
                 this.parseError = parseError;
@@ -184,13 +184,13 @@ public class Program
         {
         }
 
-        public void apply(Parsed_packet headers_capture, ref Parsed_packet headers, Architecture.error parseError, InControl inCtrl, out OutControl outCtrl)
+        public void apply(Parsed_packet headers_capture, ref Parsed_packet headers, error parseError, InControl inCtrl, out OutControl outCtrl)
         {
             outCtrl = new OutControl();
             headers = headers_capture;
             TopPipe_Args TopPipe_Args = new TopPipe_Args(headers, parseError, inCtrl, outCtrl);
             IPv4Address nextHop;
-            if (TopPipe_Args.parseError != Architecture.error.NoError)
+            if (TopPipe_Args.parseError != error.NoError)
             {
                 Drop_action(TopPipe_Args);
                 return;

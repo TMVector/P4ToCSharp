@@ -43,10 +43,14 @@ module JsonTypes =
   //-----------------------------------------------------------------------------------------------
   // Now follows the types which will be deserialised from the JSON output of the p4c compiler IR.
   //-----------------------------------------------------------------------------------------------
-
-  type Node(node_id, node_type) =
+  let mutable private maxNodeId = 0
+  type Node [<JsonConstructor>](node_id, node_type) =
+    inherit obj()
     interface INode
-    member this.Node_ID : int = node_id
+    member val Node_ID : int =
+      let node_id = if node_id < 0 then maxNodeId else node_id // Negative node_id not allowed - give new id instead
+      if node_id >= maxNodeId then maxNodeId <- node_id + 1
+      node_id
     member this.Node_Type : string = node_type
     // Gets any elements which could be accessed by an identifer in a parent scope. (External access)
     abstract member NamedChild : string -> Node option
@@ -54,6 +58,10 @@ module JsonTypes =
     // Gets any elements which could be accessed by an identifier in this or a child scope. (Internal access)
     abstract member NamedInScope : string -> Node option
     default this.NamedInScope(name) = None
+    override this.Equals(other) =
+      match other with
+      | :? Node as other -> this.Node_ID >= 0 && this.Node_ID = other.Node_ID
+      | _ -> base.Equals(other)
 
   type Vector<'T> [<JsonConstructor>](node_id, node_type, vec) =
     inherit Node(node_id, node_type)
@@ -122,10 +130,14 @@ module JsonTypes =
       Path(-1, "Path", name, absolute)
     member this.name : ID = name
     member this.absolute : bool = absolute
-    interface INamed with
-      member this.Name = this.name
     override this.ToString() =
-      this.name
+      (if this.absolute then "." else "") + this.name
+    override this.Equals(other) =
+      match other with
+      | :? Path as other ->
+        (this.Node_ID >= 0 && this.Node_ID = other.Node_ID)
+        || (this.absolute = other.absolute && this.name = other.name)
+      | _ -> false
 
   [<Sealed>]
   type Annotation(node_id, node_type, name, expr) =
@@ -296,6 +308,14 @@ module JsonTypes =
   type Type_Name(node_id, node_type, path) =
     inherit Type(node_id, node_type)
     member this.path : Path = path
+    override this.ToString() =
+      this.path.ToString()
+    override this.Equals(other) =
+      match other with
+      | :? Type_Name as other ->
+        (this.Node_ID >= 0 && this.Node_ID = other.Node_ID)
+        || this.path = other.path
+      | _ -> false
 
   [<Sealed>]
   type Type_Stack(node_id, node_type, elementType, size) =

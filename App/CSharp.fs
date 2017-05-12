@@ -67,7 +67,7 @@ type ScopeInfo =
     ThisMap : Map<int, JsonTypes.IDeclaration>;
     ArchMap : Map<P4Type*string,string>;
     LookupMap : Map<string,string>;
-    ControlInterfaceMap : Map<string,string>;
+    ControlInterfaceMap : Map<string,string*ScopeInfo>;
   } with
   member this.AncestorScopes =
     seq {
@@ -201,9 +201,9 @@ type ScopeInfo =
     this.PathMap.TryFind(path.Node_ID)
   member this.GetReference(thisNode : JsonTypes.This) =
     this.ThisMap.TryFind(thisNode.Node_ID)
-  member this.TryGetControlInterfaceName() =
+  member this.TryGetControlInterface() =
     this.ControlInterfaceMap.TryFind(this.CurrentPathString)
-    |> Option.map (fun typeName -> SF.ParseName(typeName))
+    |> Option.map (fun (typeName, typeScope) -> SF.ParseName(typeName), typeScope)
   member this.TryGetArchNameString(p4Type : P4Type) =
     this.ArchMap.TryFind((p4Type, this.CurrentPathString))
   member this.TryGetArchName(p4Type : P4Type) =
@@ -537,6 +537,39 @@ let saveToFile (compilationUnit : Syntax.CompilationUnitSyntax) (filename:string
   use writer = new System.IO.StreamWriter(filename)
   formattedNode.WriteTo(writer)
 
+let unifyTypeArgs (node : JsonTypes.Type) (specialisedNode : JsonTypes.Type) =
+  let rec unify (ty : JsonTypes.Type) (spec : JsonTypes.Type) (varMap : Map<string, JsonTypes.Type option>) =
+    match ty, spec with
+    | (:? JsonTypes.Type_Name as ty), spec when varMap.ContainsKey(ty.path.name) -> addToMap varMap ty.path.name spec
+    | (:? JsonTypes.Type_Specialized as ty), (:? JsonTypes.Type_Specialized as spec) -> unifyParameters ty.arguments.vec spec.arguments.vec varMap
+    | ty, spec when ty = spec -> varMap // equal (Is this ever the case? You haven't overriden equality)
+    | _ -> failwithf "Failed to unify %s/%s and %s/%s" (ty.ToString()) (ty.GetType().Name) (spec.ToString()) (spec.GetType().Name)
+  and unifyParameters (types : JsonTypes.Type[]) (specTypes : JsonTypes.Type[]) (varMap : Map<string, JsonTypes.Type option>) =
+    if types.Length <> specTypes.Length then failwithf "Type array counts not equal (%d <> %d) when unifying." types.Length specTypes.Length
+    Seq.zip types specTypes
+    |> Seq.fold (fun map (t,st) -> unify t st map) varMap
+  and addToMap map k v =
+    // Check that any existing entries unify with this v
+    let existing = map.[k]
+    if existing.IsSome then
+      unify existing.Value v map |> ignore
+    Map.add k (Some v) map
+  let typesOfParameters = Array.map (fun (p:JsonTypes.Parameter) -> p.type_)
+  let unifyParamList (paramList : JsonTypes.ParameterList) (specParamList : JsonTypes.ParameterList) =
+    unifyParameters (typesOfParameters paramList.parameters.vec) (typesOfParameters specParamList.parameters.vec)
+  let initMap (typeParameters : JsonTypes.TypeParameters) =
+    typeParameters.parameters.vec
+    |> Array.map (fun typeParam -> typeParam.name, None)
+    |> Map.ofArray
+  match node, specialisedNode with
+  | :? JsonTypes.Type_Parser as parser, (:? JsonTypes.Type_Parser as specParser) ->
+    initMap parser.typeParameters
+    |> unifyParamList parser.applyParams specParser.applyParams
+  | :? JsonTypes.Type_Control as control, (:? JsonTypes.Type_Control as specControl) ->
+    initMap control.typeParameters
+    |> unifyParamList control.applyParams specControl.applyParams
+  | _ -> failwithf "Types %s and %s are not supported or do not match in unifyTypeArgs" (node.GetType().Name) (specialisedNode.GetType().Name)
+  |> Map.map (fun k v -> v |> Option.ifNone (fun () -> failwithf "Type var %s could not be unified" k))
 let inferTypeOf (scope:ScopeInfo) (typedefBehaviour:TypeDefBehaviour) (expr:JsonTypes.Expression) : JsonTypes.Type =
   scope.GetTypeOf(expr) // Doesn't respect/preserve typedefs... (FIXME is that true?)
   |> Option.map (resolveType scope typedefBehaviour)
@@ -1036,8 +1069,11 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                                     .WithBlockBody(Seq.map (ofStatOrDecl scopeInfo) state.components.vec // FIXME handle verify statements
                                                   |> Seq.append <| selectStatement state.selectExpression |> Seq.cast)) // TODO FIXME selectExpression could be just a pathExpression - turn into a method call
       let archIntf =
-        let intfName = scopeInfo.TryGetControlInterfaceName() |> Option.ifNone (fun () -> failwithf "No interface found for parser %s" p.name) // FIXME is this strictly an error? Just don't declare a base interface
-        makeGenericName (intfName) (p.type_.typeParameters.parameters.vec |> Seq.map ofType |> tArgList)
+        let intfName, typeDefScope = scopeInfo.TryGetControlInterface() |> Option.ifNone (fun () -> failwithf "No interface found for parser %s" p.name) // FIXME is this strictly an error? Just don't declare a base interface
+        let typeDef = typeDefScope.CurrentNode :?> JsonTypes.Type_Parser
+        let tyArgMap = unifyTypeArgs typeDef p.type_
+        let getTyArg (ty : JsonTypes.Type_Var) = tyArgMap.[ty.name]
+        makeGenericName (intfName) (typeDef.typeParameters.parameters.vec |> Seq.map (getTyArg >> ofType) |> tArgList)
         |> SF.SimpleBaseType
       SF.ClassDeclaration(className)
         .AddBaseListTypes(archIntf)
@@ -1128,8 +1164,11 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
         if Seq.isEmpty results.Usings |> not then failwithf "Usings declared within P4Control - currently unhandled" // FIXME E.g. Type_Typedef - could be solved by scoping the control in its own namespace?
         results.Declarations |> Seq.toArray
       let archIntf =
-        let intfName = scopeInfo.TryGetControlInterfaceName() |> Option.ifNone (fun () -> failwithf "No interface found for control %s" pc.name) // FIXME is this strictly an error? Just don't declare a base interface
-        makeGenericName (intfName) (pc.type_.typeParameters.parameters.vec |> Seq.map ofType |> tArgList)
+        let intfName, typeDefScope = scopeInfo.TryGetControlInterface() |> Option.ifNone (fun () -> failwithf "No interface found for control %s" pc.name) // FIXME is this strictly an error? Just don't declare a base interface
+        let typeDef = typeDefScope.CurrentNode :?> JsonTypes.Type_Control
+        let tyArgMap = unifyTypeArgs typeDef pc.type_
+        let getTyArg (ty : JsonTypes.Type_Var) = tyArgMap.[ty.name]
+        makeGenericName (intfName) (typeDef.typeParameters.parameters.vec |> Seq.map (getTyArg >> ofType) |> tArgList)
         |> SF.SimpleBaseType
       SF.ClassDeclaration(className)
         .AddBaseListTypes(archIntf)
@@ -1572,7 +1611,7 @@ let ofProgram (program : JsonTypes.Program) (p4Map : Map<P4Type*string,string>) 
           | unhandled -> failwithf "Unhandled type %s for package parameter" (unhandled.GetType().Name)
           |> Option.ifNone (fun () -> failwithf "Could not find architecture element for package parameter type def (%s)" typeScope.CurrentPathString)
         let concreteType = packageTypeScope.TryResolveType(arg.type_) |> Option.ifNone (fun () -> failwithf "Could not resolve package argument type %s" (arg.type_.GetType().Name))
-        concreteType.CurrentPathString, archIntfName)
+        concreteType.CurrentPathString, (archIntfName, typeScope))
     |> Map.ofSeq
 
   let scope =
