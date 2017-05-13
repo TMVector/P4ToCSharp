@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Bootstrapper")]
+[assembly: AssemblyTitle("vss-model")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Bootstrapper")]
+[assembly: AssemblyProduct("vss-model")]
 [assembly: AssemblyCopyright("Copyright ©  2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("f28a0c84-9abb-465c-9a55-48191d962c00")]
+[assembly: Guid("d7fb9dfd-c90b-41ff-82a6-75921e53be18")]
 
 // Version information for an assembly consists of the following four values:
 //

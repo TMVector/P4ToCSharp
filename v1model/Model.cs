@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using P4ToCSharp.Library;
-using static Architecture;
+using static v1model.Architecture;
 
 namespace v1model
 {

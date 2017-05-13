@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using P4ToCSharp.Library;
-using static Architecture;
+using static vss_model.Architecture;
 
-namespace Bootstrapper
+namespace vss_model
 {
   public static class VSSModel
   {
