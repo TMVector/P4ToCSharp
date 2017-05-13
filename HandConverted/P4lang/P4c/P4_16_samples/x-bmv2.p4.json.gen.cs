@@ -46,7 +46,7 @@ public class Program
 
     static void hash<O, T, D, M>(O result, HashAlgorithm algo, T @base, D data, M max)
     {
-        v1model.Model.hash<O, T, D, M>(result, algo, base, data, max);
+        v1model.Model.hash<O, T, D, M>(result, algo, @base, data, max);
     }
 
     static void resubmit<T>(T data)

@@ -1470,7 +1470,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter (ofType scopeInfo)))
             .WithBlockBody([SF.ExpressionStatement(
                               SF.InvocationExpression(fullName)
-                                .WithArguments(m.type_.parameters.parameters.vec |> Seq.map (fun p -> upcast SF.IdentifierName(p.name))))])
+                                .WithArguments(m.type_.parameters.parameters.vec |> Seq.map (fun p -> upcast SF.IdentifierName(variableNameFor p.name))))])
           |> Transformed.declOf
       | :? JsonTypes.Attribute -> failwith "JsonTypes.Attribute not handled yet" // FIXME
       | :? JsonTypes.ParserState -> failwith "JsonTypes.ParserState not handled yet" // FIXME
