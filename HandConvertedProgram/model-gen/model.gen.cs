@@ -14,20 +14,21 @@ namespace HandConvertedProgram
     // core
     //======
 
-    // FIXME How does this work with program expanding error enum?
-    [P4("error", P4Type.Error)]
-    public enum error
+    [P4(P4Type.Error, "error")]
+    public class error : P4ToCSharp.Library.error
     {
-      NoError,
-      PacketTooShort,
-      NoMatch,
-      StackOutOfBounds,
-      OverwritingHeader,
-      HeaderTooShort,
-      ParserTimeout
+      public static readonly error NoError = new error();
+      public static readonly error PacketTooShort = new error();
+      public static readonly error NoMatch = new error();
+      public static readonly error StackOutOfBounds = new error();
+      public static readonly error OverwritingHeader = new error();
+      public static readonly error HeaderTooShort = new error();
+      public static readonly error ParserTimeout = new error();
+
+      protected error() { }
     }
 
-    [P4("packet_in", P4Type.ExternObject)]
+    [P4(P4Type.ExternObject, "packet_in")]
     public interface packet_in : IExternObject
     {
       // NOTE the target manufacturer could add a T:new() constraint
@@ -39,7 +40,7 @@ namespace HandConvertedProgram
       bit32 length();
     }
 
-    [P4("packet_ouy", P4Type.ExternObject)]
+    [P4(P4Type.ExternObject, "packet_out")]
     public interface packet_out : IExternObject
     {
       void emit<T>(T hdr);
@@ -47,21 +48,21 @@ namespace HandConvertedProgram
     }
 
     // NOTE since these are static methods, we cannot generate interfaces, so we generate an example
-    [P4("verify", P4Type.ExternFunction)]
+    [P4(P4Type.ExternFunction, "verify")]
     static void verify(bool cond, error err)
     {
       throw new NotImplementedException();
     }
 
     // NOTE - not model, just stdlib
-    [P4("NoAction", P4Type.Action)]
+    [P4(P4Type.Action, "NoAction")]
     static void NoAction()
     {
       throw new NotImplementedException();
     }
 
     // FIXME - What about how tables are grabbed, etc?
-    [P4("match_kind", P4Type.MatchKind)]
+    [P4(P4Type.MatchKind, "match_kind")]
     public enum match_kind
     {
       exact,
@@ -74,44 +75,44 @@ namespace HandConvertedProgram
 
     // typedef is a using at the top
 
-    [P4("REAL_PORT_COUNT", P4Type.Const)]
+    [P4(P4Type.Const, "REAL_PORT_COUNT")]
     public static readonly PortId REAL_PORT_COUNT = 8; // Cannot be const because struct
 
-    [P4("InControl", P4Type.Struct)]
+    [P4(P4Type.Struct, "InControl")]
     public sealed class InControl : IStruct
     {
       public PortId inputPort;
     }
 
-    [P4("RECIRCULATE_IN_PORT", P4Type.Const)]
+    [P4(P4Type.Const, "RECIRCULATE_IN_PORT")]
     public static readonly PortId RECIRCULATE_IN_PORT = 0xD;
 
-    [P4("CPU_IN_PORT", P4Type.Const)]
+    [P4(P4Type.Const, "CPU_IN_PORT")]
     public static readonly PortId CPU_IN_PORT = 0xE;
 
-    [P4("OutControl", P4Type.Struct)]
+    [P4(P4Type.Struct, "OutControl")]
     public sealed class OutControl : IStruct
     {
       public PortId outputPort;
     }
 
-    [P4("DROP_PORT", P4Type.Const)]
+    [P4(P4Type.Const, "DROP_PORT")]
     public static readonly PortId DROP_PORT = 0xF;
 
-    [P4("CPU_OUT_PORT", P4Type.Const)]
+    [P4(P4Type.Const, "CPU_OUT_PORT")]
     public static readonly PortId CPU_OUT_PORT = 0xE;
 
-    [P4("RECIRCULATE_OUT_PORT", P4Type.Const)]
+    [P4(P4Type.Const, "RECIRCULATE_OUT_PORT")]
     public static readonly PortId RECIRCULATE_OUT_PORT = 0xD;
 
 
-    [P4("Parser", P4Type.Parser)]
+    [P4(P4Type.Parser, "Parser")]
     public interface Parser<H> : IParser
     {
       void apply(packet_in b, out H parsedHeaders); // NOTE params moved from Parser<H>(...) -> explicit apply method
     }
 
-    [P4("Pipe", P4Type.Control)]
+    [P4(P4Type.Control, "Pipe")]
     public interface Pipe<H> : IControl
     {
       void apply(ref H headers,
@@ -120,14 +121,14 @@ namespace HandConvertedProgram
                  out OutControl outCtrl);
     }
 
-    [P4("Deparser", P4Type.Control)]
+    [P4(P4Type.Control, "Deparser")]
     public interface Deparser<H> : IControl
     {
       void apply(ref H outputHeaders,
                  packet_out b);
     }
 
-    [P4("VSS", P4Type.Package)]
+    [P4(P4Type.Package, "VSS")]
     public interface VSS<H> : IPackage
     {
       void use(Parser<H> p,
@@ -135,7 +136,7 @@ namespace HandConvertedProgram
                Deparser<H> d);
     }
 
-    [P4("Ck16", P4Type.ExternObject)]
+    [P4(P4Type.ExternObject, "Ck16")]
     public interface Ck16 : IExternObject
     {
       // FIXME cannot have ctor in interface.   Will have to check the implementing type when found with reflection

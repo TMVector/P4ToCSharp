@@ -95,13 +95,13 @@ module JsonParsing =
     inherit JsonConverter()
     static member toString d =
       match d with
-      | JsonTypes.Direction.None -> ""
+      | JsonTypes.Direction.NoDirection -> ""
       | JsonTypes.Direction.In -> "in"
       | JsonTypes.Direction.Out -> "out"
       | JsonTypes.Direction.InOut -> "inout"
     static member parse s =
       match s with
-      | "" -> JsonTypes.Direction.None
+      | "" -> JsonTypes.Direction.NoDirection
       | "in" -> JsonTypes.Direction.In
       | "out" -> JsonTypes.Direction.Out
       | "inout" -> JsonTypes.Direction.InOut

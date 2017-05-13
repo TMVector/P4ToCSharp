@@ -10,6 +10,8 @@ open Newtonsoft.Json // For attributes
 
 open P4ToCSharp.App.Util
 
+// FIXME remove types which aren't actually generated. E.g. are V1 types ever generated, or are they always converted?
+
 module JsonTypes =
   type IDictionary<'K,'V> = System.Collections.Generic.IDictionary<'K,'V>
   type Dictionary<'K,'V> = System.Collections.Generic.Dictionary<'K,'V>
@@ -24,6 +26,7 @@ module JsonTypes =
     abstract member Name : ID
 
   // Marker interfaces
+  // FIXME it's really annoying how these don't guarantee they are Nodes
   type INode = interface end
   type IDeclaration = inherit INode
   type IContainer = inherit IDeclaration
@@ -40,16 +43,29 @@ module JsonTypes =
   //-----------------------------------------------------------------------------------------------
   // Now follows the types which will be deserialised from the JSON output of the p4c compiler IR.
   //-----------------------------------------------------------------------------------------------
-
-  type Node(node_id, node_type) =
+  let mutable private maxNodeId = 0
+  type Node [<JsonConstructor>](node_id, node_type) =
+    inherit obj()
     interface INode
-    member this.Node_ID : int = node_id
+    member val Node_ID : int =
+      let node_id = if node_id < 0 then maxNodeId else node_id // Negative node_id not allowed - give new id instead
+      if node_id >= maxNodeId then maxNodeId <- node_id + 1
+      node_id
     member this.Node_Type : string = node_type
+    // Gets any elements which could be accessed by an identifer in a parent scope. (External access)
     abstract member NamedChild : string -> Node option
     default this.NamedChild(name) = None
+    // Gets any elements which could be accessed by an identifier in this or a child scope. (Internal access)
+    abstract member NamedInScope : string -> Node option
+    default this.NamedInScope(name) = None
+    override this.Equals(other) =
+      match other with
+      | :? Node as other -> this.Node_ID >= 0 && this.Node_ID = other.Node_ID
+      | _ -> base.Equals(other)
 
-  type Vector<'T>(node_id, node_type, vec) =
+  type Vector<'T> [<JsonConstructor>](node_id, node_type, vec) =
     inherit Node(node_id, node_type)
+    new(vec) = Vector(-1, "Vector", vec)
     member this.vec : vector<'T> = vec // value is json list
 
   [<Sealed>]
@@ -57,8 +73,6 @@ module JsonTypes =
     inherit Vector<'T>(node_id, node_type, vec)
     member this.declarations : OrderedMap<string, IDeclaration> = declarations // value is json dictionary
     member this.declarationsMap = declarations |> Map.ofSeq
-    override this.NamedChild(name) =
-      this.declarationsMap.TryFind name |> Option.cast
 
   [<Sealed>]
   type NameMap<'T>(node_id, node_type, symbols) =
@@ -74,8 +88,9 @@ module JsonTypes =
     inherit Type(node_id, node_type)
 
   [<Sealed>]
-  type Type_Unknown(node_id, node_type) =
+  type Type_Unknown [<JsonConstructor>](node_id, node_type) =
     inherit Type_Base(node_id, node_type)
+    new() = Type_Unknown(-1, "Type_Unknown")
 
   type StatOrDecl(node_id, node_type) =
     inherit Node(node_id, node_type)
@@ -108,12 +123,21 @@ module JsonTypes =
     inherit Expression(node_id, node_type, type_)
 
   [<Sealed>]
-  type Path(node_id, node_type, name, absolute) =
+  type Path [<JsonConstructor>](node_id, node_type, name, absolute) =
     inherit Node(node_id, node_type)
+    new(name, ?absolute) =
+      let absolute = defaultArg absolute false
+      Path(-1, "Path", name, absolute)
     member this.name : ID = name
     member this.absolute : bool = absolute
-    interface INamed with
-      member this.Name = this.name
+    override this.ToString() =
+      (if this.absolute then "." else "") + this.name
+    override this.Equals(other) =
+      match other with
+      | :? Path as other ->
+        (this.Node_ID >= 0 && this.Node_ID = other.Node_ID)
+        || (this.absolute = other.absolute && this.name = other.name)
+      | _ -> false
 
   [<Sealed>]
   type Annotation(node_id, node_type, name, expr) =
@@ -133,7 +157,7 @@ module JsonTypes =
       |> Seq.cast<'a>
       |> Seq.tryFirst
 
-  type Direction = None | In | Out | InOut (*  NOTE P4 has copy-in/copy-out semantics *)
+  type Direction = NoDirection | In | Out | InOut (*  NOTE P4 has copy-in/copy-out semantics *)
 
   [<Sealed>]
   type Type_Type(node_id, node_type, type_) =
@@ -211,6 +235,14 @@ module JsonTypes =
     inherit Type_Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
     member this.fields : IndexedVector<StructField> = fields
+    override this.NamedChild(name) =
+      match this.fields.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedChild name
+      | x -> x
+    override this.NamedInScope(name) =
+      match this.fields.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type Type_Struct(node_id, node_type, name, declid, annotations, fields) =
@@ -239,27 +271,51 @@ module JsonTypes =
     inherit Type_Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
     member this.typeParameters : TypeParameters = typeParameters
+    override this.NamedInScope(name) =
+      match this.typeParameters.parameters.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type Type_Package(node_id, node_type, name, declid, annotations, typeParameters, constructorParams) =
     inherit Type_ArchBlock(node_id, node_type, name, declid, annotations, typeParameters)
     interface IContainer
     member this.constructorParams : ParameterList = constructorParams
+    override this.NamedInScope(name) =
+      match this.constructorParams.parameters.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type Type_Parser(node_id, node_type, name, declid, annotations, typeParameters, applyParams) =
     inherit Type_ArchBlock(node_id, node_type, name, declid, annotations, typeParameters)
     member this.applyParams : ParameterList = applyParams
+    override this.NamedInScope(name) =
+      match this.applyParams.parameters.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type Type_Control(node_id, node_type, name, declid, annotations, typeParameters, applyParams) =
     inherit Type_ArchBlock(node_id, node_type, name, declid, annotations, typeParameters)
     member this.applyParams : ParameterList = applyParams
+    override this.NamedInScope(name) =
+      match this.applyParams.parameters.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type Type_Name(node_id, node_type, path) =
     inherit Type(node_id, node_type)
     member this.path : Path = path
+    override this.ToString() =
+      this.path.ToString()
+    override this.Equals(other) =
+      match other with
+      | :? Type_Name as other ->
+        (this.Node_ID >= 0 && this.Node_ID = other.Node_ID)
+        || this.path = other.path
+      | _ -> false
 
   [<Sealed>]
   type Type_Stack(node_id, node_type, elementType, size) =
@@ -293,6 +349,14 @@ module JsonTypes =
   type Type_Enum(node_id, node_type, name, declid, members) =
     inherit Type_Declaration(node_id, node_type, name, declid)
     member this.members : IndexedVector<Declaration_ID> = members
+    override this.NamedChild(name) =
+      match this.members.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedChild name
+      | x -> x
+    override this.NamedInScope(name) =
+      match this.members.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<AbstractClass>]
   type PropertyValue(node_id, node_type) =
@@ -317,8 +381,6 @@ module JsonTypes =
       this.GetPropertyByName(name)
       |> Option.map (fun p -> p.value)
       |> Option.cast<_,'a>
-    override this.NamedChild(name) =
-      this.properties.NamedChild(name)
 
   [<Sealed>]
   type P4Table(node_id, node_type, name, declid, annotations, parameters, properties) =
@@ -326,13 +388,20 @@ module JsonTypes =
     member this.annotations : Annotations = annotations
     member this.parameters : ParameterList = parameters
     member this.properties : TableProperties = properties
-    override this.NamedChild(a) =
-      this.properties.NamedChild(a)
+    override this.NamedChild(name) =
+      this.properties.properties.declarationsMap.TryFind name |> Option.cast
+    override this.NamedInScope(name) =
+      match this.parameters.parameters.declarationsMap.TryFind name
+            |> Option.tryIfNone (fun () -> this.properties.properties.declarationsMap.TryFind name) |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type Type_Table(node_id, node_type, table) =
     inherit Type(node_id, node_type)
     member this.table : P4Table = table
+    override this.NamedChild(name) =
+      table.NamedChild(name)
 
   [<Sealed>]
   type ActionListElement(node_id, node_type, annotations, expression) =
@@ -350,6 +419,10 @@ module JsonTypes =
   type Type_ActionEnum(node_id, node_type, actionList) =
     inherit Type(node_id, node_type)
     member this.actionList : ActionList = actionList
+    override this.NamedChild(name) = // FIXME is this correct?
+      match this.actionList.actionList.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedChild name
+      | x -> x
 
   [<AbstractClass>]
   type Type_MethodBase(node_id, node_type, typeParameters, returnType, parameters) =
@@ -357,6 +430,11 @@ module JsonTypes =
     member this.typeParameters : TypeParameters = typeParameters
     member this.returnType : Type option = returnType // if != nullptr
     member this.parameters : ParameterList = parameters
+    override this.NamedInScope(name) =
+      match this.parameters.parameters.declarationsMap.TryFind name
+            |> Option.tryIfNone (fun () -> this.typeParameters.parameters.declarationsMap.TryFind name)|> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type Type_Method(node_id, node_type, typeParameters, returnType, parameters) =
@@ -388,6 +466,14 @@ module JsonTypes =
     member this.type_ : Type_Method = type_ // type
     member this.isAbstract : bool = isAbstract
     member this.annotations : Annotations = annotations
+    override this.NamedChild(name) =
+      match this.type_.NamedChild(name) with
+      | None -> base.NamedChild name
+      | x -> x
+    override this.NamedInScope(name) =
+      match this.type_.NamedInScope(name) with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type Type_Typedef(node_id, node_type, name, declid, annotations, type_) =
@@ -395,6 +481,7 @@ module JsonTypes =
     member this.annotations : Annotations = annotations
     [<JsonProperty("type")>]
     member this.type_ : Type = type_ // type
+    // FIXME does this need NamedChild override, or are we manually following type?
 
   [<Sealed>]
   type NameList(node_id, node_type, names) =
@@ -416,6 +503,15 @@ module JsonTypes =
     member this.methods : Vector<Method> = methods
     member this.attributes : NameMap<Attribute> = attributes // ordered_map
     member this.annotations : Annotations = annotations
+    override this.NamedChild(name) =
+      match this.methods.vec |> Seq.filter (fun meth -> meth.name = name) |> Seq.tryFirst |> Option.cast with
+      | None -> base.NamedChild name
+      | x -> x
+    override this.NamedInScope(name) =
+      match this.methods.vec |> Seq.filter (fun meth -> meth.name = name) |> Seq.tryFirst |> Option.cast
+            |> Option.tryIfNone (fun () -> this.typeParameters.parameters.declarationsMap.TryFind name |> Option.cast) with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<AbstractClass>]
   type Operation_Unary(node_id, node_type, type_, expr) =
@@ -546,9 +642,14 @@ module JsonTypes =
     member this.value : string = value
 
   [<Sealed>]
-  type PathExpression(node_id, node_type, type_, path) =
+  type PathExpression [<JsonConstructor>](node_id, node_type, type_, path) =
     inherit Expression(node_id, node_type, type_)
+    new(path, ?type_) =
+      let type_ = defaultArg type_ (Type_Unknown())
+      PathExpression(-1, "PathExpression", type_, path)
     member this.path : Path = path
+    override this.ToString() =
+      this.path.ToString()
 
   [<Sealed>]
   type TypeNameExpression(node_id, node_type, type_, typeName) =
@@ -564,6 +665,8 @@ module JsonTypes =
     inherit Operation_Unary(node_id, node_type, type_, expr)
     [<JsonProperty("member")>]
     member this.member_ : ID = member_ // member
+    override this.ToString() =
+      sprintf "%O.%s" this.expr this.member_
 
   [<Sealed>]
   type Concat(node_id, node_type, type_, left, right) =
@@ -592,6 +695,7 @@ module JsonTypes =
   [<Sealed>]
   type This(node_id, node_type, type_) =
     inherit Expression(node_id, node_type, type_)
+    // NOTE rely on thisMap, cannot implement NamedChild
 
   [<Sealed>]
   type Cast(node_id, node_type, destType, expr) =
@@ -616,12 +720,20 @@ module JsonTypes =
     member this.selectCases : Vector<SelectCase> = selectCases
 
   [<Sealed>]
-  type MethodCallExpression(node_id, node_type, type_, method_, typeArguments, arguments) =
+  type MethodCallExpression [<JsonConstructor>](node_id, node_type, type_, method_, typeArguments, arguments) =
     inherit Expression(node_id, node_type, type_)
+    new(method_, arguments, ?typeArguments, ?type_) =
+      let typeArguments = defaultArg typeArguments (Vector([||]))
+      let type_ = defaultArg type_ (Type_Unknown())
+      MethodCallExpression(-1, "MethodCallExpression", type_, method_, typeArguments, arguments)
     [<JsonProperty("method")>]
     member this.method_ : Expression = method_ // method
     member this.typeArguments : Vector<Type> = typeArguments
     member this.arguments : Vector<Expression> = arguments
+    member this.WithTypeArguments(types : Type seq) =
+      new MethodCallExpression(node_id, node_type, type_, method_, Vector(types |> Seq.toArray), arguments)
+    member this.WithArguments(args : Expression seq) =
+      new MethodCallExpression(node_id, node_type, type_, method_, typeArguments, Vector(args |> Seq.toArray))
 
   [<Sealed>]
   type ConstructorCallExpression(node_id, node_type, type_, arguments) =
@@ -635,6 +747,10 @@ module JsonTypes =
     member this.annotations : Annotations = annotations
     member this.components : IndexedVector<StatOrDecl> = components // NOTE parser internals are not publically visible?
     member this.selectExpression : Expression option = selectExpression // if != nullptr
+    override this.NamedInScope(name) =
+      match this.components.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type P4Parser(node_id, node_type, name, declid, type_, constructorParams, parserLocals, states) =
@@ -645,6 +761,14 @@ module JsonTypes =
     member this.constructorParams : ParameterList = constructorParams
     member this.parserLocals : IndexedVector<Declaration> = parserLocals // NOTE parser internals are not publically visible?
     member this.states : IndexedVector<ParserState> = states
+    // FIXME do we need to expose apply as a NamedChild? No, because there is nothing to return? apply is a synthesised method. Treat it as a special case?
+    override this.NamedInScope(name) =
+      match this.constructorParams.parameters.declarationsMap.TryFind name
+            |> Option.tryIfNone (fun () -> this.parserLocals.declarationsMap.TryFind name)
+            |> Option.tryIfNone (fun () -> this.states.declarationsMap.TryFind name) |> Option.cast
+            |> Option.tryIfNone (fun () -> this.type_.NamedInScope name) with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<AbstractClass>]
   type Statement(node_id, node_type) =
@@ -655,6 +779,11 @@ module JsonTypes =
     inherit Statement(node_id, node_type)
     member this.annotations : Annotations = annotations
     member this.components : IndexedVector<StatOrDecl> = components
+    override this.NamedInScope(name) =
+      // FIXME we are ignoring shadowing?
+      match this.components.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type P4Control(node_id, node_type, name, declid, type_, constructorParams, controlLocals, body) =
@@ -665,8 +794,13 @@ module JsonTypes =
     member this.constructorParams : ParameterList = constructorParams
     member this.controlLocals : IndexedVector<Declaration> = controlLocals
     member this.body : BlockStatement = body
-    override this.NamedChild(a) =
-      this.controlLocals.NamedChild(a)
+    // FIXME do we need to expose apply as a NamedChild? No, because there is nothing to return? apply is a synthesised method. Treat it as a special case?
+    override this.NamedInScope(name) =
+      match this.constructorParams.parameters.declarationsMap.TryFind name
+            |> Option.tryIfNone (fun () -> this.controlLocals.declarationsMap.TryFind name) |> Option.cast
+            |> Option.tryIfNone (fun () -> this.type_.NamedInScope name) with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type P4Action(node_id, node_type, name, declid, annotations, parameters, body) =
@@ -674,16 +808,36 @@ module JsonTypes =
     member this.annotations : Annotations = annotations
     member this.parameters : ParameterList = parameters
     member this.body : BlockStatement = body
+    override this.NamedInScope(name) =
+      match this.parameters.parameters.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type Type_Error(node_id, node_type, name, declid, members) =
     inherit Type_Declaration(node_id, node_type, name, declid)
     member this.members : IndexedVector<Declaration_ID> = members
+    override this.NamedChild(name) =
+      match this.members.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedChild name
+      | x -> x
+    override this.NamedInScope(name) =
+      match this.members.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type Declaration_MatchKind(node_id, node_type, members) =
     inherit Node(node_id, node_type)
     member this.members : IndexedVector<Declaration_ID> = members
+    override this.NamedChild(name) =
+      match this.members.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedChild name
+      | x -> x
+    override this.NamedInScope(name) =
+      match this.members.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type ExpressionValue(node_id, node_type, expression) =
@@ -732,13 +886,20 @@ module JsonTypes =
     member this.arguments : Vector<Expression> = arguments
     member this.properties : NameMap<Property> = properties
     member this.initializer : BlockStatement option = initializer // if != nullptr
+    // FIXME NamedChild/NamedInScope?
 
   [<Sealed>]
   type P4Program(node_id, node_type, declarations) =
     inherit Node(node_id, node_type)
     member this.declarations : IndexedVector<Node> = declarations
-    override this.NamedChild(a) =
-      this.declarations.NamedChild(a)
+    override this.NamedChild(name) =
+      match this.declarations.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedChild name
+      | x -> x
+    override this.NamedInScope(name) =
+      match this.declarations.declarationsMap.TryFind name |> Option.cast with
+      | None -> base.NamedInScope name
+      | x -> x
 
   [<Sealed>]
   type ExitStatement(node_id, node_type) =
@@ -789,7 +950,12 @@ module JsonTypes =
     [<JsonProperty("type")>]
     member this.type_ : Type_Method = type_ // type
     member this.body : BlockStatement = body
+    override this.NamedInScope(name) =
+      match this.type_.NamedInScope name with
+      | None -> base.NamedInScope name
+      | x -> x
 
+  // FIXME not sure about NamedChild/NamedInScope for any of these (Block/children)
   [<AbstractClass>]
   type Block(node_id, node_type, node, constantValue) =
     inherit Node(node_id, node_type)
@@ -865,6 +1031,7 @@ module JsonTypes =
   type Type_AnyTable(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
+  // FIXME not sure about NamedChild/NamedInScope for these (HeaderOrMetadata/children)
   [<AbstractClass>]
   type HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_) =
     inherit Node(node_id, node_type)
@@ -1346,18 +1513,19 @@ module JsonTypes =
   let P4TypeOf (node:Node) =
     match node with
     | :? P4Action -> P4Type.Action
-    | :? Constant -> P4Type.Const
-    | :? Type_Control -> P4Type.Control
+    | :? Declaration_Constant -> P4Type.Const
+    | :? Type_Control | :? P4Control -> P4Type.Control
     | :? Type_Enum -> P4Type.Enum
     | :? Type_Error -> P4Type.Error
     | :? Method -> P4Type.ExternFunction
     | :? Type_Extern -> P4Type.ExternObject
     | :? Type_Header -> P4Type.Header
-    | :? Type_MatchKind -> P4Type.MatchKind
-    | :? Type_Package -> P4Type.Package
-    | :? Type_Parser -> P4Type.Parser
+    | :? Declaration_MatchKind -> P4Type.MatchKind
+    | :? Type_Package | :? Declaration_Instance -> P4Type.Package // NOTE Declaration_Instance could also be an extern local, but this function isn't used in that case (I think)
+    | :? Type_Parser | :? P4Parser -> P4Type.Parser
     | :? Type_Struct -> P4Type.Struct
     | _ -> failwithf "JsonTypes.%s does not have a corresponding P4Type" (node.GetType().Name)
     // FIXME Check these are the correct JsonTypes types
     // FIXME What about instantiation?
-    // NOTE typedef is valid, but has not P4Type
+    // NOTE typedef is valid, but has no P4Type
+    // FIXME What about union? (Not in spec yet?)

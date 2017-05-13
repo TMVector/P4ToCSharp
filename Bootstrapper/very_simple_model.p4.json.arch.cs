@@ -2,78 +2,93 @@ using System;
 using P4ToCSharp.Library;
 using PortId = P4ToCSharp.Library.bit4;
 
+[P4Architecture]
 public class Architecture
 {
-    public enum error
+    [P4(P4Type.Error, "error")]
+    public class error : P4ToCSharp.Library.error
     {
-        NoError,
-        PacketTooShort,
-        NoMatch,
-        StackOutOfBounds,
-        OverwritingHeader,
-        HeaderTooShort,
-        ParserTimeout
+        public static readonly error NoError = new error();
+        public static readonly error PacketTooShort = new error();
+        public static readonly error NoMatch = new error();
+        public static readonly error StackOutOfBounds = new error();
+        public static readonly error OverwritingHeader = new error();
+        public static readonly error HeaderTooShort = new error();
+        public static readonly error ParserTimeout = new error();
+
+        protected error()
+        {
+        }
     }
 
+    [P4(P4Type.ExternObject, "packet_in")]
     public interface packet_in
     {
-        void extract<T>(T hdr);
-        void extract<T>(T variableSizeHeader, bit32 variableFieldSizeInBits);
+        void extract<T>(out T hdr);
+        void extract<T>(out T variableSizeHeader, bit32 variableFieldSizeInBits);
         T lookahead<T>();
         void advance(bit32 sizeInBits);
         bit32 length();
     }
 
+    [P4(P4Type.ExternObject, "packet_out")]
     public interface packet_out
     {
         void emit<T>(T hdr);
         void emit<T>(bool condition, T data);
     }
 
-    static void verify(bool check, error toSignal)
+    [P4(P4Type.ExternFunction, "verify")]
+    static void verify(bool condition, P4ToCSharp.Library.error err)
     {
         throw new NotImplementedException();
     }
 
+    [P4(P4Type.MatchKind, "")]
+    public enum MatchKind
+    {
+        exact,
+        ternary,
+        lpm
+    }
+
+    [P4(P4Type.Struct, "InControl")]
     public sealed class InControl : IStruct
     {
-        public PortId inputPort { get; set; }
+        public PortId inputPort;
     }
 
+    [P4(P4Type.Struct, "OutControl")]
     public sealed class OutControl : IStruct
     {
-        public PortId outputPort { get; set; }
+        public PortId outputPort;
     }
 
-    interface Parser<H> : IParser
+    [P4(P4Type.Parser, "Parser")]
+    public interface Parser<H> : IParser
     {
-        void Apply(packet_in b, ref H parsedHeaders);
+        void apply(packet_in b, out H parsedHeaders);
     }
 
-    interface Pipe<H> : IControl
+    [P4(P4Type.Control, "Pipe")]
+    public interface Pipe<H> : IControl
     {
-        void Apply(ref H headers, error parseError, InControl inCtrl, ref OutControl outCtrl);
+        void apply(H headers_capture, ref H headers, P4ToCSharp.Library.error parseError, InControl inCtrl, out OutControl outCtrl);
     }
 
-    interface Deparser<H> : IControl
+    [P4(P4Type.Control, "Deparser")]
+    public interface Deparser<H> : IControl
     {
-        void Apply(ref H outputHeaders, packet_out b);
+        void apply(H outputHeaders_capture, ref H outputHeaders, packet_out b);
     }
 
-    class VSS<H> : IPackage
+    [P4(P4Type.Package, "VSS")]
+    public interface VSS<H> : IPackage
     {
-        Parser<H> p { get; }
-        Pipe<H> map { get; }
-        Deparser<H> d { get; }
-
-        VSS(Parser<H> p, Pipe<H> map, Deparser<H> d)
-        {
-            this.p = p;
-            this.map = map;
-            this.d = d;
-        }
+        void Use(Parser<H> p, Pipe<H> map, Deparser<H> d);
     }
 
+    [P4(P4Type.ExternObject, "Ck16")]
     public interface Ck16
     {
         void clear();
