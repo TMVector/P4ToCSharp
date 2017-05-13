@@ -1,7 +1,7 @@
 using System;
 using P4ToCSharp.Library;
 using static v1model.Architecture;
-using std_meta_t = standard_metadata_t;
+using std_meta_t = v1model.Architecture.standard_metadata_t;
 
 public class Program
 {

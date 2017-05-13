@@ -810,8 +810,15 @@ and nameOfType (scopeInfo : ScopeInfo) (fqType:TypeQualification) (t : JsonTypes
           | FullyQualifiedType -> upcast SF.QualifiedName(libraryName, bitsName)
       | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
   | :? JsonTypes.Type_Name as n ->
-
-      qualifiedTypeName n.path.name // FIXME use classNameFor
+      // Check that this shouldn't be an extern type
+      if fqType = FullyQualifiedType then scopeInfo.TryResolveType(n) else None
+      |> Option.tryMap (fun tyScope ->
+        ignore()
+        match tyScope.CurrentNode with
+        | :? JsonTypes.Type_Extern -> tyScope.GetArchName(P4Type.ExternObject) |> Some
+        | :? JsonTypes.Type_Struct -> tyScope.GetArchName(P4Type.Struct) |> Some
+        | _ -> None)
+      |> Option.ifNone (fun () -> qualifiedTypeName n.path.name) // FIXME use classNameFor
   | :? JsonTypes.Type_Specialized as ts ->
       upcast SF.GenericName(ts.baseType.path.name).AddTypeArgumentListArguments(ts.arguments.vec |> Seq.map (ofType scopeInfo) |> Seq.toArray) // FIXME use classNameFor
   | _ -> failwithf "Unhandled subtype of JsonTypes.Type: %s in nameOfType" (t.GetType().Name)
