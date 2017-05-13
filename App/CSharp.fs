@@ -110,10 +110,10 @@ type ScopeInfo =
     let scope =
       if path.absolute then this.ResolveGlobalIdentifier path.name
       else this.ResolveIdentifier path.name
-    match scope, this.PathMap.TryFind path.Node_ID with
-    | Some scope, Some result when scope.CurrentNode.Node_ID <> (result :?> JsonTypes.Node).Node_ID ->
-        failwithf "Resolved path (%s) doesn't match the path map (%d <> %d)" path.name scope.CurrentNode.Node_ID (result :?> JsonTypes.Node).Node_ID
-    | _ -> ()
+//    match scope, this.PathMap.TryFind path.Node_ID with
+//    | Some scope, Some result when scope.CurrentNode.Node_ID <> (result :?> JsonTypes.Node).Node_ID ->
+//        failwithf "Resolved path (%s) doesn't match the path map (%d <> %d)" path.name scope.CurrentNode.Node_ID (result :?> JsonTypes.Node).Node_ID
+//    | _ -> ()
     scope
   member this.ResolvePath(path : JsonTypes.Path) =
     this.TryResolvePath(path)
@@ -1106,7 +1106,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let getTyArg (ty : JsonTypes.Type_Var) = tyArgMap.[ty.name]
           makeGenericName (intfName) (typeDef.typeParameters.parameters.vec |> Seq.map (getTyArg >> ofType scopeInfo) |> tArgList)
           |> SF.SimpleBaseType)
-        |> Option.tryIfNone (fun () -> printf "WARNING: No interface found for parser %s" p.name; None) // FIXME is this strictly an error? Just don't declare a base interface
+        |> Option.tryIfNone (fun () -> printfn "WARNING: No interface found for parser %s" p.name; None) // FIXME is this strictly an error? Just don't declare a base interface
       SF.ClassDeclaration(className)
         .WithModifiers(tokenList [ SK.SealedKeyword ])
         .AddMembers(fields |> Seq.cast |> Seq.toArray)
@@ -1198,7 +1198,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let getTyArg (ty : JsonTypes.Type_Var) = tyArgMap.[ty.name]
           makeGenericName (intfName) (typeDef.typeParameters.parameters.vec |> Seq.map (getTyArg >> ofType scopeInfo) |> tArgList)
           |> SF.SimpleBaseType)
-        |> Option.tryIfNone (fun () -> printf "WARNING: No interface found for control %s" pc.name; None)
+        |> Option.tryIfNone (fun () -> printfn "WARNING: No interface found for control %s" pc.name; None)
       SF.ClassDeclaration(className)
         .WithModifiers(tokenList [ SK.SealedKeyword ])
         .AddMembers(ctorParamProperties)
