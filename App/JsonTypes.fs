@@ -69,8 +69,9 @@ module JsonTypes =
     member this.vec : vector<'T> = vec // value is json list
 
   [<Sealed>]
-  type IndexedVector<'T>(node_id, node_type, vec, declarations) =
+  type IndexedVector<'T> [<JsonConstructor>](node_id, node_type, vec, declarations) =
     inherit Vector<'T>(node_id, node_type, vec)
+    new(declarations) = IndexedVector(-1, "IndexedVector", declarations |> Array.map snd, declarations |> Array.map (fun (k,v) -> k, v :> obj :?> IDeclaration))
     member this.declarations : OrderedMap<string, IDeclaration> = declarations // value is json dictionary
     member this.declarationsMap = declarations |> Map.ofSeq
 
@@ -827,8 +828,9 @@ module JsonTypes =
       | x -> x
 
   [<Sealed>]
-  type Declaration_MatchKind(node_id, node_type, members) =
+  type Declaration_MatchKind [<JsonConstructor>](node_id, node_type, members) =
     inherit Node(node_id, node_type)
+    new(members) = Declaration_MatchKind(-1, "Declaration_MatchKind", members)
     member this.members : IndexedVector<Declaration_ID> = members
     override this.NamedChild(name) =
       match this.members.declarationsMap.TryFind name |> Option.cast with
