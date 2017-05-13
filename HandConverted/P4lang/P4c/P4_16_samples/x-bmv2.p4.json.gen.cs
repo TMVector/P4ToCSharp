@@ -110,8 +110,8 @@ public class Program
     {
         class VerifyChecksumI_Args
         {
-            public H hdr { get; }
-            public M meta { get; set; }
+            public H hdr;
+            public M meta;
 
             public VerifyChecksumI_Args(H hdr, M meta)
             {
@@ -163,7 +163,7 @@ public class Program
     {
         class ctrl_Args
         {
-            public M meta { get; set; }
+            public M meta;
 
             public ctrl_Args(M meta)
             {
@@ -186,9 +186,9 @@ public class Program
     {
         class IngressI_Args
         {
-            public H hdr { get; set; }
-            public M meta { get; set; }
-            public std_meta_t std_meta { get; set; }
+            public H hdr;
+            public M meta;
+            public std_meta_t std_meta;
 
             public IngressI_Args(H hdr, M meta, std_meta_t std_meta)
             {
@@ -218,9 +218,9 @@ public class Program
     {
         class EgressI_Args
         {
-            public H hdr { get; set; }
-            public M meta { get; set; }
-            public std_meta_t std_meta { get; set; }
+            public H hdr;
+            public M meta;
+            public std_meta_t std_meta;
 
             public EgressI_Args(H hdr, M meta, std_meta_t std_meta)
             {
@@ -247,8 +247,8 @@ public class Program
     {
         class ComputeChecksumI_Args
         {
-            public H hdr { get; set; }
-            public M meta { get; set; }
+            public H hdr;
+            public M meta;
 
             public ComputeChecksumI_Args(H hdr, M meta)
             {
@@ -273,8 +273,8 @@ public class Program
     {
         class DeparserI_Args
         {
-            public packet_out b { get; }
-            public H hdr { get; }
+            public packet_out b;
+            public H hdr;
 
             public DeparserI_Args(packet_out b, H hdr)
             {

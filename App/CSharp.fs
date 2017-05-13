@@ -1149,14 +1149,9 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           pc.type_.applyParams.parameters.vec
           |> Seq.collect (fun param -> directionedParameter (ofType scopeInfo) param |> Seq.map (fun csParam -> (param, csParam)))
         let argsClass =
-          let properties =
-            let accessorsFor (dir : JsonTypes.Direction) =
-              match dir with
-              | JsonTypes.Direction.NoDirection | JsonTypes.Direction.In -> Property.Get
-              | JsonTypes.Direction.Out | JsonTypes.Direction.InOut -> Property.GetSet
+          let fields =
             applyCtorParams
-            |> Seq.map (fun (p,cp) -> SF.PropertyDeclaration(cp.Type, cp.Identifier)
-                                        .WithAccessors(accessorsFor p.direction)
+            |> Seq.map (fun (p,cp) -> (uninitialisedField cp.Type cp.Identifier.Text)
                                         .WithModifiers(tokenList [SK.PublicKeyword]))
             |> Seq.cast |> Seq.toArray
           let ctor = SF.ConstructorDeclaration(argsClassName)
@@ -1164,7 +1159,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                         .WithParameters(applyCtorParams |> Seq.map (fun (p,cp) -> (cp.Identifier.Text, cp.Type)))
                         .WithBlockBody(applyCtorParams |> Seq.map (fun (p,cp) -> upcast assignment (thisAccess cp.Identifier.Text) (SF.IdentifierName(cp.Identifier))))
           SF.ClassDeclaration(argsClassName)
-            .AddMembers(properties)
+            .AddMembers(fields)
             .AddMembers(ctor)
         let instantiateArgsClass : Syntax.StatementSyntax =
           let argsClassType = SF.IdentifierName(argsClass.Identifier)
