@@ -1228,15 +1228,17 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
               let matchKindName = path.path.name
               let matchKindName = System.Char.ToUpper(matchKindName.[0]).ToString() + matchKindName.Substring(1)
               upcast qualifiedGenericTypeName (sprintf "%sTable" matchKindName) [|keyType; resultType|]
-            let key = pt.properties.GetPropertyValueByName<JsonTypes.Key>("key") |> Option.get // key property must be present
-            seq {
-              let mutable prevTy : Syntax.TypeSyntax = upcast actionBaseType
-              for ke in Seq.rev key.keyElements.vec do
-                let keyTy = inferTypeOf scopeInfo KeepTypeDef ke.expression |> ofType scopeInfo
-                let lutTy = lutTypeFor ke.matchType keyTy prevTy // Each lookup gets the next lookup in the chain (or the action)
-                prevTy <- lutTy
-                yield (lutTy, ke.expression)
-            } |> Seq.rev |> Seq.toArray
+            pt.properties.GetPropertyValueByName<JsonTypes.Key>("key")
+            |> Option.map (fun key ->
+              seq {
+                let mutable prevTy : Syntax.TypeSyntax = upcast actionBaseType
+                for ke in Seq.rev key.keyElements.vec do
+                  let keyTy = inferTypeOf scopeInfo KeepTypeDef ke.expression |> ofType scopeInfo
+                  let lutTy = lutTypeFor ke.matchType keyTy prevTy // Each lookup gets the next lookup in the chain (or the action)
+                  prevTy <- lutTy
+                  yield (lutTy, ke.expression)
+              } |> Seq.rev |> Seq.toArray)
+            |> Option.ifNoneValue Array.empty
           let tableField =
             Seq.tryFirst key |> Option.map (fun (lutTy, kExpr) ->
               field lutTy "lookup" (constructorCall lutTy []))
