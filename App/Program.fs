@@ -74,27 +74,38 @@ module Main =
 
   [<EntryPoint>]
   let main argv =
-      let argParser = ArgumentParser.Create<MainArgs>(programName = "p4tocs.exe")
-
-      // Parse command-line arguments
-      let args = argParser.Parse argv
-      match args.GetSubCommand() with
-      | Generate_Model modelArgs ->
-          let p4File = modelArgs.GetResult <@ ModelArgs.P4_File @>
-          printfn "Generating model from %s" p4File
-          generateModel p4File
-          printfn "Done."
-      | Generate_Program programArgs ->
-          let p4File = programArgs.GetResult <@ ProgramArgs.P4_File @>
-          let archDll = programArgs.GetResult <@ ProgramArgs.Architecture_Library @>
-          printfn "Converting %s" p4File
-          generateProgram p4File archDll
-          printfn "Done."
-
+    System.AppDomain.CurrentDomain.UnhandledException.Add(fun e ->
+      let ex = e.ExceptionObject :?> System.Exception
       #if DEBUG
-      // Hold the window open
+      eprintf "ERROR: %O" ex
+      #else
+      eprintf "ERROR: %s" ex.Message
+      #endif
+      System.Environment.Exit(1)
+      )
+
+    let argParser = ArgumentParser.Create<MainArgs>(programName = "p4tocs.exe")
+
+    // Parse command-line arguments
+    let args = argParser.Parse argv
+    match args.GetSubCommand() with
+    | Generate_Model modelArgs ->
+        let p4File = modelArgs.GetResult <@ ModelArgs.P4_File @>
+        printfn "Generating model from %s" p4File
+        generateModel p4File
+        printfn "Done."
+    | Generate_Program programArgs ->
+        let p4File = programArgs.GetResult <@ ProgramArgs.P4_File @>
+        let archDll = programArgs.GetResult <@ ProgramArgs.Architecture_Library @>
+        printfn "Converting %s" p4File
+        generateProgram p4File archDll
+        printfn "Done."
+
+    #if DEBUG
+    // Hold the window open
+    if System.Diagnostics.Debugger.IsAttached then
       printfn "Press any key to continue."
       System.Console.ReadKey() |> ignore
-      #endif
+    #endif
 
-      0
+    0
