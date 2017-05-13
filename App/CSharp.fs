@@ -68,6 +68,7 @@ type ScopeInfo =
     ArchMap : Map<P4Type*string,string>;
     LookupMap : Map<string,string>;
     ControlInterfaceMap : Map<string,string*ScopeInfo>;
+    TypeDefMap : Map<string, JsonTypes.Type>;
   } with
   member this.AncestorScopes =
     seq {
@@ -542,11 +543,13 @@ let saveToFile (compilationUnit : Syntax.CompilationUnitSyntax) (filename:string
   use writer = new System.IO.StreamWriter(filename)
   formattedNode.WriteTo(writer)
 
-let unifyTypeArgs (node : JsonTypes.Type) (specialisedNode : JsonTypes.Type) =
+let unifyTypeArgs (typeDefMap : Map<string, JsonTypes.Type>) (node : JsonTypes.Type) (specialisedNode : JsonTypes.Type) =
   let rec unify (ty : JsonTypes.Type) (spec : JsonTypes.Type) (varMap : Map<string, JsonTypes.Type option>) =
     match ty, spec with
     | (:? JsonTypes.Type_Name as ty), spec when varMap.ContainsKey(ty.path.name) -> addToMap varMap ty.path.name spec
-    | (:? JsonTypes.Type_Specialized as ty), (:? JsonTypes.Type_Specialized as spec) -> unifyParameters ty.arguments.vec spec.arguments.vec varMap
+    | (:? JsonTypes.Type_Name as ty), spec when typeDefMap.ContainsKey(ty.path.name) -> unify typeDefMap.[ty.path.name] spec varMap
+    | ty, (:? JsonTypes.Type_Name as spec) when typeDefMap.ContainsKey(spec.path.name) -> unify ty typeDefMap.[spec.path.name] varMap
+    | (:? JsonTypes.Type_Specialized as ty), (:? JsonTypes.Type_Specialized as spec) -> unify ty.baseType spec.baseType varMap |> unifyParameters ty.arguments.vec spec.arguments.vec
     | ty, spec when ty = spec -> varMap // equal (Is this ever the case? You haven't overriden equality)
     | _ -> failwithf "Failed to unify %s/%s and %s/%s" (ty.ToString()) (ty.GetType().Name) (spec.ToString()) (spec.GetType().Name)
   and unifyParameters (types : JsonTypes.Type[]) (specTypes : JsonTypes.Type[]) (varMap : Map<string, JsonTypes.Type option>) =
@@ -1088,18 +1091,20 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                                     .WithBlockBody(Seq.map (ofStatOrDecl scopeInfo) state.components.vec // FIXME handle verify statements
                                                   |> Seq.append <| selectStatement state.selectExpression |> Seq.cast)) // TODO FIXME selectExpression could be just a pathExpression - turn into a method call
       let archIntf =
-        let intfName, typeDefScope = scopeInfo.TryGetControlInterface() |> Option.ifNone (fun () -> failwithf "No interface found for parser %s" p.name) // FIXME is this strictly an error? Just don't declare a base interface
-        let typeDef = typeDefScope.CurrentNode :?> JsonTypes.Type_Parser
-        let tyArgMap = unifyTypeArgs typeDef p.type_
-        let getTyArg (ty : JsonTypes.Type_Var) = tyArgMap.[ty.name]
-        makeGenericName (intfName) (typeDef.typeParameters.parameters.vec |> Seq.map (getTyArg >> ofType) |> tArgList)
-        |> SF.SimpleBaseType
+        scopeInfo.TryGetControlInterface()
+        |> Option.map (fun (intfName, typeDefScope) ->
+          let typeDef = typeDefScope.CurrentNode :?> JsonTypes.Type_Parser
+          let tyArgMap = unifyTypeArgs scopeInfo.TypeDefMap typeDef p.type_
+          let getTyArg (ty : JsonTypes.Type_Var) = tyArgMap.[ty.name]
+          makeGenericName (intfName) (typeDef.typeParameters.parameters.vec |> Seq.map (getTyArg >> ofType) |> tArgList)
+          |> SF.SimpleBaseType)
+        |> Option.tryIfNone (fun () -> printf "WARNING: No interface found for parser %s" p.name; None) // FIXME is this strictly an error? Just don't declare a base interface
       SF.ClassDeclaration(className)
-        .AddBaseListTypes(archIntf)
         .WithModifiers(tokenList [ SK.SealedKeyword ])
         .AddMembers(fields |> Seq.cast |> Seq.toArray)
         .AddMembers(ctor, apply)
         .AddMembers(states |> Seq.cast |> Seq.toArray)
+      |> fun cls -> match archIntf with Some intf -> cls.AddBaseListTypes intf | None -> cls
       |> Transformed.declOf
   | :? JsonTypes.P4Control as pc ->
       let argsClassName = argsClassNameFor pc.name
@@ -1183,18 +1188,20 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
         if Seq.isEmpty results.Usings |> not then failwithf "Usings declared within P4Control - currently unhandled" // FIXME E.g. Type_Typedef - could be solved by scoping the control in its own namespace?
         results.Declarations |> Seq.toArray
       let archIntf =
-        let intfName, typeDefScope = scopeInfo.TryGetControlInterface() |> Option.ifNone (fun () -> failwithf "No interface found for control %s" pc.name) // FIXME is this strictly an error? Just don't declare a base interface
-        let typeDef = typeDefScope.CurrentNode :?> JsonTypes.Type_Control
-        let tyArgMap = unifyTypeArgs typeDef pc.type_
-        let getTyArg (ty : JsonTypes.Type_Var) = tyArgMap.[ty.name]
-        makeGenericName (intfName) (typeDef.typeParameters.parameters.vec |> Seq.map (getTyArg >> ofType) |> tArgList)
-        |> SF.SimpleBaseType
+        scopeInfo.TryGetControlInterface()
+        |> Option.map (fun (intfName, typeDefScope) ->
+          let typeDef = typeDefScope.CurrentNode :?> JsonTypes.Type_Control
+          let tyArgMap = unifyTypeArgs scopeInfo.TypeDefMap typeDef pc.type_
+          let getTyArg (ty : JsonTypes.Type_Var) = tyArgMap.[ty.name]
+          makeGenericName (intfName) (typeDef.typeParameters.parameters.vec |> Seq.map (getTyArg >> ofType) |> tArgList)
+          |> SF.SimpleBaseType)
+        |> Option.tryIfNone (fun () -> printf "WARNING: No interface found for control %s" pc.name; None)
       SF.ClassDeclaration(className)
-        .AddBaseListTypes(archIntf)
         .WithModifiers(tokenList [ SK.SealedKeyword ])
         .AddMembers(ctorParamProperties)
         .AddMembers(argsClass, ctor, apply)
         .AddMembers(locals)
+      |> fun cls -> match archIntf with Some intf -> cls.AddBaseListTypes intf | None -> cls
       |> Transformed.declOf
   | :? JsonTypes.Declaration as decl ->
       match decl with
@@ -1527,7 +1534,11 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             let ty = ofType di.type_
             field ty (csFieldNameOf di.name) (constructorCall (tyScope.GetArchName(P4Type.ExternObject) |> specialise) (Seq.map (ofExpr scopeInfo UnknownType) di.arguments.vec))
             |> Transformed.declOf
-          | _ -> failwithf "Unhandled resolved type %s in declarationOfNode:Declaration_Instance" (di.type_.GetType().Name)
+          | :? JsonTypes.P4Control ->
+            let ty = ofType di.type_
+            field ty (csFieldNameOf di.name) (constructorCall ty (Seq.map (ofExpr scopeInfo UnknownType) di.arguments.vec))
+            |> Transformed.declOf
+          | _ -> failwithf "Unhandled resolved type %s in declarationOfNode:Declaration_Instance" (tyScope.CurrentNode.GetType().Name)
       | :? JsonTypes.Function -> failwith "JsonTypes.Function not handled yet" // FIXME
       | _ ->
           // JsonTypes.Declaration is not abstract or sealed, so it could also be an unimplemented class here
@@ -1544,6 +1555,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       |> Transformed.declOf
   | :? JsonTypes.Type_Var -> failwith "JsonTypes.Type_Var not handled yet" // FIXME
   | :? JsonTypes.Type_Typedef as td ->
+
       SF.UsingDirective(nameOfType FullyQualifiedType td.type_)
         .WithAlias(SF.NameEquals(SF.IdentifierName(td.name)))
       |> Transformed.usingOf
@@ -1587,7 +1599,8 @@ let initScopeFor (program : JsonTypes.Program) : ScopeInfo =
     ThisMap = program.ThisMap;
     ArchMap = Map.empty;
     LookupMap = Reflection.getLibMap();
-    ControlInterfaceMap = Map.empty; }
+    ControlInterfaceMap = Map.empty;
+    TypeDefMap = Map.empty; }
 let standardUsings =
   [| "System"; libraryNameString |]
   |> Array.map (fun ns -> SF.UsingDirective(SF.ParseName ns))
@@ -1631,12 +1644,20 @@ let ofModel (model : JsonTypes.Program) : Syntax.CompilationUnitSyntax =
                   .WithModifiers(tokenList [SK.PublicKeyword])
                   .AddMembers(results.Declarations |> Seq.toArray))
 let ofProgram (program : JsonTypes.Program) (p4Map : Map<P4Type*string,string>) (lookupMap : Map<string,string>) (architectureClass : string) : Syntax.CompilationUnitSyntax =
+  let typeDefMap =
+      program.P4.declarations.vec
+      |> Seq.filter (fun decl -> decl :? JsonTypes.Type_Typedef)
+      |> Seq.cast<JsonTypes.Type_Typedef>
+      |> Seq.map (fun tyDef -> tyDef.name, tyDef.type_)
+      |> Map.ofSeq
+
   let topLevelName = "Program"
   let scope : ScopeInfo =
     let scope = initScopeFor program
     { scope with
         ArchMap = Map.union scope.ArchMap p4Map;
-        LookupMap = Map.union scope.LookupMap lookupMap }
+        LookupMap = Map.union scope.LookupMap lookupMap;
+        TypeDefMap = typeDefMap; }
 
   let controlIntfMap =
     let packageInst =
