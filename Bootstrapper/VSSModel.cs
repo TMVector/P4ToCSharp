@@ -17,7 +17,6 @@ namespace Bootstrapper
         throw new P4Exception(err);
     }
 
-    //[P4(P4Type.ExternObject, "packet_in")]
     public sealed class packet_in_impl : packet_in
     {
       public void extract<T>(out T hdr)
@@ -93,7 +92,6 @@ namespace Bootstrapper
       }
     }
 
-    //[P4(P4Type.ExternObject, "packet_out")]
     public sealed class packet_out_impl : packet_out
     {
       byte[] data;
@@ -185,7 +183,6 @@ namespace Bootstrapper
     //Appending a bit-string or integer value to a packet_out writes the value starting with the mostsignificant
     //bit.This process is the inverse of data extraction.
 
-    //[P4(P4Type.Package, "VSS")]
     public sealed class VSS_impl<H> : VSS<H>
     {
       public void Use(Parser<H> p, Pipe<H> map, Deparser<H> d)
@@ -195,28 +192,66 @@ namespace Bootstrapper
       }
     }
 
-    //[P4(P4Type.ExternObject, "Ck16")]
     public sealed class Ck16_impl : Ck16
     {
+      private Int32 sum32;
+
       public Ck16_impl()
       {
-
+        clear();
       }
 
       public void clear()
       {
-        throw new NotImplementedException();
+        // FIXME is the correct starting value?
+        sum32 = 0;
       }
 
       public bit16 get()
       {
-        throw new NotImplementedException();
+        sum32 = (sum32 & 0xFFFF) + (sum32 >> 16);
+        sum32 = (sum32 & 0xFFFF) + (sum32 >> 16);
+        return (ushort)(~sum32 & 0xFFFF);
       }
 
+      private void update(UInt64 data)
+      {
+        unchecked
+        {
+          int a = (int)data;
+          sum32 += (a & 0xFFFF) + (a >> 16);
+          int b = (int)(data >> 32);
+          sum32 += (b & 0xFFFF) + (b >> 16);
+        }
+      }
       public void update<T>(T data)
       {
-        // Need to handle headers, etc.
-        throw new NotImplementedException();
+        if (typeof(T) == typeof(IBitString))
+        {
+          var bitstring = (IBitString)data;
+          update(bitstring.Value);
+        }
+        else if (typeof(T) == typeof(IStruct))
+        {
+          var @struct = (IStruct)data;
+          throw new NotImplementedException("Ck16.update operation on structs is not implemented.");
+          //ERROR
+        }
+        else if (typeof(T) == typeof(HeaderBase))
+        {
+          var header = (HeaderBase)(object)data;
+          throw new NotImplementedException("Ck16.update operation on headers is not implemented.");
+          //ERROR
+        }
+        else if (typeof(T) == typeof(Tuple<>))
+        {
+          // TODO handle tuples
+          throw new NotImplementedException("Ck16.update operation on lists is not implemented.");
+        }
+        else
+        {
+          throw new NotImplementedException(String.Format("Ck16.update operation is not implemented for type {0}.", data.GetType().FullName));
+        }
       }
     }
   }

@@ -14,6 +14,8 @@ namespace P4ToCSharp.Library
   public interface IBitString
   {
     int BitWidth { get; }
+    UInt64 Value { get; }
+    //byte[] LargeValue { get; }
   }
 
   // Dynamic width bitstring (up to 64 wide)
@@ -23,6 +25,8 @@ namespace P4ToCSharp.Library
     int IBitString.BitWidth { get { return BitWidth; } }
 
     public UInt64 Value { get; }
+
+    UInt64 IBitString.Value { get { return (UInt64)Value; } }
 
     public bitN(int width, UInt64 val)
     {
@@ -75,6 +79,7 @@ namespace P4ToCSharp.Library
 #endif
     public byte Value { get; }
 
+    UInt64 IBitString.Value { get { return (UInt64)Value; } }
 
     public bit1(byte val)
     {
@@ -134,6 +139,8 @@ namespace P4ToCSharp.Library
 #endif
     public byte Value { get; }
 
+    UInt64 IBitString.Value { get { return (UInt64)Value; } }
+
     public bit4(byte val)
     {
       Debug.Assert(val < (1u << BitWidth));
@@ -187,6 +194,8 @@ namespace P4ToCSharp.Library
     int IBitString.BitWidth { get { return BitWidth; } }
 
     public Byte Value { get; }
+
+    UInt64 IBitString.Value { get { return (UInt64)Value; } }
 
     public bit8(Byte val)
     {
@@ -250,6 +259,8 @@ namespace P4ToCSharp.Library
 
     public UInt16 Value { get; }
 
+    UInt64 IBitString.Value { get { return (UInt64)Value; } }
+
     public bit16(UInt16 val)
     {
       Value = val;
@@ -311,6 +322,8 @@ namespace P4ToCSharp.Library
     int IBitString.BitWidth { get { return BitWidth; } }
 
     public UInt32 Value { get; }
+
+    UInt64 IBitString.Value { get { return (UInt64)Value; } }
 
     public bit32(UInt32 val)
     {
@@ -377,6 +390,8 @@ namespace P4ToCSharp.Library
 #endif
     public UInt64 Value { get; }
 
+    UInt64 IBitString.Value { get { return (UInt64)Value; } }
+
     public bit48(UInt64 val)
     {
       Debug.Assert(val < (1uL << BitWidth));
@@ -430,6 +445,8 @@ namespace P4ToCSharp.Library
     int IBitString.BitWidth { get { return BitWidth; } }
 
     public UInt64 Value { get; }
+
+    UInt64 IBitString.Value { get { return (UInt64)Value; } }
 
     public bit64(UInt64 val)
     {
