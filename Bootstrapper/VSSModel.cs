@@ -11,9 +11,10 @@ namespace Bootstrapper
   public static class VSSModel
   {
     [P4(P4Type.ExternFunction, "verify")]
-    public static void verify(bool condition, error err)
+    public static void verify(bool condition, P4ToCSharp.Library.error err)
     {
-      throw new NotImplementedException();
+      if (!condition)
+        throw new P4Exception(err);
     }
 
     //[P4(P4Type.ExternObject, "packet_in")]

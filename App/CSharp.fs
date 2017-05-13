@@ -320,6 +320,8 @@ let qualifiedGenericTypeName (name:string) (tyArgs:Syntax.TypeSyntax seq) : Synt
 // CS types for convenience
 let libraryNameString = "P4ToCSharp.Library"
 let libraryName = SF.ParseName libraryNameString
+let errorName = SF.IdentifierName("error")
+let libraryErrorName = SF.ParseName (sprintf "%s.%s" libraryNameString errorName.Identifier.Text)
 let headerBaseName = SF.IdentifierName("HeaderBase")
 let headerBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(headerBaseName)
 let structBaseName = SF.IdentifierName("IStruct")
@@ -613,9 +615,19 @@ let declarationOfStructLike (ofType : JsonTypes.Type -> Syntax.TypeSyntax) (scop
         .AddStructLikeFields(header, ofType)
         .ImplementHeaderBase(header, scopeInfo) // TODO: Headers need a validity bit (can it be represented by null? What about checking the validity bit?) (could use extension method?)
   | _ -> failwithf "Unhandled subtype of JsonTypes.Type_StructLike: %s" (structLike.GetType().Name)
-let declarationOfError (error : JsonTypes.Type_Error) =
-  (createEnum "error" (error.members.vec |> Seq.map (fun memb -> memb.name)))
+let declarationOfError (baseType : Syntax.NameSyntax) (newErrorMembers : JsonTypes.Declaration_ID seq) =
+  SF.ClassDeclaration(errorName.Identifier)
+    .WithBaseTypes([baseType])
     .WithModifiers(tokenList [SK.PublicKeyword])
+    .AddMembers(
+      newErrorMembers
+      |> Seq.map (fun m -> (field errorName m.name (constructorCall errorName []))
+                              .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword; SK.ReadOnlyKeyword]))
+      |> Seq.cast |> Seq.toArray)
+    .AddMembers(SF.ConstructorDeclaration("error")
+                  .WithModifiers(tokenList [SK.ProtectedKeyword])
+                  .AddParameterListParameters()
+                  .AddBodyStatements())
 let declarationOfEnum (error : JsonTypes.Type_Enum) =
   (createEnum error.name (error.members.vec |> Seq.map (fun memb -> memb.name)))
     .WithModifiers(tokenList [SK.PublicKeyword])
@@ -767,7 +779,10 @@ and ofType (t : JsonTypes.Type) : Syntax.TypeSyntax =
   | :? JsonTypes.Type_Bits as bits ->
       upcast nameOfType UnqualifiedType bits
   | :? JsonTypes.Type_Name as n ->
-      SF.ParseTypeName(n.path.name)
+      if n.path.name = errorName.Identifier.Text then
+        upcast libraryErrorName // Use FQ name for type, as this is the most general
+      else
+        SF.ParseTypeName(n.path.name)
   | :? JsonTypes.Type_Specialized as ts ->
       upcast SF.GenericName(ts.baseType.path.name).AddTypeArgumentListArguments(ts.arguments.vec |> Seq.map ofType |> Seq.toArray)
   | :? JsonTypes.Type_Void -> voidType
@@ -873,9 +888,10 @@ and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Decl
             enumDecl.AddAttributeLists(p4AttrList)
             |> Transformed.declOf
         | :? JsonTypes.Type_Error as typeError ->
-            // FIXME need to handle differently if we are putting arch errors in 0-127 and program errors in 128+
-            let enumDecl = declarationOfError typeError
-            enumDecl.AddAttributeLists(p4AttrList)
+            // Generate a class instead of an enum so that we can extend it in the architecture implementation and in the program
+            let baseErrorType = libraryErrorName
+            (declarationOfError baseErrorType typeError.members.vec)
+              .AddAttributeLists(p4AttrList)
             |> Transformed.declOf
         | :? JsonTypes.Type_ArchBlock as archBlock ->
             match archBlock with
@@ -1504,7 +1520,11 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
   | :? JsonTypes.ActionListElement -> failwith "JsonTypes.ActionListElement not handled yet" // FIXME
   | :? JsonTypes.Type_Error as err ->
       // FIXME merge with arch error
-      declarationOfError err
+      // TODO find best arch error, and extend from that + add ONLY new errors
+      let archError = scopeInfo.GetArchName(P4Type.Error)
+      let baseErrorType = archError
+      let newErrorMembers = err.members.vec/// ERROR
+      declarationOfError baseErrorType newErrorMembers
       |> Transformed.declOf
   | :? JsonTypes.Type_Var -> failwith "JsonTypes.Type_Var not handled yet" // FIXME
   | :? JsonTypes.Type_Typedef as td ->

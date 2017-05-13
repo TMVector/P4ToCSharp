@@ -14,17 +14,18 @@ namespace HandConvertedProgram
     // core
     //======
 
-    // FIXME How does this work with program expanding error enum?
     [P4(P4Type.Error, "error")]
-    public enum error
+    public class error : P4ToCSharp.Library.error
     {
-      NoError,
-      PacketTooShort,
-      NoMatch,
-      StackOutOfBounds,
-      OverwritingHeader,
-      HeaderTooShort,
-      ParserTimeout
+      public static readonly error NoError = new error();
+      public static readonly error PacketTooShort = new error();
+      public static readonly error NoMatch = new error();
+      public static readonly error StackOutOfBounds = new error();
+      public static readonly error OverwritingHeader = new error();
+      public static readonly error HeaderTooShort = new error();
+      public static readonly error ParserTimeout = new error();
+
+      protected error() { }
     }
 
     [P4(P4Type.ExternObject, "packet_in")]

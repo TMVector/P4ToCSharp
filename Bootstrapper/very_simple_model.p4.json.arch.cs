@@ -6,15 +6,19 @@ using PortId = P4ToCSharp.Library.bit4;
 public class Architecture
 {
     [P4(P4Type.Error, "error")]
-    public enum error
+    public class error : P4ToCSharp.Library.error
     {
-        NoError,
-        PacketTooShort,
-        NoMatch,
-        StackOutOfBounds,
-        OverwritingHeader,
-        HeaderTooShort,
-        ParserTimeout
+        public static readonly error NoError = new error();
+        public static readonly error PacketTooShort = new error();
+        public static readonly error NoMatch = new error();
+        public static readonly error StackOutOfBounds = new error();
+        public static readonly error OverwritingHeader = new error();
+        public static readonly error HeaderTooShort = new error();
+        public static readonly error ParserTimeout = new error();
+
+        protected error()
+        {
+        }
     }
 
     [P4(P4Type.ExternObject, "packet_in")]
@@ -35,7 +39,7 @@ public class Architecture
     }
 
     [P4(P4Type.ExternFunction, "verify")]
-    static void verify(bool condition, error err)
+    static void verify(bool condition, P4ToCSharp.Library.error err)
     {
         throw new NotImplementedException();
     }
@@ -69,7 +73,7 @@ public class Architecture
     [P4(P4Type.Control, "Pipe")]
     public interface Pipe<H> : IControl
     {
-        void apply(H headers_capture, ref H headers, error parseError, InControl inCtrl, out OutControl outCtrl);
+        void apply(H headers_capture, ref H headers, P4ToCSharp.Library.error parseError, InControl inCtrl, out OutControl outCtrl);
     }
 
     [P4(P4Type.Control, "Deparser")]

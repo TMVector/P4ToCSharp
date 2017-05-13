@@ -22,6 +22,7 @@ type p4ArchitectureAttribute = P4ToCSharp.Library.P4ArchitectureAttribute
 let p4AttributeType = typeof<p4Attribute>
 let p4LookupAttributeType = typeof<p4LookupAttribute>
 let p4ArchitectureAttributeType = typeof<p4ArchitectureAttribute>
+let libraryErrorType = typeof<P4ToCSharp.Library.error>
 
 type AnnotationVerdict =
   | Gen // Generated ONLY for the purpose of the interface
@@ -55,7 +56,7 @@ let private validCsForP4 (p4:p4Attribute) (cs:TypeOrMember) : (AnnotationVerdict
       if not (ty.IsInterface) then (Invalid, [ warningf "P4Attribute(\"%s\", %A) must annotate an interface." p4.P4Path p4.Type ])
       else (Model, [])
   // Enums
-  | (p4Type.Enum | p4Type.Error | p4Type.MatchKind), Type ty ->
+  | (p4Type.Enum | p4Type.MatchKind), Type ty ->
       if not (ty.IsEnum) then (Invalid, [ warningf "P4Attribute(\"%s\", %A) must annotate an enum." p4.P4Path p4.Type ])
       else (Model, [])
   // Classes
@@ -63,7 +64,7 @@ let private validCsForP4 (p4:p4Attribute) (cs:TypeOrMember) : (AnnotationVerdict
       if not (ty.IsClass) then (Invalid, [ warningf "P4Attribute(\"%s\", %A) must annotate a class or struct." p4.P4Path p4.Type ])
       else (Model, [])
   // Non-static classes
-  | (p4Type.Header | p4Type.Package | p4Type.Struct), Type ty ->
+  | (p4Type.Error | p4Type.Header | p4Type.Package | p4Type.Struct), Type ty ->
       if not (ty.IsClass && not (ty.IsAbstract && ty.IsSealed)) then (Invalid, [ warningf "P4Attribute(\"%s\", %A) must annotate a non-static class." p4.P4Path p4.Type ])
       else (Model, [])
   // Should be Type/Member, but is Member/Type
@@ -78,6 +79,23 @@ let rec getAttr<'Attr when 'Attr :> Attribute> (ty : Type) =
     ty.GetInterfaces()
     |> Seq.choose (getAttr)
     |> Seq.tryFirst
+    |> Option.tryIfNone (fun () -> if ty.BaseType <> null then getAttr ty.BaseType else None)
+
+let rec depthFrom (rootTy : Type) (ty : Type) =
+  if ty = null then failwith "Null type in depthFrom"
+  if ty = rootTy then 0
+  else (depthFrom rootTy ty.BaseType) + 1
+
+let resolveDuplicateTypes (types : (TypeInfo * p4Attribute * Type) seq) =
+  types
+  |> Seq.groupBy (fun (ty,attr,defTy) -> attr.Type, attr.P4Path)
+  |> Seq.collect (fun ((kP4Ty,kPath), tys) ->
+      match kP4Ty with
+      | p4Type.Error ->
+          if kPath <> "error" then failwithf "P4Attribute cannot be of type Error and not have path 'error' (has path %s)." kPath
+          // We want the deepest declaration
+          tys |> Seq.maxBy (fst3 >> depthFrom libraryErrorType) |> Seq.singleton
+      | _ -> tys)
 
 let mapArchAssembly (archClassRequirement:ArchClassRequirement) (dll:Assembly) =
   // Search for types and members which have been annotated with the P4Attribute
@@ -137,6 +155,7 @@ let mapArchAssembly (archClassRequirement:ArchClassRequirement) (dll:Assembly) =
   // Create maps of p4-info -> c# name
   let p4Map =
     types
+    |> resolveDuplicateTypes
     |> Seq.choose (fun (ty, attr, defTy) -> // FIXME use interface type (defTy) instead of concrete type
         let (verdict, warnings) = validCsForP4 attr (Type ty)
         addWarnings warnings

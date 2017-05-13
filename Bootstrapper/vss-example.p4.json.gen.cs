@@ -7,21 +7,25 @@ using IPv4Address = P4ToCSharp.Library.bit32;
 
 public class Program
 {
-    public enum error
+    public class error : Architecture.error
     {
-        NoError,
-        PacketTooShort,
-        NoMatch,
-        StackOutOfBounds,
-        OverwritingHeader,
-        HeaderTooShort,
-        ParserTimeout,
-        IPv4OptionsNotSupported,
-        IPv4IncorrectVersion,
-        IPv4ChecksumError
+        public static readonly error NoError = new error();
+        public static readonly error PacketTooShort = new error();
+        public static readonly error NoMatch = new error();
+        public static readonly error StackOutOfBounds = new error();
+        public static readonly error OverwritingHeader = new error();
+        public static readonly error HeaderTooShort = new error();
+        public static readonly error ParserTimeout = new error();
+        public static readonly error IPv4OptionsNotSupported = new error();
+        public static readonly error IPv4IncorrectVersion = new error();
+        public static readonly error IPv4ChecksumError = new error();
+
+        protected error()
+        {
+        }
     }
 
-    static void verify(bool condition, error err)
+    static void verify(bool condition, P4ToCSharp.Library.error err)
     {
         Bootstrapper.VSSModel.verify(condition, err);
     }
@@ -167,11 +171,11 @@ public class Program
         class TopPipe_Args
         {
             public Parsed_packet headers { get; set; }
-            public error parseError { get; }
+            public P4ToCSharp.Library.error parseError { get; }
             public InControl inCtrl { get; }
             public OutControl outCtrl { get; set; }
 
-            public TopPipe_Args(Parsed_packet headers, error parseError, InControl inCtrl, OutControl outCtrl)
+            public TopPipe_Args(Parsed_packet headers, P4ToCSharp.Library.error parseError, InControl inCtrl, OutControl outCtrl)
             {
                 this.headers = headers;
                 this.parseError = parseError;
@@ -184,7 +188,7 @@ public class Program
         {
         }
 
-        public void apply(Parsed_packet headers_capture, ref Parsed_packet headers, error parseError, InControl inCtrl, out OutControl outCtrl)
+        public void apply(Parsed_packet headers_capture, ref Parsed_packet headers, P4ToCSharp.Library.error parseError, InControl inCtrl, out OutControl outCtrl)
         {
             outCtrl = new OutControl();
             headers = headers_capture;

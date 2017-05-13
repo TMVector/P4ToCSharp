@@ -14,13 +14,15 @@ namespace HandConvertedProgram.program
   {
     // headers
 
-    // FIXME how does this merge with the existing error namespace?
     // Potentially values in all of: stdlib; model; program
-    enum error
+    public class error : ModelImplementation.error
     {
-      IPv4OptionsNotSupported,
-      IPv4IncorrectVersion,
-      IPv4ChecksumError
+      // Only add new errors
+      public static readonly error IPv4OptionsNotSupported = new error();
+      public static readonly error IPv4IncorrectVersion = new error();
+      public static readonly error IPv4ChecksumError = new error();
+
+      protected error() { }
     }
 
     // struct

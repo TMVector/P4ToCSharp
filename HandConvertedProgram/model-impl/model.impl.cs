@@ -10,9 +10,14 @@ namespace HandConvertedProgram
 {
   public static class ModelImplementation
   {
+    public class error : ModelInterface.error
+    {
+      protected error() { }
+    }
+
     public sealed class packet_in_impl : packet_in
     {
-      public void extract<T>(ref T hdr)
+      public void extract<T>(out T hdr)
       {
         throw new NotImplementedException();
       }
