@@ -12,7 +12,7 @@ module Util =
       xs
       |> Seq.filter (fun x -> x :> obj :? 'dst)
       |> Seq.cast<'dst>
-    let skipIf skipCount xs =
+    let trySkip skipCount xs =
       seq {
         let mutable pos = 0
         for x in xs do

@@ -1228,8 +1228,8 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                 yield (lutTy, ke.expression)
             } |> Seq.rev |> Seq.toArray
           let tableField =
-            let (lutTy, kExpr) = Seq.first key
-            field lutTy "lookup" (constructorCall lutTy [])
+            Seq.tryFirst key |> Option.map (fun (lutTy, kExpr) ->
+              field lutTy "lookup" (constructorCall lutTy []))
           let actionOfExpr (actionExpr:JsonTypes.Expression) (name:string option) =
             // TODO FIXME need to be more careful with the handling of the expression here:
             // From the spec:
@@ -1370,13 +1370,16 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let size =
             pt.properties.GetPropertyValueByName<JsonTypes.ExpressionValue>("size")
             |> Option.map (fun size -> field int32Name "size" (ofExpr scopeInfo (CsType int32Name) size.expression)) // FIXME using InfInt to mean int32...
+          let defaultActionName = "default_action"
           let defaultAction =
             pt.properties.GetPropertyValueByName<JsonTypes.ExpressionValue>("default_action")
             |> Option.map (fun da -> actionOfExpr da.expression None) // FIXME default_action must be in the action list, but the actual class could still have a different name via an annotation...
             |> Option.map (fun (name, expr, p4action, actionScope) ->
-                (field actionBaseType "default_action" (constructorCall (qualifiedTypeName (sprintf "ActionBase.%s_Action" name)) [])) // FIXME handle default action arguments
+                (field actionBaseType defaultActionName (constructorCall (qualifiedTypeName (sprintf "ActionBase.%s_Action" name)) [])) // FIXME handle default action arguments
                   .WithModifiers(tokenList [SK.PrivateKeyword]))
-            |> Option.toArray
+            |> Option.ifNone (fun () ->
+                (uninitialisedField actionBaseType defaultActionName)
+                  .WithModifiers(tokenList [SK.PrivateKeyword]))
           let apply =
             let apply_resultType = SF.IdentifierName(apply_result.Identifier)
             let result = SF.IdentifierName("result")
@@ -1398,21 +1401,31 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                     |> Seq.map (fun param -> assignment (SF.IdentifierName(param.Identifier)) (SF.IdentifierName(param.Identifier.Text + "_capture"))) // FIXME centralise the naming of capture params
                     |> Seq.cast
 
-                  yield upcast SF.LocalDeclarationStatement(variableDeclaration result.Identifier.Text apply_resultType None)
-                  // Chain table lookups // FIXME does this allow for keyless tables? (the spec does - just always do the default action)
-                  let indexAccessExpr key = SF.ElementBindingExpression().WithArgumentList(SF.BracketedArgumentList(SF.SingletonSeparatedList(SF.Argument(key)))) :> Expr
-                  let lookupKey lut key = SF.ConditionalAccessExpression(lut, indexAccessExpr key) :> Expr
-                  let lookupChain = Seq.fold (fun expr (_,keyExpr) -> lookupKey (indexAccessExpr (keyExpr |> ofExpr scopeInfo UnknownType)) expr)
-                                             (Seq.last key |> snd |> ofExpr scopeInfo UnknownType |> indexAccessExpr)
-                                             (key |> Seq.skipIf 1)
-                  let lookupExpr = SF.ConditionalAccessExpression(SF.IdentifierName("lookup"), lookupChain) :> Expr
-                  yield upcast SF.LocalDeclarationStatement(variableDeclaration "RA" actionBaseType (Some lookupExpr))
-                  let condition = SF.BinaryExpression(SK.EqualsExpression, SF.IdentifierName("RA"), nullLiteral)
-                  let ifThen = assignment result (SF.ObjectCreationExpression(apply_resultType).WithArgumentList(exprArgList [falseLiteral :> Expr; memberAccess "default_action.Action"])) // TODO FIXME also RA = default_action!
-                  let elseThen = assignment result (SF.ObjectCreationExpression(apply_resultType).WithArgumentList(exprArgList [trueLiteral :> Expr; memberAccess "RA.Action"]))
-                  yield upcast SF.IfStatement(condition, ifThen, SF.ElseClause(elseThen))
-                  //RA.OnApply(args, ref nextHop);
-                  yield upcast SF.ExpressionStatement(SF.InvocationExpression(memberAccess "RA.OnApply").WithArgumentList(SF.ArgumentList(SF.SeparatedList(onApplyArgs))))
+                  // Allow for keyless tables (the spec does - just always do the default action)
+                  if Seq.isEmpty key then
+                    yield upcast SF.LocalDeclarationStatement(
+                      variableDeclaration result.Identifier.Text apply_resultType
+                        (SF.ObjectCreationExpression(apply_resultType).WithArgumentList(exprArgList [falseLiteral :> Expr; memberAccess "default_action.Action"]) |> Some |> Option.cast))
+                    //RA.OnApply(args, ref nextHop);
+                    yield upcast SF.ExpressionStatement(SF.InvocationExpression(memberAccess "default_action.OnApply").WithArgumentList(SF.ArgumentList(SF.SeparatedList(onApplyArgs))))
+                  else
+                    yield upcast SF.LocalDeclarationStatement(variableDeclaration result.Identifier.Text apply_resultType None)
+                    let indexAccessExpr key = SF.ElementBindingExpression().WithArgumentList(SF.BracketedArgumentList(SF.SingletonSeparatedList(SF.Argument(key)))) :> Expr
+                    let lookupKey lut key = SF.ConditionalAccessExpression(lut, indexAccessExpr key) :> Expr
+                    let lookupChain = Seq.fold (fun expr (_,keyExpr) -> lookupKey (indexAccessExpr (keyExpr |> ofExpr scopeInfo UnknownType)) expr)
+                                               (Seq.last key |> snd |> ofExpr scopeInfo UnknownType |> indexAccessExpr)
+                                               (key |> Seq.trySkip 1)
+                    let lookupExpr = SF.ConditionalAccessExpression(SF.IdentifierName("lookup"), lookupChain) :> Expr
+                    yield upcast SF.LocalDeclarationStatement(variableDeclaration "RA" actionBaseType (Some lookupExpr))
+                    let condition = SF.BinaryExpression(SK.EqualsExpression, SF.IdentifierName("RA"), nullLiteral)
+                    let ifThen =
+                      SF.Block(
+                        assignment result (SF.ObjectCreationExpression(apply_resultType).WithArgumentList(exprArgList [falseLiteral :> Expr; memberAccess "default_action.Action"])),
+                        assignment (SF.IdentifierName("RA")) (SF.IdentifierName defaultActionName))
+                    let elseThen = assignment result (SF.ObjectCreationExpression(apply_resultType).WithArgumentList(exprArgList [trueLiteral :> Expr; memberAccess "RA.Action"]))
+                    yield upcast SF.IfStatement(condition, ifThen, SF.ElseClause(elseThen))
+                    //RA.OnApply(args, ref nextHop);
+                    yield upcast SF.ExpressionStatement(SF.InvocationExpression(memberAccess "RA.OnApply").WithArgumentList(SF.ArgumentList(SF.SeparatedList(onApplyArgs))))
                   //return result;
                   yield upcast SF.ReturnStatement(SF.IdentifierName("result"))
                 })
@@ -1421,12 +1434,12 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let tableClass =
             SF.ClassDeclaration(tableClassName)
               .WithModifiers(tokenList [SK.PrivateKeyword; SK.SealedKeyword])
-              .AddMembers(tableField)
+              .AddMembers(tableField |> Option.cast |> Option.toArray)
               .AddMembers(apply)
               .AddMembers(action_list)
               .AddMembers(apply_result)
               .AddMembers(actionBase)
-              .AddMembers(defaultAction |> Seq.cast |> Seq.toArray)
+              .AddMembers(defaultAction)
           let tableInstance =
             field tableClassType pt.name (constructorCall tableClassType [])
           Transformed.declOf tableClass
