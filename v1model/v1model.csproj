@@ -42,6 +42,8 @@
   <ItemGroup>
     <Compile Include="Model.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RangeLookup.cs" />
+    <Compile Include="SelectorTable.cs" />
     <Compile Include="v1model.p4.json.arch.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -49,6 +51,10 @@
       <Project>{4ac851b0-bb98-40e4-b338-746733ed44d1}</Project>
       <Name>P4ToCSharp.Lib</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="core.p4" />
+    <None Include="v1model.p4" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
