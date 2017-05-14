@@ -30,6 +30,7 @@ namespace P4ToCSharp.Library
 
     public bitN(int width, UInt64 val)
     {
+      Debug.Assert(width > 0 && width <= 64);
       BitWidth = width;
       Debug.Assert(val < (1u << BitWidth));
       Value = val; // FIXME mask? (Debug.Assert is not checked in Release)
@@ -67,6 +68,8 @@ namespace P4ToCSharp.Library
     }
 
     // NOTE we don't support any arithmetic for this datatype
+    public static bool operator <(bitN a, IBitString b) { return a.Value < b.Value; }
+    public static bool operator >(bitN a, IBitString b) { return a.Value > b.Value; }
   }
 
   public struct bit1 : IBitString
@@ -117,6 +120,9 @@ namespace P4ToCSharp.Library
     {
       return Value;
     }
+
+    public static bool operator <(bit1 a, IBitString b) { return a.Value < b.Value; }
+    public static bool operator >(bit1 a, IBitString b) { return a.Value > b.Value; }
 
     public static implicit operator bit1(uint v)
     {
@@ -177,6 +183,9 @@ namespace P4ToCSharp.Library
       return Value;
     }
 
+    public static bool operator <(bit4 a, IBitString b) { return a.Value < b.Value; }
+    public static bool operator >(bit4 a, IBitString b) { return a.Value > b.Value; }
+
     public static implicit operator bit4(uint v)
     {
       Debug.Assert(v < (1u << BitWidth));
@@ -231,6 +240,9 @@ namespace P4ToCSharp.Library
     {
       return Value;
     }
+
+    public static bool operator <(bit8 a, IBitString b) { return a.Value < b.Value; }
+    public static bool operator >(bit8 a, IBitString b) { return a.Value > b.Value; }
 
     public static bit8 operator +(bit8 a, uint i)
     {
@@ -296,6 +308,9 @@ namespace P4ToCSharp.Library
       return Value;
     }
 
+    public static bool operator <(bit16 a, IBitString b) { return a.Value < b.Value; }
+    public static bool operator >(bit16 a, IBitString b) { return a.Value > b.Value; }
+
     public static bit16 operator +(bit16 a, uint i)
     {
       return new bit16((UInt16)(a.Value - i)); // FIXME what about overflow, etc.? What is the P4 behaviour?
@@ -359,6 +374,9 @@ namespace P4ToCSharp.Library
     {
       return (int)Value;
     }
+
+    public static bool operator <(bit32 a, IBitString b) { return a.Value < b.Value; }
+    public static bool operator >(bit32 a, IBitString b) { return a.Value > b.Value; }
 
     public static bit32 operator +(bit32 a, uint i)
     {
@@ -428,6 +446,9 @@ namespace P4ToCSharp.Library
       return (int)Value;
     }
 
+    public static bool operator <(bit48 a, IBitString b) { return a.Value < b.Value; }
+    public static bool operator >(bit48 a, IBitString b) { return a.Value > b.Value; }
+
     public static implicit operator bit48(ulong v)
     {
       Debug.Assert(v < (1uL << BitWidth));
@@ -482,6 +503,9 @@ namespace P4ToCSharp.Library
     {
       return (int)Value;
     }
+
+    public static bool operator <(bit64 a, IBitString b) { return a.Value < b.Value; }
+    public static bool operator >(bit64 a, IBitString b) { return a.Value > b.Value; }
 
     public static bit64 operator +(bit64 a, ulong i)
     {
