@@ -124,15 +124,38 @@ namespace P4ToCSharp.Library
     public static bool operator <(bit1 a, IBitString b) { return a.Value < b.Value; }
     public static bool operator >(bit1 a, IBitString b) { return a.Value > b.Value; }
 
+    public static implicit operator bit1(bool v)
+    {
+      if (v)
+        return new bit1(1);
+      else
+        return new bit1(0);
+    }
+    public static implicit operator bool(bit1 v)
+    {
+      return v.Value == 1;
+    }
     public static implicit operator bit1(uint v)
     {
-      Debug.Assert(v < (1u << BitWidth));
-      return new bit1((byte)(v & ~(~0u << BitWidth)));
+      return OfValue(v);
     }
     public static implicit operator uint(bit1 v)
     {
       return v.Value;
     }
+
+    /// <summary>Truncates the value</summary>
+    private static bit1 OfValue(UInt64 v)
+    {
+      return new bit1((byte)(v & ~(~0uL << BitWidth)));
+    }
+    public static explicit operator bit1(bitN v) { return OfValue(v.Value); }
+    public static explicit operator bit1(bit4 v) { return OfValue(v.Value); }
+    public static explicit operator bit1(bit8 v) { return OfValue(v.Value); }
+    public static explicit operator bit1(bit16 v) { return OfValue(v.Value); }
+    public static explicit operator bit1(bit32 v) { return OfValue(v.Value); }
+    public static explicit operator bit1(bit48 v) { return OfValue(v.Value); }
+    public static explicit operator bit1(bit64 v) { return OfValue(v.Value); }
   }
 
   public struct bit4 : IBitString
@@ -188,13 +211,25 @@ namespace P4ToCSharp.Library
 
     public static implicit operator bit4(uint v)
     {
-      Debug.Assert(v < (1u << BitWidth));
-      return new bit4((byte)(v & ~(~0u << BitWidth)));
+      return OfValue(v);
     }
     public static implicit operator uint(bit4 v)
     {
       return v.Value;
     }
+
+    /// <summary>Truncates the value</summary>
+    private static bit4 OfValue(UInt64 v)
+    {
+      return new bit4((byte)(v & ~(~0uL << BitWidth)));
+    }
+    public static explicit operator bit4(bitN v) { return OfValue(v.Value); }
+    public static explicit operator bit4(bit1 v) { return OfValue(v.Value); }
+    public static explicit operator bit4(bit8 v) { return OfValue(v.Value); }
+    public static explicit operator bit4(bit16 v) { return OfValue(v.Value); }
+    public static explicit operator bit4(bit32 v) { return OfValue(v.Value); }
+    public static explicit operator bit4(bit48 v) { return OfValue(v.Value); }
+    public static explicit operator bit4(bit64 v) { return OfValue(v.Value); }
   }
 
   public struct bit8 : IBitString
@@ -255,13 +290,25 @@ namespace P4ToCSharp.Library
 
     public static implicit operator bit8(uint v)
     {
-      Debug.Assert(v < (1u << BitWidth));
-      return new bit8((byte)(v & ~(~0u << BitWidth)));
+      return OfValue(v);
     }
     public static implicit operator uint(bit8 v)
     {
       return v.Value;
     }
+
+    /// <summary>Truncates the value</summary>
+    private static bit8 OfValue(UInt64 v)
+    {
+      return new bit8((byte)(v & ~(~0uL << BitWidth)));
+    }
+    public static explicit operator bit8(bitN v) { return OfValue(v.Value); }
+    public static explicit operator bit8(bit1 v) { return OfValue(v.Value); }
+    public static explicit operator bit8(bit4 v) { return OfValue(v.Value); }
+    public static explicit operator bit8(bit16 v) { return OfValue(v.Value); }
+    public static explicit operator bit8(bit32 v) { return OfValue(v.Value); }
+    public static explicit operator bit8(bit48 v) { return OfValue(v.Value); }
+    public static explicit operator bit8(bit64 v) { return OfValue(v.Value); }
   }
 
   public struct bit16 : IBitString
@@ -322,13 +369,25 @@ namespace P4ToCSharp.Library
 
     public static implicit operator bit16(uint v)
     {
-      Debug.Assert(v < (1u << BitWidth));
-      return new bit16((UInt16)(v & ~(~0u << BitWidth)));
+      return OfValue(v);
     }
     public static implicit operator uint(bit16 v)
     {
       return v.Value;
     }
+
+    /// <summary>Truncates the value</summary>
+    private static bit16 OfValue(UInt64 v)
+    {
+      return new bit16((UInt16)(v & ~(~0uL << BitWidth)));
+    }
+    public static explicit operator bit16(bitN v) { return OfValue(v.Value); }
+    public static explicit operator bit16(bit1 v) { return OfValue(v.Value); }
+    public static explicit operator bit16(bit4 v) { return OfValue(v.Value); }
+    public static explicit operator bit16(bit8 v) { return OfValue(v.Value); }
+    public static explicit operator bit16(bit32 v) { return OfValue(v.Value); }
+    public static explicit operator bit16(bit48 v) { return OfValue(v.Value); }
+    public static explicit operator bit16(bit64 v) { return OfValue(v.Value); }
   }
 
   public struct bit32 : IBitString
@@ -389,13 +448,25 @@ namespace P4ToCSharp.Library
 
     public static implicit operator bit32(uint v)
     {
-      Debug.Assert(v < (1u << BitWidth));
-      return new bit32(v & ~(~0u << BitWidth));
+      return OfValue(v);
     }
     public static implicit operator uint(bit32 v)
     {
       return v.Value;
     }
+
+    /// <summary>Truncates the value</summary>
+    private static bit32 OfValue(UInt64 v)
+    {
+      return new bit32((UInt32)(v & ~(~0uL << BitWidth)));
+    }
+    public static explicit operator bit32(bitN v) { return OfValue(v.Value); }
+    public static explicit operator bit32(bit1 v) { return OfValue(v.Value); }
+    public static explicit operator bit32(bit4 v) { return OfValue(v.Value); }
+    public static explicit operator bit32(bit8 v) { return OfValue(v.Value); }
+    public static explicit operator bit32(bit16 v) { return OfValue(v.Value); }
+    public static explicit operator bit32(bit48 v) { return OfValue(v.Value); }
+    public static explicit operator bit32(bit64 v) { return OfValue(v.Value); }
   }
 
   public struct bit48 : IBitString
@@ -451,13 +522,25 @@ namespace P4ToCSharp.Library
 
     public static implicit operator bit48(ulong v)
     {
-      Debug.Assert(v < (1uL << BitWidth));
-      return new bit48(v & ~(~0uL << BitWidth));
+      return OfValue(v);
     }
     public static implicit operator ulong(bit48 v)
     {
       return v.Value;
     }
+
+    /// <summary>Truncates the value</summary>
+    private static bit48 OfValue(UInt64 v)
+    {
+      return new bit48((UInt64)(v & ~(~0uL << BitWidth)));
+    }
+    public static explicit operator bit48(bitN v) { return OfValue(v.Value); }
+    public static explicit operator bit48(bit1 v) { return OfValue(v.Value); }
+    public static explicit operator bit48(bit4 v) { return OfValue(v.Value); }
+    public static explicit operator bit48(bit8 v) { return OfValue(v.Value); }
+    public static explicit operator bit48(bit16 v) { return OfValue(v.Value); }
+    public static explicit operator bit48(bit32 v) { return OfValue(v.Value); }
+    public static explicit operator bit48(bit64 v) { return OfValue(v.Value); }
   }
 
   public struct bit64 : IBitString
@@ -518,12 +601,24 @@ namespace P4ToCSharp.Library
 
     public static implicit operator bit64(ulong v)
     {
-      Debug.Assert(v < (1uL << BitWidth));
-      return new bit64(v & ~(~0uL << BitWidth));
+      return OfValue(v);
     }
     public static implicit operator ulong(bit64 v)
     {
       return v.Value;
     }
+
+    /// <summary>Truncates the value</summary>
+    private static bit64 OfValue(UInt64 v)
+    {
+      return new bit64((UInt64)(v & ~(~0uL << BitWidth)));
+    }
+    public static explicit operator bit64(bitN v) { return OfValue(v.Value); }
+    public static explicit operator bit64(bit1 v) { return OfValue(v.Value); }
+    public static explicit operator bit64(bit4 v) { return OfValue(v.Value); }
+    public static explicit operator bit64(bit8 v) { return OfValue(v.Value); }
+    public static explicit operator bit64(bit16 v) { return OfValue(v.Value); }
+    public static explicit operator bit64(bit32 v) { return OfValue(v.Value); }
+    public static explicit operator bit64(bit48 v) { return OfValue(v.Value); }
   }
 }
