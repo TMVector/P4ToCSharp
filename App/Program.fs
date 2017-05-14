@@ -74,15 +74,16 @@ module Main =
 
   [<EntryPoint>]
   let main argv =
-    System.AppDomain.CurrentDomain.UnhandledException.Add(fun e ->
-      let ex = e.ExceptionObject :?> System.Exception
-      #if DEBUG
-      eprintf "ERROR: %O" ex
-      #else
-      eprintf "ERROR: %s" ex.Message
-      #endif
-      System.Environment.Exit(1)
-      )
+    if not System.Diagnostics.Debugger.IsAttached then
+      System.AppDomain.CurrentDomain.UnhandledException.Add(fun e ->
+        let ex = e.ExceptionObject :?> System.Exception
+        #if DEBUG
+        eprintf "ERROR: %O" ex
+        #else
+        eprintf "ERROR: %s" ex.Message
+        #endif
+        System.Environment.Exit(1)
+        )
 
     let argParser = ArgumentParser.Create<MainArgs>(programName = "p4tocs.exe")
 
