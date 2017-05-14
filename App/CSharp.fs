@@ -215,7 +215,7 @@ type ScopeInfo =
     |> Option.ifNone (fun () -> failwithf "Could not find architecture element for P4Type.%s, %s" (p4Type.ToString()) this.CurrentPathString)
   member this.GetLookupType(matchKind : string) =
     this.LookupMap.TryFind(matchKind)
-    |> Option.map (fun typeName -> SF.ParseTypeName(typeName))
+    |> Option.map (fun typeName -> SF.ParseName(typeName))
     |> Option.ifNone (fun () -> failwithf "Could not find a lookup type for %s" matchKind)
 
 let nullLiteral = SF.LiteralExpression(SK.NullLiteralExpression)
@@ -1231,8 +1231,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let key =
             let lutTypeFor (path:JsonTypes.PathExpression) keyType resultType : Syntax.TypeSyntax =
               let matchKindName = path.path.name
-              let matchKindName = System.Char.ToUpper(matchKindName.[0]).ToString() + matchKindName.Substring(1)
-              upcast qualifiedGenericTypeName (sprintf "%sTable" matchKindName) [|keyType; resultType|]
+              upcast makeGenericName (scopeInfo.GetLookupType(matchKindName)) (tArgList [keyType; resultType])
             pt.properties.GetPropertyValueByName<JsonTypes.Key>("key")
             |> Option.map (fun key ->
               seq {

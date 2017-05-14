@@ -189,7 +189,11 @@ let mapArchAssembly (archClassRequirement:ArchClassRequirement) (dll:Assembly) =
     |> Seq.map (fun lu ->
         let attr = lu.GetCustomAttribute<p4LookupAttribute>()
         let key = attr.MatchKind
-        let value = lu.FullName
+        let value =
+          let luName = lu.FullName.Replace('+', '.') // Nested members are ty+mem, we need ty.mem
+          if lu.ContainsGenericParameters then
+            luName.Substring(0,  luName.IndexOf('`')) // FIXME a bit hacky...
+          else luName
         (key, value))
     |> Map.ofSeq
   let architectureClassName = arch |> Option.map (fun arch -> arch.FullName.Replace('+', '.')) |> Option.ifNoneValue ""
