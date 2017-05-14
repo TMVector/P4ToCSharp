@@ -710,7 +710,7 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
       | Some expr -> expr
       | None -> upcast SF.IdentifierName(variableNameFor p.path.name) // Try just the name, so we don't have to add trivial mappings to the scopeInfo
   | :? JsonTypes.TypeNameExpression as t -> upcast SF.ParseTypeName(t.typeName.path.name) // FIXME need to make sure the name is mapped to csharp equiv? (classNameFor)
-  | :? JsonTypes.DefaultExpression -> failwith "JsonTypes.DefaultExpression not handled yet" // FIXME
+  | :? JsonTypes.DefaultExpression -> failwith "JsonTypes.DefaultExpression not handled" // FIXME
   | :? JsonTypes.This -> failwith "JsonTypes.this not handled yet" // FIXME is this the same as in C#?
   | :? JsonTypes.ListExpression -> failwith "JsonTypes.ListExpression not handled yet" // FIXME C# array expression?
   | :? JsonTypes.SelectExpression -> failwith "JsonTypes.SelectExpression not handled yet" // FIXME
@@ -1055,6 +1055,12 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           .WithModifiers(tokenList [SK.PublicKeyword])
           .WithParameters(applyParams)
           .WithBlockBody(applyBody)
+      let caseLabel (expr : JsonTypes.Expression) : Syntax.SwitchLabelSyntax =
+        match expr with
+        | :? JsonTypes.DefaultExpression -> upcast SF.DefaultSwitchLabel()
+        | _ ->
+          let k = ofExpr scopeInfo UnknownType expr
+          upcast SF.CaseSwitchLabel(k)
       let selectStatement (se:JsonTypes.Expression option) : Syntax.StatementSyntax seq =
         match se with
         | None -> Seq.empty
@@ -1080,9 +1086,8 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                     se.selectCases.vec
                     |> Seq.map (fun sc ->
                         SF.SwitchSection() // FIXME if the case label is too big for the type of the switch expr, we get a c# compile error
-                          .AddLabels(ofExpr scopeInfo UnknownType sc.keyset // FIXME labels need to be primitives (will this return e.g. (PortId)4?)
+                          .AddLabels(caseLabel sc.keyset // FIXME labels need to be primitives (will this return e.g. (PortId)4?)
                                     |> Seq.singleton // FIXME keyset could be a set expression - expand to multiple switch labels
-                                    |> Seq.map (fun k -> SF.CaseSwitchLabel(k))
                                     |> Seq.cast |> Seq.toArray)
                           .AddStatements(Seq.append (ofPathExpr sc.state) [breakStatement] |> Seq.toArray) )
                     |> Seq.toArray) // FIXME add a default case that returns error.NoMatch (if there isn't already a default case)
