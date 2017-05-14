@@ -70,6 +70,12 @@ namespace P4ToCSharp.Library
     // NOTE we don't support any arithmetic for this datatype
     public static bool operator <(bitN a, IBitString b) { return a.Value < b.Value; }
     public static bool operator >(bitN a, IBitString b) { return a.Value > b.Value; }
+
+    /// <summary>Truncates the value</summary>
+    public static bitN OfValue(UInt64 v, int width)
+    {
+      return new bitN(width, (UInt64)(v & ~(~0uL << width)));
+    }
   }
 
   public struct bit1 : IBitString

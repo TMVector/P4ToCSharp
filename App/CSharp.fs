@@ -638,56 +638,74 @@ let declarationOfEnum (error : JsonTypes.Type_Enum) =
   (createEnum error.name (error.members.vec |> Seq.map (fun memb -> memb.name)))
     .WithModifiers(tokenList [SK.PublicKeyword])
 
+let paren expr : Syntax.ExpressionSyntax = upcast SF.ParenthesizedExpression expr
+let isBitN (width) =
+  match width with
+  | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
+  | s when s <= 64 -> isFixedBitSize s
+  | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
+let cast (ofType : ScopeInfo -> JsonTypes.Type -> Syntax.TypeSyntax) (scopeInfo : ScopeInfo) (ty:JsonTypes.Type) (expr : Syntax.ExpressionSyntax) : Syntax.ExpressionSyntax =
+  match ty with
+  | :? JsonTypes.Type_Bits as bits when not (isBitN bits.size) ->
+      // Handle cast to bitN as a special case
+      upcast SF.InvocationExpression(SF.ParseName("bitN.OfValue"))
+               .AddArgumentListArguments(SF.Argument expr, SF.Argument(literalInt bits.size).WithNameColon(SF.NameColon("width")))
+  | _ -> paren (SF.CastExpression(ofType scopeInfo ty, expr))
+
 let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
   let scopeInfo = scopeInfo.EnterChildScope(e)
   let ofExpr = ofExpr scopeInfo
   match e with
   | :? JsonTypes.Operation_Unary as op ->
       match op with
-      | :? JsonTypes.Neg -> upcast SF.PrefixUnaryExpression(SK.UnaryMinusExpression, ofExpr UnknownType op.expr)
-      | :? JsonTypes.Cmpl -> upcast SF.PrefixUnaryExpression(SK.BitwiseNotExpression, ofExpr UnknownType op.expr)
-      | :? JsonTypes.LNot -> upcast SF.PrefixUnaryExpression(SK.LogicalNotExpression, ofExpr UnknownType op.expr)
+      | :? JsonTypes.Neg ->  paren (SF.PrefixUnaryExpression(SK.UnaryMinusExpression, ofExpr UnknownType op.expr))
+      | :? JsonTypes.Cmpl -> paren (SF.PrefixUnaryExpression(SK.BitwiseNotExpression, ofExpr UnknownType op.expr))
+      | :? JsonTypes.LNot -> paren (SF.PrefixUnaryExpression(SK.LogicalNotExpression, ofExpr UnknownType op.expr))
       | :? JsonTypes.Member as m ->
         upcast SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, ofExpr UnknownType op.expr, SF.IdentifierName(m.member_))
       | :? JsonTypes.Cast as c ->
-          // TODO look at 8.9.1 for cast behaviour.
-          upcast SF.CastExpression(ofType scopeInfo c.destType, ofExpr UnknownType op.expr) // FIXME this will be more complex...
+          // TODO look at 8.9.1 for cast behaviour. E.g. structs/headers can be cast to similar structs/headers
+          cast ofType scopeInfo c.destType (ofExpr UnknownType op.expr)
       | :? JsonTypes.IntMod -> failwith "IntMod not supported" // This is only used in BMv2 so shouldn't appear here
       | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Unary: %s" (op.GetType().Name)
   | :? JsonTypes.Operation_Binary as op -> // FIXME what about when the operands are of different type?
       let lExpr = ofExpr UnknownType op.left
       let rExpr = ofExpr UnknownType op.right
       match op with
-      | :? JsonTypes.Mul -> upcast SF.BinaryExpression(SK.MultiplyExpression, lExpr, rExpr)
-      | :? JsonTypes.Div -> upcast SF.BinaryExpression(SK.DivideExpression, lExpr, rExpr)
-      | :? JsonTypes.Mod -> upcast SF.BinaryExpression(SK.ModuloExpression, lExpr, rExpr)
-      | :? JsonTypes.Add -> upcast SF.BinaryExpression(SK.AddExpression, lExpr, rExpr)
-      | :? JsonTypes.Sub -> upcast SF.BinaryExpression(SK.SubtractExpression, lExpr, rExpr)
-      | :? JsonTypes.Shl -> upcast SF.BinaryExpression(SK.LeftShiftExpression, lExpr, rExpr)
-      | :? JsonTypes.Shr -> upcast SF.BinaryExpression(SK.RightShiftExpression, lExpr, rExpr)
-      | :? JsonTypes.Equ -> upcast SF.BinaryExpression(SK.EqualsExpression, lExpr, rExpr)
-      | :? JsonTypes.Neq -> upcast SF.BinaryExpression(SK.NotEqualsExpression, lExpr, rExpr)
-      | :? JsonTypes.Lss -> upcast SF.BinaryExpression(SK.LessThanExpression, lExpr, rExpr)
-      | :? JsonTypes.Leq -> upcast SF.BinaryExpression(SK.LessThanOrEqualExpression, lExpr, rExpr)
-      | :? JsonTypes.Grt -> upcast SF.BinaryExpression(SK.GreaterThanExpression, lExpr, rExpr)
-      | :? JsonTypes.Geq -> upcast SF.BinaryExpression(SK.GreaterThanOrEqualExpression, lExpr, rExpr)
-      | :? JsonTypes.BAnd -> upcast SF.BinaryExpression(SK.BitwiseAndExpression, lExpr, rExpr)
-      | :? JsonTypes.BOr -> upcast SF.BinaryExpression(SK.BitwiseOrExpression, lExpr, rExpr)
-      | :? JsonTypes.BXor -> upcast SF.BinaryExpression(SK.ExclusiveOrExpression, lExpr, rExpr)
-      | :? JsonTypes.LAnd -> upcast SF.BinaryExpression(SK.LogicalAndExpression, lExpr, rExpr)
-      | :? JsonTypes.LOr -> upcast SF.BinaryExpression(SK.LogicalOrExpression, lExpr, rExpr)
-      | :? JsonTypes.Concat -> upcast SF.InvocationExpression(memberAccess "BitHelper.Concat")
-                                        .WithArgumentList(exprArgList [| lExpr; rExpr |]) // FIXME The bit helper will need to know widths
-      | :? JsonTypes.ArrayIndex -> upcast SF.ElementAccessExpression(lExpr, bArg(rExpr))
-      | :? JsonTypes.Range -> upcast SF.InvocationExpression(memberAccess "Library.Range")
-                                       .WithArgumentList(exprArgList [| lExpr; rExpr (* FIXME 2nd arg should be count for Enumerable.Range - use custom method? *) |])
-      //| :? JsonTypes.Mask -> "&&&" // FIXME implement
-      | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Binary: %s" (op.GetType().Name)
+      | :? JsonTypes.Mul ->  Some SK.MultiplyExpression
+      | :? JsonTypes.Div ->  Some SK.DivideExpression
+      | :? JsonTypes.Mod ->  Some SK.ModuloExpression
+      | :? JsonTypes.Add ->  Some SK.AddExpression
+      | :? JsonTypes.Sub ->  Some SK.SubtractExpression
+      | :? JsonTypes.Shl ->  Some SK.LeftShiftExpression
+      | :? JsonTypes.Shr ->  Some SK.RightShiftExpression
+      | :? JsonTypes.Equ ->  Some SK.EqualsExpression
+      | :? JsonTypes.Neq ->  Some SK.NotEqualsExpression
+      | :? JsonTypes.Lss ->  Some SK.LessThanExpression
+      | :? JsonTypes.Leq ->  Some SK.LessThanOrEqualExpression
+      | :? JsonTypes.Grt ->  Some SK.GreaterThanExpression
+      | :? JsonTypes.Geq ->  Some SK.GreaterThanOrEqualExpression
+      | :? JsonTypes.BAnd -> Some SK.BitwiseAndExpression
+      | :? JsonTypes.BOr ->  Some SK.BitwiseOrExpression
+      | :? JsonTypes.BXor -> Some SK.ExclusiveOrExpression
+      | :? JsonTypes.LAnd -> Some SK.LogicalAndExpression
+      | :? JsonTypes.LOr ->  Some SK.LogicalOrExpression
+      | _ -> None
+      |> Option.map (fun sk -> paren (SF.BinaryExpression(sk, lExpr, rExpr)))
+      |> Option.ifNone (fun () ->
+        match op with
+        | :? JsonTypes.Concat -> upcast SF.InvocationExpression(memberAccess "BitHelper.Concat")
+                                          .WithArgumentList(exprArgList [| lExpr; rExpr |]) // FIXME The bit helper will need to know widths
+        | :? JsonTypes.ArrayIndex -> upcast SF.ElementAccessExpression(lExpr, bArg(rExpr))
+        | :? JsonTypes.Range -> upcast SF.InvocationExpression(memberAccess "Library.Range")
+                                         .WithArgumentList(exprArgList [| lExpr; rExpr (* FIXME 2nd arg should be count for Enumerable.Range - use custom method? *) |])
+        //| :? JsonTypes.Mask -> "&&&" // FIXME implement
+        | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Binary: %s" (op.GetType().Name) )
   | :? JsonTypes.Operation_Ternary as op ->
       match op with
       | :? JsonTypes.Slice -> upcast SF.InvocationExpression(eMemberAccess (ofExpr UnknownType op.e0) [|"Slice"|])
                                        .WithArgumentList(exprArgList [| ofExpr UnknownType op.e1; ofExpr UnknownType op.e2 |]) // FIXME slice method okay?
-      | :? JsonTypes.Mux -> upcast SF.ConditionalExpression(ofExpr UnknownType op.e0, ofExpr UnknownType op.e1, ofExpr UnknownType op.e2)
+      | :? JsonTypes.Mux -> paren (SF.ConditionalExpression(ofExpr UnknownType op.e0, ofExpr UnknownType op.e1, ofExpr UnknownType op.e2))
       | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Ternary: %s" (op.GetType().Name)
   | :? JsonTypes.Literal as lit ->
       match lit with
@@ -700,8 +718,8 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
           let expr = SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(str, c.value))
           match expectedType with
           | UnknownType -> upcast expr
-          | JsonType ty -> upcast SF.CastExpression(ofType scopeInfo ty, expr) // E.g. (bit4)0x0D
-          | CsType ty -> upcast SF.CastExpression(ty, expr) // E.g. (int32)0x0D
+          | JsonType ty -> cast ofType scopeInfo ty expr // E.g. (bit4)0x0D
+          | CsType ty -> paren (SF.CastExpression(ty, expr)) // E.g. (int32)0x0D
       | :? JsonTypes.BoolLiteral as b -> upcast SF.LiteralExpression(if b.value then SK.TrueLiteralExpression else SK.FalseLiteralExpression)
       | :? JsonTypes.StringLiteral as s -> upcast SF.LiteralExpression(SK.StringLiteralExpression, SF.Literal(s.value))
       | _ -> failwithf "Unhandled subtype of JsonTypes.Literal: %s" (lit.GetType().Name)
@@ -797,18 +815,14 @@ and ofType (scopeInfo : ScopeInfo) (t : JsonTypes.Type) : Syntax.TypeSyntax =
 and nameOfType (scopeInfo : ScopeInfo) (fqType:TypeQualification) (t : JsonTypes.Type) : Syntax.NameSyntax =
   match t with
   | :? JsonTypes.Type_Bits as bits ->
-      match bits.size with
-      | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
-      | s when s <= 64 ->
-          let bitsName =
-            if isFixedBitSize s then
-              SF.IdentifierName(sprintf "bit%d" s)
-            else
-              SF.IdentifierName("bitN")
-          match fqType with
-          | UnqualifiedType -> upcast bitsName
-          | FullyQualifiedType -> upcast SF.QualifiedName(libraryName, bitsName)
-      | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
+      let bitsName =
+        if isBitN bits.size then // NOTE isBitN errors if size is invalid
+          SF.IdentifierName(sprintf "bit%d" bits.size)
+        else
+          SF.IdentifierName("bitN")
+      match fqType with
+      | UnqualifiedType -> upcast bitsName
+      | FullyQualifiedType -> upcast SF.QualifiedName(libraryName, bitsName)
   | :? JsonTypes.Type_Name as n ->
       // Check that this shouldn't be an extern type
       if fqType = FullyQualifiedType then scopeInfo.TryResolveType(n) else None
@@ -864,7 +878,8 @@ and ofStatement (scopeInfo:ScopeInfo) (n : JsonTypes.Statement) : Syntax.Stateme
       upcast rv
   | :? JsonTypes.EmptyStatement -> failwith "JsonTypes.EmptyStatement not handled yet" // FIXME
   | :? JsonTypes.AssignmentStatement as a ->
-      upcast SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, ofExpr UnknownType a.left, ofExpr UnknownType a.right))
+      let lTy = inferTypeOf scopeInfo ResolveTypeDef a.left // Infer l type, so we know if it is e.g. bitN
+      upcast SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, ofExpr UnknownType a.left, ofExpr (JsonType lTy) a.right))
   | :? JsonTypes.IfStatement as ifs ->
       let rv = SF.IfStatement(ofExpr UnknownType ifs.condition, ofStatement scopeInfo ifs.ifTrue)
       let rv =
@@ -1694,6 +1709,7 @@ let ofProgram (program : JsonTypes.Program) (p4Map : Map<P4Type*string,string>) 
           | :? JsonTypes.Type_Control as control -> typeScope.TryGetArchNameString(P4Type.Control)
           | unhandled -> failwithf "Unhandled type %s for package parameter" (unhandled.GetType().Name)
           |> Option.ifNone (fun () -> failwithf "Could not find architecture element for package parameter type def (%s)" typeScope.CurrentPathString)
+        ERROR // FIXME arith1 p is being resolved to Parser by TryResolveType
         let concreteType = packageTypeScope.TryResolveType(arg.type_) |> Option.ifNone (fun () -> failwithf "Could not resolve package argument type %s" (arg.type_.GetType().Name))
         concreteType.CurrentPathString, (archIntfName, typeScope))
     |> Map.ofSeq
