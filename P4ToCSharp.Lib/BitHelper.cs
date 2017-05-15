@@ -11,6 +11,15 @@ namespace P4ToCSharp.Library
   {
     // FIXME throw errors like pp.65/66 in spec
 
+    public static unsafe ulong flip(ulong v, int w)
+    {
+      ulong rv;
+      byte* p = (byte*)&rv, op = (byte*)&v + (w-1);
+      for (int i = 0; i < w; i++)
+        *p++ = *op--;
+      return rv;
+    }
+
     // FIXME perhaps better to have internal methods that extract C# datatypes, and public ones that wrap it as bitN?
     public static bit1 Extract1(byte[] arr, uint bitOffset)
     {
@@ -31,7 +40,7 @@ namespace P4ToCSharp.Library
       uint data = Extract32(arr, startByte).Value; // FIXME is it okay to extract 32 bits when we don't know it's safe?
       data >>= (int)localBitOffset;
       data &= (~0u) >> (32 - (int)bitLength);
-      return new bitN(bitLength, data);
+      return new bitN(bitLength, data); // FIXME this is the wrong endianness? (at least for STF)
     }
 
     public static bit4 Extract4(byte[] arr, uint bitOffset)
@@ -54,7 +63,7 @@ namespace P4ToCSharp.Library
       Debug.Assert(bitOffset % 8 == 0, "Offset for Extract16 must be a multiple of 8");
       fixed (byte* p = &arr[bitOffset / 8])
       {
-        return new bit16(*((ushort*)p));
+        return new bit16((ushort)flip(*((ushort*)p), 2));
       }
     }
 
@@ -63,7 +72,7 @@ namespace P4ToCSharp.Library
       Debug.Assert(bitOffset % 8 == 0, "Offset for Extract32 must be a multiple of 8");
       fixed (byte* p = &arr[bitOffset / 8])
       {
-        return new bit32(*((uint*)p));
+        return new bit32((uint)flip(*((uint*)p), 4));
       }
     }
 
@@ -76,7 +85,7 @@ namespace P4ToCSharp.Library
         rv = *((uint*)p);
         rv |= ((ulong)*((ushort*)(p + 4))) << 32;
       }
-      return new bit48(rv);
+      return new bit48(flip(rv, 6));
     }
 
     public static unsafe bit64 Extract64(byte[] arr, uint bitOffset)
@@ -84,7 +93,7 @@ namespace P4ToCSharp.Library
       Debug.Assert(bitOffset % 8 == 0, "Offset for Extract64 must be a multiple of 8");
       fixed (byte* p = &arr[bitOffset / 8])
       {
-        return new bit64(*((ulong*)p));
+        return new bit64(flip(*((ulong*)p), 8));
       }
     }
 
@@ -103,8 +112,8 @@ namespace P4ToCSharp.Library
       uint startByte = bitOffset / 8;
       uint localBitOffset = bitOffset % 8;
       byte data = Extract8(arr, startByte).Value;
-      data &= (byte)(~(1 << (int)bitOffset));
-      data |= (byte)(value.Value << (int)bitOffset);
+      data &= (byte)(~(1 << (int)localBitOffset));
+      data |= (byte)(value.Value << (int)localBitOffset);
       Write8(arr, startByte, new bit8(data));
     }
 
@@ -121,7 +130,12 @@ namespace P4ToCSharp.Library
 
     public static void Write4(byte[] arr, uint bitOffset, bit4 value)
     {
-
+      uint startByte = bitOffset / 8;
+      uint localBitOffset = bitOffset % 8;
+      byte data = Extract8(arr, startByte).Value;
+      data &= (byte)(~(0xF << (int)localBitOffset));
+      data |= (byte)(value.Value << (int)localBitOffset);
+      Write8(arr, startByte, new bit8(data));
     }
 
     public static void Write8(byte[] arr, uint bitOffset, bit8 value)
@@ -132,34 +146,38 @@ namespace P4ToCSharp.Library
 
     public static unsafe void Write16(byte[] arr, uint bitOffset, bit16 value)
     {
+      var v = (ushort)flip(value.Value, 2);
       Debug.Assert(bitOffset % 8 == 0, "Offset for Write16 must be a multiple of 8");
       fixed (byte* p = &arr[bitOffset / 8])
       {
-        *((ushort*)p) = value.Value;
+        *((ushort*)p) = v;
       }
     }
 
     public static unsafe void Write32(byte[] arr, uint bitOffset, bit32 value)
     {
+      var v = (uint)flip(value.Value, 4);
       Debug.Assert(bitOffset % 8 == 0, "Offset for Write32 must be a multiple of 8");
       fixed (byte* p = &arr[bitOffset / 8])
       {
-        *((uint*)p) = value.Value;
+        *((uint*)p) = v;
       }
     }
 
     public static unsafe void Write48(byte[] arr, uint bitOffset, bit48 value)
     {
+      var v = flip(value.Value, 6);
       Debug.Assert(bitOffset % 8 == 0, "Offset for Write48 must be a multiple of 8");
       fixed (byte* p = &arr[bitOffset / 8])
       {
         *((uint*)p) = (uint)value.Value;
-        *((ushort*)(p + 4)) = (ushort)(value.Value >> 32);
+        *((ushort*)(p + 4)) = (ushort)(value.Value/* >> 32*/);
       }
     }
 
     public static unsafe void Write64(byte[] arr, uint bitOffset, bit64 value)
     {
+      var v = flip(value.Value, 8);
       Debug.Assert(bitOffset % 8 == 0, "Offset for Write64 must be a multiple of 8");
       fixed (byte* p = &arr[bitOffset / 8])
       {
