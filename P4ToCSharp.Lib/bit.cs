@@ -480,6 +480,14 @@ namespace P4ToCSharp.Library
     {
       return new bit32(a.Value - i);
     }
+    public static bit32 operator >>(bit32 a, int i)
+    {
+      return new bit32(a.Value >> i);
+    }
+    public static bit32 operator <<(bit32 a, int i)
+    {
+      return new bit32(a.Value << i);
+    }
 
     public static implicit operator bit32(uint v)
     {
@@ -632,6 +640,14 @@ namespace P4ToCSharp.Library
     public static bit64 operator -(bit64 a, ulong i)
     {
       return new bit64(a.Value - i);
+    }
+    public static bit64 operator >>(bit64 a, int i)
+    {
+      return new bit64(a.Value >> i);
+    }
+    public static bit64 operator <<(bit64 a, int i)
+    {
+      return new bit64(a.Value << i);
     }
 
     public static implicit operator bit64(ulong v)
