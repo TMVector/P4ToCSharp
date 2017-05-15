@@ -339,6 +339,7 @@ let controlBaseName = SF.IdentifierName("IControl")
 let controlBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(controlBaseName)
 let packageBaseName = SF.IdentifierName("IPackage")
 let packageBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(packageBaseName)
+let tableBaseName = SF.IdentifierName("ITable")
 let voidType : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.VoidKeyword))
 let byteArrayType : Syntax.TypeSyntax =
   upcast SF.ArrayType(SF.PredefinedType(SF.Token(SK.ByteKeyword)))
@@ -495,11 +496,11 @@ type Syntax.ClassDeclarationSyntax with
     this.AddMembers(properties)
   member this.ImplementHeaderBase(header : JsonTypes.Type_Header, scopeInfo : ScopeInfo) =
     let arrName, offsetName = "data", "offset"
+    let size (field:JsonTypes.StructField) =
+      match resolveType scopeInfo ResolveTypeDef field.type_ with
+      | :? JsonTypes.Type_Bits as tb -> tb.size
+      | ty -> failwithf "Couldn't resolve type for header field: %s" ty.Node_Type
     let fields =
-      let size (field:JsonTypes.StructField) =
-        match resolveType scopeInfo ResolveTypeDef field.type_ with
-        | :? JsonTypes.Type_Bits as tb -> tb.size
-        | ty -> failwithf "Couldn't resolve type for header field: %s" ty.Node_Type
       header.fields.vec
       |> Seq.map (fun field -> SF.IdentifierName(csFieldNameOf field.name), resolveType scopeInfo ResolveTypeDef field.type_, size field)
       |> Seq.toArray
@@ -516,7 +517,13 @@ type Syntax.ClassDeclarationSyntax with
             fields
             |> Seq.mapFold (fun bitOffset (field, ty, size) -> assignment field (extractExprFor ty bitOffset), bitOffset + size) 0 |> fst
             |> Seq.cast
-          Seq.append [changeBytesToBits] extractStatements))
+          let setLength =
+            assignment (SF.IdentifierName("length")) (literalInt (Seq.sumBy size header.fields.vec))
+          let setValid =
+            SF.ExpressionStatement(SF.InvocationExpression(SF.IdentifierName("setValid")).AddArgumentListArguments())
+          Seq.append [changeBytesToBits] extractStatements
+          |> Seq.append <| [setLength; setValid]
+          |> Seq.cast))
       .AddMembers(
       SF.MethodDeclaration(voidType, SF.Identifier("Deparse"))
         .WithModifiers(tokenList [SK.PublicKeyword; SK.OverrideKeyword])
@@ -1402,7 +1409,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             pt.properties.GetPropertyValueByName<JsonTypes.ExpressionValue>("size")
             |> Option.map (fun size -> field int32Name "size" (ofExpr scopeInfo (CsType int32Name) size.expression)) // FIXME using InfInt to mean int32...
           let defaultActionName = "default_action"
-          let defaultAction =
+          let defaultAction = // FIXME handle default action arguments properly!
             pt.properties.GetPropertyValueByName<JsonTypes.ExpressionValue>("default_action")
             |> Option.map (fun da -> actionOfExpr da.expression None) // FIXME default_action must be in the action list, but the actual class could still have a different name via an annotation...
             |> Option.map (fun (name, expr, p4action, actionScope) ->
@@ -1465,6 +1472,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let tableClass =
             SF.ClassDeclaration(tableClassName)
               .WithModifiers(tokenList [SK.PrivateKeyword; SK.SealedKeyword])
+              .WithBaseTypes([tableBaseName])
               .AddMembers(tableField |> Option.cast |> Option.toArray)
               .AddMembers(apply)
               .AddMembers(action_list)
@@ -1709,7 +1717,7 @@ let ofProgram (program : JsonTypes.Program) (p4Map : Map<P4Type*string,string>) 
           | :? JsonTypes.Type_Control as control -> typeScope.TryGetArchNameString(P4Type.Control)
           | unhandled -> failwithf "Unhandled type %s for package parameter" (unhandled.GetType().Name)
           |> Option.ifNone (fun () -> failwithf "Could not find architecture element for package parameter type def (%s)" typeScope.CurrentPathString)
-        ERROR // FIXME arith1 p is being resolved to Parser by TryResolveType
+        //ERROR // FIXME arith1 p is being resolved to Parser by TryResolveType
         let concreteType = packageTypeScope.TryResolveType(arg.type_) |> Option.ifNone (fun () -> failwithf "Could not resolve package argument type %s" (arg.type_.GetType().Name))
         concreteType.CurrentPathString, (archIntfName, typeScope))
     |> Map.ofSeq

@@ -18,6 +18,29 @@ namespace P4ToCSharp.Library
     //byte[] LargeValue { get; }
   }
 
+  public static class BitStringExtensions
+  {
+    /// NOTE v[m:l] -> m is MSB, L is LSB, LSB starts at 0 e.g. 0xF0[7:4]=0x0F; 0xF0[3:0]=0x00
+    public static ulong Slice(this IBitString bits, int from, int to)
+    {
+      return (bits.Value >> (bits.BitWidth - to)) & ~(~0uL << (to - from + 1));
+    }
+    public static ulong SetSlice(this IBitString bits, int from, int to, ulong val)
+    {
+      ulong mask = (~0uL << to) & (~0uL >> (63 - from));
+      return
+        // Clear bits
+        (bits.Value & ~mask)
+        // Set bits
+        | ((val << to) & mask);
+    }
+    public static bitN SliceN(this IBitString bits, int from, int to)
+    {
+      ulong val = bits.Slice(from, to);
+      return bitN.OfValue(val, to - from + 1);
+    }
+  }
+
   // Dynamic width bitstring (up to 64 wide)
   public struct bitN : IBitString
   {
@@ -75,6 +98,12 @@ namespace P4ToCSharp.Library
     public static bitN OfValue(UInt64 v, int width)
     {
       return new bitN(width, (UInt64)(v & ~(~0uL << width)));
+    }
+
+    public bitN SetSliceN(int from, int to, ulong val)
+    {
+      ulong v = ((IBitString)this).SetSlice(from, to, val);
+      return new bitN(this.BitWidth, v);
     }
   }
 
@@ -287,7 +316,7 @@ namespace P4ToCSharp.Library
 
     public static bit8 operator +(bit8 a, uint i)
     {
-      return new bit8((byte)(a.Value - i)); // FIXME what about overflow, etc.? What is the P4 behaviour?
+      return new bit8((byte)(a.Value + i)); // FIXME what about overflow, etc.? What is the P4 behaviour?
     }
     public static bit8 operator -(bit8 a, uint i)
     {
@@ -366,7 +395,7 @@ namespace P4ToCSharp.Library
 
     public static bit16 operator +(bit16 a, uint i)
     {
-      return new bit16((UInt16)(a.Value - i)); // FIXME what about overflow, etc.? What is the P4 behaviour?
+      return new bit16((UInt16)(a.Value + i)); // FIXME what about overflow, etc.? What is the P4 behaviour?
     }
     public static bit16 operator -(bit16 a, uint i)
     {
@@ -445,7 +474,7 @@ namespace P4ToCSharp.Library
 
     public static bit32 operator +(bit32 a, uint i)
     {
-      return new bit32(a.Value - i);
+      return new bit32(a.Value + i);
     }
     public static bit32 operator -(bit32 a, uint i)
     {
@@ -598,7 +627,7 @@ namespace P4ToCSharp.Library
 
     public static bit64 operator +(bit64 a, ulong i)
     {
-      return new bit64(a.Value - i);
+      return new bit64(a.Value + i);
     }
     public static bit64 operator -(bit64 a, ulong i)
     {

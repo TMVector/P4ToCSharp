@@ -9,14 +9,6 @@ namespace v1model
     [P4(P4Type.Error, "error")]
     public class error : P4ToCSharp.Library.error
     {
-      public static readonly error NoError = new error();
-      public static readonly error PacketTooShort = new error();
-      public static readonly error NoMatch = new error();
-      public static readonly error StackOutOfBounds = new error();
-      public static readonly error OverwritingHeader = new error();
-      public static readonly error HeaderTooShort = new error();
-      public static readonly error ParserTimeout = new error();
-
       protected error()
       {
       }
@@ -25,7 +17,7 @@ namespace v1model
     [P4(P4Type.ExternObject, "packet_in")]
     public interface packet_in
     {
-      void extract<T>(out T hdr);
+      void extract<T>(out T hdr) where T : new(); // NOTE added constraint
       void extract<T>(out T variableSizeHeader, bit32 variableFieldSizeInBits);
       T lookahead<T>();
       void advance(bit32 sizeInBits);
