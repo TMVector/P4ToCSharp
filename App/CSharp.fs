@@ -68,6 +68,7 @@ type ScopeInfo =
     ArchMap : Map<P4Type*string,string>;
     LookupMap : Map<string,string>;
     ControlInterfaceMap : Map<string,string*ScopeInfo>;
+    TypeDefMap : Map<string, JsonTypes.Type>;
   } with
   member this.AncestorScopes =
     seq {
@@ -109,10 +110,10 @@ type ScopeInfo =
     let scope =
       if path.absolute then this.ResolveGlobalIdentifier path.name
       else this.ResolveIdentifier path.name
-    match scope, this.PathMap.TryFind path.Node_ID with
-    | Some scope, Some result when scope.CurrentNode.Node_ID <> (result :?> JsonTypes.Node).Node_ID ->
-        failwithf "Resolved path (%s) doesn't match the path map (%d <> %d)" path.name scope.CurrentNode.Node_ID (result :?> JsonTypes.Node).Node_ID
-    | _ -> ()
+//    match scope, this.PathMap.TryFind path.Node_ID with
+//    | Some scope, Some result when scope.CurrentNode.Node_ID <> (result :?> JsonTypes.Node).Node_ID ->
+//        failwithf "Resolved path (%s) doesn't match the path map (%d <> %d)" path.name scope.CurrentNode.Node_ID (result :?> JsonTypes.Node).Node_ID
+//    | _ -> ()
     scope
   member this.ResolvePath(path : JsonTypes.Path) =
     this.TryResolvePath(path)
@@ -214,7 +215,7 @@ type ScopeInfo =
     |> Option.ifNone (fun () -> failwithf "Could not find architecture element for P4Type.%s, %s" (p4Type.ToString()) this.CurrentPathString)
   member this.GetLookupType(matchKind : string) =
     this.LookupMap.TryFind(matchKind)
-    |> Option.map (fun typeName -> SF.ParseTypeName(typeName))
+    |> Option.map (fun typeName -> SF.ParseName(typeName))
     |> Option.ifNone (fun () -> failwithf "Could not find a lookup type for %s" matchKind)
 
 let nullLiteral = SF.LiteralExpression(SK.NullLiteralExpression)
@@ -338,6 +339,7 @@ let controlBaseName = SF.IdentifierName("IControl")
 let controlBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(controlBaseName)
 let packageBaseName = SF.IdentifierName("IPackage")
 let packageBaseBaseType : Syntax.BaseTypeSyntax = upcast SF.SimpleBaseType(packageBaseName)
+let tableBaseName = SF.IdentifierName("ITable")
 let voidType : Syntax.TypeSyntax = upcast SF.PredefinedType(SF.Token(SK.VoidKeyword))
 let byteArrayType : Syntax.TypeSyntax =
   upcast SF.ArrayType(SF.PredefinedType(SF.Token(SK.ByteKeyword)))
@@ -494,11 +496,11 @@ type Syntax.ClassDeclarationSyntax with
     this.AddMembers(properties)
   member this.ImplementHeaderBase(header : JsonTypes.Type_Header, scopeInfo : ScopeInfo) =
     let arrName, offsetName = "data", "offset"
+    let size (field:JsonTypes.StructField) =
+      match resolveType scopeInfo ResolveTypeDef field.type_ with
+      | :? JsonTypes.Type_Bits as tb -> tb.size
+      | ty -> failwithf "Couldn't resolve type for header field: %s" ty.Node_Type
     let fields =
-      let size (field:JsonTypes.StructField) =
-        match resolveType scopeInfo ResolveTypeDef field.type_ with
-        | :? JsonTypes.Type_Bits as tb -> tb.size
-        | ty -> failwithf "Couldn't resolve type for header field: %s" ty.Node_Type
       header.fields.vec
       |> Seq.map (fun field -> SF.IdentifierName(csFieldNameOf field.name), resolveType scopeInfo ResolveTypeDef field.type_, size field)
       |> Seq.toArray
@@ -515,7 +517,13 @@ type Syntax.ClassDeclarationSyntax with
             fields
             |> Seq.mapFold (fun bitOffset (field, ty, size) -> assignment field (extractExprFor ty bitOffset), bitOffset + size) 0 |> fst
             |> Seq.cast
-          Seq.append [changeBytesToBits] extractStatements))
+          let setLength =
+            assignment (SF.IdentifierName("length")) (literalInt (Seq.sumBy size header.fields.vec))
+          let setValid =
+            SF.ExpressionStatement(SF.InvocationExpression(SF.IdentifierName("setValid")).AddArgumentListArguments())
+          Seq.append [changeBytesToBits] extractStatements
+          |> Seq.append <| [setLength; setValid]
+          |> Seq.cast))
       .AddMembers(
       SF.MethodDeclaration(voidType, SF.Identifier("Deparse"))
         .WithModifiers(tokenList [SK.PublicKeyword; SK.OverrideKeyword])
@@ -542,11 +550,13 @@ let saveToFile (compilationUnit : Syntax.CompilationUnitSyntax) (filename:string
   use writer = new System.IO.StreamWriter(filename)
   formattedNode.WriteTo(writer)
 
-let unifyTypeArgs (node : JsonTypes.Type) (specialisedNode : JsonTypes.Type) =
+let unifyTypeArgs (typeDefMap : Map<string, JsonTypes.Type>) (node : JsonTypes.Type) (specialisedNode : JsonTypes.Type) =
   let rec unify (ty : JsonTypes.Type) (spec : JsonTypes.Type) (varMap : Map<string, JsonTypes.Type option>) =
     match ty, spec with
     | (:? JsonTypes.Type_Name as ty), spec when varMap.ContainsKey(ty.path.name) -> addToMap varMap ty.path.name spec
-    | (:? JsonTypes.Type_Specialized as ty), (:? JsonTypes.Type_Specialized as spec) -> unifyParameters ty.arguments.vec spec.arguments.vec varMap
+    | (:? JsonTypes.Type_Name as ty), spec when typeDefMap.ContainsKey(ty.path.name) -> unify typeDefMap.[ty.path.name] spec varMap
+    | ty, (:? JsonTypes.Type_Name as spec) when typeDefMap.ContainsKey(spec.path.name) -> unify ty typeDefMap.[spec.path.name] varMap
+    | (:? JsonTypes.Type_Specialized as ty), (:? JsonTypes.Type_Specialized as spec) -> unify ty.baseType spec.baseType varMap |> unifyParameters ty.arguments.vec spec.arguments.vec
     | ty, spec when ty = spec -> varMap // equal (Is this ever the case? You haven't overriden equality)
     | _ -> failwithf "Failed to unify %s/%s and %s/%s" (ty.ToString()) (ty.GetType().Name) (spec.ToString()) (spec.GetType().Name)
   and unifyParameters (types : JsonTypes.Type[]) (specTypes : JsonTypes.Type[]) (varMap : Map<string, JsonTypes.Type option>) =
@@ -600,13 +610,13 @@ let inferTypeOf (scope:ScopeInfo) (typedefBehaviour:TypeDefBehaviour) (expr:Json
 //      | _ -> failwith "Tried to follow a name expression that wasn't a valid name expression"
 //    getTypeOf expr
 
-let declarationOfStructLike (ofType : JsonTypes.Type -> Syntax.TypeSyntax) (scopeInfo : ScopeInfo) (structLike : JsonTypes.Type_StructLike) =
+let declarationOfStructLike (ofType : ScopeInfo -> JsonTypes.Type -> Syntax.TypeSyntax) (scopeInfo : ScopeInfo) (structLike : JsonTypes.Type_StructLike) =
   match structLike with
   | :? JsonTypes.Type_Struct as str ->
       SF.ClassDeclaration(classNameFor str.name)
         .WithModifiers(tokenList [| SK.PublicKeyword; SK.SealedKeyword |])
         .WithBaseList(SF.BaseList(SF.SeparatedList([| structBaseBaseType |])))
-        .AddStructLikeFields(str, ofType)
+        .AddStructLikeFields(str, ofType scopeInfo)
   | :? JsonTypes.Type_Union ->
       // There doesn't seem to be support for this in the current language version?
       // If support for this is added, make sure to check code which deals with StructLike.
@@ -615,7 +625,7 @@ let declarationOfStructLike (ofType : JsonTypes.Type -> Syntax.TypeSyntax) (scop
       SF.ClassDeclaration(classNameFor header.name)
         .WithModifiers(tokenList([| SK.PublicKeyword; SK.SealedKeyword |]))
         .WithBaseList(SF.BaseList(SF.SeparatedList([| headerBaseBaseType |])))
-        .AddStructLikeFields(header, ofType)
+        .AddStructLikeFields(header, ofType scopeInfo)
         .ImplementHeaderBase(header, scopeInfo) // TODO: Headers need a validity bit (can it be represented by null? What about checking the validity bit?) (could use extension method?)
   | _ -> failwithf "Unhandled subtype of JsonTypes.Type_StructLike: %s" (structLike.GetType().Name)
 let declarationOfError (baseType : Syntax.NameSyntax) (newErrorMembers : JsonTypes.Declaration_ID seq) =
@@ -635,56 +645,74 @@ let declarationOfEnum (error : JsonTypes.Type_Enum) =
   (createEnum error.name (error.members.vec |> Seq.map (fun memb -> memb.name)))
     .WithModifiers(tokenList [SK.PublicKeyword])
 
+let paren expr : Syntax.ExpressionSyntax = upcast SF.ParenthesizedExpression expr
+let isBitN (width) =
+  match width with
+  | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
+  | s when s <= 64 -> isFixedBitSize s
+  | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
+let cast (ofType : ScopeInfo -> JsonTypes.Type -> Syntax.TypeSyntax) (scopeInfo : ScopeInfo) (ty:JsonTypes.Type) (expr : Syntax.ExpressionSyntax) : Syntax.ExpressionSyntax =
+  match ty with
+  | :? JsonTypes.Type_Bits as bits when not (isBitN bits.size) ->
+      // Handle cast to bitN as a special case
+      upcast SF.InvocationExpression(SF.ParseName("bitN.OfValue"))
+               .AddArgumentListArguments(SF.Argument expr, SF.Argument(literalInt bits.size).WithNameColon(SF.NameColon("width")))
+  | _ -> paren (SF.CastExpression(ofType scopeInfo ty, expr))
+
 let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
   let scopeInfo = scopeInfo.EnterChildScope(e)
   let ofExpr = ofExpr scopeInfo
   match e with
   | :? JsonTypes.Operation_Unary as op ->
       match op with
-      | :? JsonTypes.Neg -> upcast SF.PrefixUnaryExpression(SK.UnaryMinusExpression, ofExpr UnknownType op.expr)
-      | :? JsonTypes.Cmpl -> upcast SF.PrefixUnaryExpression(SK.BitwiseNotExpression, ofExpr UnknownType op.expr)
-      | :? JsonTypes.LNot -> upcast SF.PrefixUnaryExpression(SK.LogicalNotExpression, ofExpr UnknownType op.expr)
+      | :? JsonTypes.Neg ->  paren (SF.PrefixUnaryExpression(SK.UnaryMinusExpression, ofExpr UnknownType op.expr))
+      | :? JsonTypes.Cmpl -> paren (SF.PrefixUnaryExpression(SK.BitwiseNotExpression, ofExpr UnknownType op.expr))
+      | :? JsonTypes.LNot -> paren (SF.PrefixUnaryExpression(SK.LogicalNotExpression, ofExpr UnknownType op.expr))
       | :? JsonTypes.Member as m ->
         upcast SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, ofExpr UnknownType op.expr, SF.IdentifierName(m.member_))
       | :? JsonTypes.Cast as c ->
-          // TODO look at 8.9.1 for cast behaviour.
-          upcast SF.CastExpression(ofType c.destType, ofExpr UnknownType op.expr) // FIXME this will be more complex...
+          // TODO look at 8.9.1 for cast behaviour. E.g. structs/headers can be cast to similar structs/headers
+          cast ofType scopeInfo c.destType (ofExpr UnknownType op.expr)
       | :? JsonTypes.IntMod -> failwith "IntMod not supported" // This is only used in BMv2 so shouldn't appear here
       | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Unary: %s" (op.GetType().Name)
   | :? JsonTypes.Operation_Binary as op -> // FIXME what about when the operands are of different type?
       let lExpr = ofExpr UnknownType op.left
       let rExpr = ofExpr UnknownType op.right
       match op with
-      | :? JsonTypes.Mul -> upcast SF.BinaryExpression(SK.MultiplyExpression, lExpr, rExpr)
-      | :? JsonTypes.Div -> upcast SF.BinaryExpression(SK.DivideExpression, lExpr, rExpr)
-      | :? JsonTypes.Mod -> upcast SF.BinaryExpression(SK.ModuloExpression, lExpr, rExpr)
-      | :? JsonTypes.Add -> upcast SF.BinaryExpression(SK.AddExpression, lExpr, rExpr)
-      | :? JsonTypes.Sub -> upcast SF.BinaryExpression(SK.SubtractExpression, lExpr, rExpr)
-      | :? JsonTypes.Shl -> upcast SF.BinaryExpression(SK.LeftShiftExpression, lExpr, rExpr)
-      | :? JsonTypes.Shr -> upcast SF.BinaryExpression(SK.RightShiftExpression, lExpr, rExpr)
-      | :? JsonTypes.Equ -> upcast SF.BinaryExpression(SK.EqualsExpression, lExpr, rExpr)
-      | :? JsonTypes.Neq -> upcast SF.BinaryExpression(SK.NotEqualsExpression, lExpr, rExpr)
-      | :? JsonTypes.Lss -> upcast SF.BinaryExpression(SK.LessThanExpression, lExpr, rExpr)
-      | :? JsonTypes.Leq -> upcast SF.BinaryExpression(SK.LessThanOrEqualExpression, lExpr, rExpr)
-      | :? JsonTypes.Grt -> upcast SF.BinaryExpression(SK.GreaterThanExpression, lExpr, rExpr)
-      | :? JsonTypes.Geq -> upcast SF.BinaryExpression(SK.GreaterThanOrEqualExpression, lExpr, rExpr)
-      | :? JsonTypes.BAnd -> upcast SF.BinaryExpression(SK.BitwiseAndExpression, lExpr, rExpr)
-      | :? JsonTypes.BOr -> upcast SF.BinaryExpression(SK.BitwiseOrExpression, lExpr, rExpr)
-      | :? JsonTypes.BXor -> upcast SF.BinaryExpression(SK.ExclusiveOrExpression, lExpr, rExpr)
-      | :? JsonTypes.LAnd -> upcast SF.BinaryExpression(SK.LogicalAndExpression, lExpr, rExpr)
-      | :? JsonTypes.LOr -> upcast SF.BinaryExpression(SK.LogicalOrExpression, lExpr, rExpr)
-      | :? JsonTypes.Concat -> upcast SF.InvocationExpression(memberAccess "BitHelper.Concat")
-                                        .WithArgumentList(exprArgList [| lExpr; rExpr |]) // FIXME The bit helper will need to know widths
-      | :? JsonTypes.ArrayIndex -> upcast SF.ElementAccessExpression(lExpr, bArg(rExpr))
-      | :? JsonTypes.Range -> upcast SF.InvocationExpression(memberAccess "Library.Range")
-                                       .WithArgumentList(exprArgList [| lExpr; rExpr (* FIXME 2nd arg should be count for Enumerable.Range - use custom method? *) |])
-      //| :? JsonTypes.Mask -> "&&&" // FIXME implement
-      | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Binary: %s" (op.GetType().Name)
+      | :? JsonTypes.Mul ->  Some SK.MultiplyExpression
+      | :? JsonTypes.Div ->  Some SK.DivideExpression
+      | :? JsonTypes.Mod ->  Some SK.ModuloExpression
+      | :? JsonTypes.Add ->  Some SK.AddExpression
+      | :? JsonTypes.Sub ->  Some SK.SubtractExpression
+      | :? JsonTypes.Shl ->  Some SK.LeftShiftExpression
+      | :? JsonTypes.Shr ->  Some SK.RightShiftExpression
+      | :? JsonTypes.Equ ->  Some SK.EqualsExpression
+      | :? JsonTypes.Neq ->  Some SK.NotEqualsExpression
+      | :? JsonTypes.Lss ->  Some SK.LessThanExpression
+      | :? JsonTypes.Leq ->  Some SK.LessThanOrEqualExpression
+      | :? JsonTypes.Grt ->  Some SK.GreaterThanExpression
+      | :? JsonTypes.Geq ->  Some SK.GreaterThanOrEqualExpression
+      | :? JsonTypes.BAnd -> Some SK.BitwiseAndExpression
+      | :? JsonTypes.BOr ->  Some SK.BitwiseOrExpression
+      | :? JsonTypes.BXor -> Some SK.ExclusiveOrExpression
+      | :? JsonTypes.LAnd -> Some SK.LogicalAndExpression
+      | :? JsonTypes.LOr ->  Some SK.LogicalOrExpression
+      | _ -> None
+      |> Option.map (fun sk -> paren (SF.BinaryExpression(sk, lExpr, rExpr)))
+      |> Option.ifNone (fun () ->
+        match op with
+        | :? JsonTypes.Concat -> upcast SF.InvocationExpression(memberAccess "BitHelper.Concat")
+                                          .WithArgumentList(exprArgList [| lExpr; rExpr |]) // FIXME The bit helper will need to know widths
+        | :? JsonTypes.ArrayIndex -> upcast SF.ElementAccessExpression(lExpr, bArg(rExpr))
+        | :? JsonTypes.Range -> upcast SF.InvocationExpression(memberAccess "Library.Range")
+                                         .WithArgumentList(exprArgList [| lExpr; rExpr (* FIXME 2nd arg should be count for Enumerable.Range - use custom method? *) |])
+        //| :? JsonTypes.Mask -> "&&&" // FIXME implement
+        | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Binary: %s" (op.GetType().Name) )
   | :? JsonTypes.Operation_Ternary as op ->
       match op with
       | :? JsonTypes.Slice -> upcast SF.InvocationExpression(eMemberAccess (ofExpr UnknownType op.e0) [|"Slice"|])
                                        .WithArgumentList(exprArgList [| ofExpr UnknownType op.e1; ofExpr UnknownType op.e2 |]) // FIXME slice method okay?
-      | :? JsonTypes.Mux -> upcast SF.ConditionalExpression(ofExpr UnknownType op.e0, ofExpr UnknownType op.e1, ofExpr UnknownType op.e2)
+      | :? JsonTypes.Mux -> paren (SF.ConditionalExpression(ofExpr UnknownType op.e0, ofExpr UnknownType op.e1, ofExpr UnknownType op.e2))
       | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Ternary: %s" (op.GetType().Name)
   | :? JsonTypes.Literal as lit ->
       match lit with
@@ -697,8 +725,8 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
           let expr = SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(str, c.value))
           match expectedType with
           | UnknownType -> upcast expr
-          | JsonType ty -> upcast SF.CastExpression(ofType ty, expr) // E.g. (bit4)0x0D
-          | CsType ty -> upcast SF.CastExpression(ty, expr) // E.g. (int32)0x0D
+          | JsonType ty -> cast ofType scopeInfo ty expr // E.g. (bit4)0x0D
+          | CsType ty -> paren (SF.CastExpression(ty, expr)) // E.g. (int32)0x0D
       | :? JsonTypes.BoolLiteral as b -> upcast SF.LiteralExpression(if b.value then SK.TrueLiteralExpression else SK.FalseLiteralExpression)
       | :? JsonTypes.StringLiteral as s -> upcast SF.LiteralExpression(SK.StringLiteralExpression, SF.Literal(s.value))
       | _ -> failwithf "Unhandled subtype of JsonTypes.Literal: %s" (lit.GetType().Name)
@@ -707,7 +735,7 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
       | Some expr -> expr
       | None -> upcast SF.IdentifierName(variableNameFor p.path.name) // Try just the name, so we don't have to add trivial mappings to the scopeInfo
   | :? JsonTypes.TypeNameExpression as t -> upcast SF.ParseTypeName(t.typeName.path.name) // FIXME need to make sure the name is mapped to csharp equiv? (classNameFor)
-  | :? JsonTypes.DefaultExpression -> failwith "JsonTypes.DefaultExpression not handled yet" // FIXME
+  | :? JsonTypes.DefaultExpression -> failwith "JsonTypes.DefaultExpression not handled" // FIXME
   | :? JsonTypes.This -> failwith "JsonTypes.this not handled yet" // FIXME is this the same as in C#?
   | :? JsonTypes.ListExpression -> failwith "JsonTypes.ListExpression not handled yet" // FIXME C# array expression?
   | :? JsonTypes.SelectExpression -> failwith "JsonTypes.SelectExpression not handled yet" // FIXME
@@ -739,7 +767,7 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
         if Seq.isEmpty mc.typeArguments.vec
         then methodExpr, mScope
         else
-          let typeArgs = tArgList <| Seq.map ofType mc.typeArguments.vec
+          let typeArgs = tArgList <| Seq.map (ofType scopeInfo) mc.typeArguments.vec
           match methodExpr with
           | :? Syntax.MemberAccessExpressionSyntax as ma ->
               upcast SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, ma.Expression, SF.GenericName(ma.Name.Identifier).WithTypeArgumentList(typeArgs)), mScope
@@ -765,7 +793,7 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
         |> Seq.append mScope.ControlBlockApplyArgsArguments
       upcast SF.InvocationExpression(m).WithArgumentList(arguments |> argList)
   | :? JsonTypes.ConstructorCallExpression as cce ->
-      upcast constructorCall (ofType cce.constructedType) (Seq.map (ofExpr UnknownType) cce.arguments.vec)
+      upcast constructorCall (ofType scopeInfo cce.constructedType) (Seq.map (ofExpr UnknownType) cce.arguments.vec)
   | :? JsonTypes.HeaderRef as hr ->
       match hr with
       | :? JsonTypes.ConcreteHeaderRef -> failwith "JsonTypes.ConcreterHeaderRef not handled yet" // FIXME
@@ -777,39 +805,43 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
   | :? JsonTypes.ActionArg -> failwith "JsonTypes.ActionArg not handled yet" // FIXME
   | _ -> failwithf "Unhandled subtype of JsonTypes.Expression: %s" (e.GetType().Name)
 
-and ofType (t : JsonTypes.Type) : Syntax.TypeSyntax =
+and ofType (scopeInfo : ScopeInfo) (t : JsonTypes.Type) : Syntax.TypeSyntax =
   match t with
   | :? JsonTypes.Type_Bits as bits ->
-      upcast nameOfType UnqualifiedType bits
+      upcast nameOfType scopeInfo UnqualifiedType bits
   | :? JsonTypes.Type_Name as n ->
       if n.path.name = errorName.Identifier.Text then
         upcast libraryErrorName // Use FQ name for type, as this is the most general
       else
         SF.ParseTypeName(n.path.name) // FIXME use classNameFor
   | :? JsonTypes.Type_Specialized as ts ->
-      upcast SF.GenericName(ts.baseType.path.name).AddTypeArgumentListArguments(ts.arguments.vec |> Seq.map ofType |> Seq.toArray) // FIXME use classNameFor
+      upcast SF.GenericName(ts.baseType.path.name).AddTypeArgumentListArguments(ts.arguments.vec |> Seq.map (ofType scopeInfo) |> Seq.toArray) // FIXME use classNameFor
   | :? JsonTypes.Type_Void -> voidType
   | :? JsonTypes.Type_Boolean -> boolType
   | _ -> failwithf "Unhandled subtype of JsonTypes.Type: %s" (t.GetType().Name) // FIXME make sure exhaustive in handling of types (note ofDeclaration)
-and nameOfType (fqType:TypeQualification) (t : JsonTypes.Type) : Syntax.NameSyntax =
+and nameOfType (scopeInfo : ScopeInfo) (fqType:TypeQualification) (t : JsonTypes.Type) : Syntax.NameSyntax =
   match t with
   | :? JsonTypes.Type_Bits as bits ->
-      match bits.size with
-      | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
-      | s when s <= 64 ->
-          let bitsName =
-            if isFixedBitSize s then
-              SF.IdentifierName(sprintf "bit%d" s)
-            else
-              SF.IdentifierName("bitN")
-          match fqType with
-          | UnqualifiedType -> upcast bitsName
-          | FullyQualifiedType -> upcast SF.QualifiedName(libraryName, bitsName)
-      | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
+      let bitsName =
+        if isBitN bits.size then // NOTE isBitN errors if size is invalid
+          SF.IdentifierName(sprintf "bit%d" bits.size)
+        else
+          SF.IdentifierName("bitN")
+      match fqType with
+      | UnqualifiedType -> upcast bitsName
+      | FullyQualifiedType -> upcast SF.QualifiedName(libraryName, bitsName)
   | :? JsonTypes.Type_Name as n ->
-      qualifiedTypeName n.path.name // FIXME use classNameFor
+      // Check that this shouldn't be an extern type
+      if fqType = FullyQualifiedType then scopeInfo.TryResolveType(n) else None
+      |> Option.tryMap (fun tyScope ->
+        ignore()
+        match tyScope.CurrentNode with
+        | :? JsonTypes.Type_Extern -> tyScope.GetArchName(P4Type.ExternObject) |> Some
+        | :? JsonTypes.Type_Struct -> tyScope.GetArchName(P4Type.Struct) |> Some
+        | _ -> None)
+      |> Option.ifNone (fun () -> qualifiedTypeName n.path.name) // FIXME use classNameFor
   | :? JsonTypes.Type_Specialized as ts ->
-      upcast SF.GenericName(ts.baseType.path.name).AddTypeArgumentListArguments(ts.arguments.vec |> Seq.map ofType |> Seq.toArray) // FIXME use classNameFor
+      upcast SF.GenericName(ts.baseType.path.name).AddTypeArgumentListArguments(ts.arguments.vec |> Seq.map (ofType scopeInfo) |> Seq.toArray) // FIXME use classNameFor
   | _ -> failwithf "Unhandled subtype of JsonTypes.Type: %s in nameOfType" (t.GetType().Name)
 and statementOfDeclaration (scopeInfo:ScopeInfo) (n : JsonTypes.Declaration) : Syntax.StatementSyntax =
   let scopeInfo = scopeInfo.EnterChildScope(n)
@@ -824,10 +856,10 @@ and statementOfDeclaration (scopeInfo:ScopeInfo) (n : JsonTypes.Declaration) : S
   | :? JsonTypes.P4Action -> failwithf "Type %s is not valid in statementToDeclaration" (n.GetType().Name)
   | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
   | :? JsonTypes.Declaration_Variable as v ->
-      upcast SF.LocalDeclarationStatement(variableDeclaration v.name (ofType v.type_) (v.initializer |> Option.map (ofExpr scopeInfo (JsonType v.type_))))
+      upcast SF.LocalDeclarationStatement(variableDeclaration v.name (ofType scopeInfo v.type_) (v.initializer |> Option.map (ofExpr scopeInfo (JsonType v.type_))))
   | :? JsonTypes.Declaration_Constant as c ->
       // Local constants are just handled like variables
-      upcast SF.LocalDeclarationStatement(variableDeclaration c.name (ofType c.type_) (Some (ofExpr scopeInfo (JsonType c.type_) c.initializer)))
+      upcast SF.LocalDeclarationStatement(variableDeclaration c.name (ofType scopeInfo c.type_) (Some (ofExpr scopeInfo (JsonType c.type_) c.initializer)))
   | :? JsonTypes.Declaration_Instance -> failwith "JsonTypes.Declaration_Instance not handled yet" // FIXME
   | :? JsonTypes.Function -> failwith "JsonTypes.Function not handled yet" // FIXME
   | _ ->
@@ -853,7 +885,8 @@ and ofStatement (scopeInfo:ScopeInfo) (n : JsonTypes.Statement) : Syntax.Stateme
       upcast rv
   | :? JsonTypes.EmptyStatement -> failwith "JsonTypes.EmptyStatement not handled yet" // FIXME
   | :? JsonTypes.AssignmentStatement as a ->
-      upcast SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, ofExpr UnknownType a.left, ofExpr UnknownType a.right))
+      let lTy = inferTypeOf scopeInfo ResolveTypeDef a.left // Infer l type, so we know if it is e.g. bitN
+      upcast SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, ofExpr UnknownType a.left, ofExpr (JsonType lTy) a.right))
   | :? JsonTypes.IfStatement as ifs ->
       let rv = SF.IfStatement(ofExpr UnknownType ifs.condition, ofStatement scopeInfo ifs.ifTrue)
       let rv =
@@ -910,7 +943,7 @@ and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Decl
 //                              |> Seq.cast
 //                              |> Seq.toArray)
                   .AddMembers(SF.MethodDeclaration(voidType, "Use")
-                                .WithParameters(Seq.map (parameter ofType) tp.constructorParams.parameters.vec)
+                                .WithParameters(Seq.map (parameter (ofType scopeInfo)) tp.constructorParams.parameters.vec)
                                 .WithSemicolonToken(SF.Token SK.SemicolonToken))
 //                                .WithBlockBody(tp.constructorParams.parameters.vec
 //                                                |> Seq.map (fun p -> assignment (eMemberAccess (SF.ThisExpression()) [p.name]) (SF.IdentifierName(p.name)))
@@ -923,7 +956,7 @@ and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Decl
                   .WithTypeParameters(tp.typeParameters.parameters.vec |> Seq.map (fun tv -> SF.TypeParameter(tv.name)))
                   .AddAttributeLists(p4AttrList)
                   .AddMembers(SF.MethodDeclaration(voidType, "apply") // FIXME type params
-                                .WithParameters(tp.applyParams.parameters.vec |> Seq.collect (directionedParameter ofType))
+                                .WithParameters(tp.applyParams.parameters.vec |> Seq.collect (directionedParameter (ofType scopeInfo)))
                                 .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
                 |> Transformed.declOf
             | :? JsonTypes.Type_Control as tc ->
@@ -933,7 +966,7 @@ and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Decl
                   .WithTypeParameters(tc.typeParameters.parameters.vec |> Seq.map (fun tv -> SF.TypeParameter(tv.name)))
                   .AddAttributeLists(p4AttrList)
                   .AddMembers(SF.MethodDeclaration(voidType, "apply") // FIXME type params
-                                .WithParameters(tc.applyParams.parameters.vec |> Seq.collect (directionedParameter ofType))
+                                .WithParameters(tc.applyParams.parameters.vec |> Seq.collect (directionedParameter (ofType scopeInfo)))
                                 .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
                 |> Transformed.declOf
             | _ -> failwithf "Unhandled subtype of JsonTypes.Type_ArchBlock: %s" (archBlock.GetType().Name)
@@ -947,9 +980,9 @@ and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Decl
                 ext.methods.vec
                 |> Seq.filter (fun m -> m.name <> ext.name) // Exclude constructors; C# doesn't allow them in interfaces
                 |> Seq.map (fun m ->
-                    SF.MethodDeclaration(m.type_.returnType |> Option.map ofType |> Option.ifNoneValue voidType, m.name)
+                    SF.MethodDeclaration(m.type_.returnType |> Option.map (ofType scopeInfo) |> Option.ifNoneValue voidType, m.name)
                       .WithTypeParameters(m.type_.typeParameters.parameters.vec |> Seq.map (fun p -> SF.TypeParameter(p.name)))
-                      .WithParameters(m.type_.parameters.parameters.vec |> Seq.collect (directionedParameter ofType))
+                      .WithParameters(m.type_.parameters.parameters.vec |> Seq.collect (directionedParameter (ofType scopeInfo)))
                       .WithSemicolonToken(SF.Token(SK.SemicolonToken)))
                 |> Seq.cast |> Seq.toArray)
             |> Transformed.declOf
@@ -960,10 +993,10 @@ and architectureOf (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.Decl
         // Extern function
         // We cannot generate an interface for a static method, so we generate a static method that throws a NotImplementedException
         let typeParameterNames : string[] = m.type_.typeParameters.parameters.vec |> Seq.map (fun p -> p.name) |> Seq.toArray
-        SF.MethodDeclaration(m.type_.returnType |> Option.map (ofType) |> Option.ifNoneValue voidType, m.name)
+        SF.MethodDeclaration(m.type_.returnType |> Option.map (ofType scopeInfo) |> Option.ifNoneValue voidType, m.name)
           .WithModifiers(tokenList [SK.StaticKeyword])
           .WithTypeParameters(typeParameterNames |> Seq.map (fun name -> SF.TypeParameter(name)))
-          .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter ofType))
+          .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter (ofType scopeInfo)))
           .AddAttributeLists(p4AttrList)
           .WithBlockBody([SF.ParseStatement "throw new NotImplementedException();"])
         |> Transformed.declOf
@@ -1006,7 +1039,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       let ctor =
         let ctorParams =
           p.constructorParams.parameters.vec
-          |> Seq.map (fun cp -> SF.Parameter(SF.Identifier(cp.name)).WithType(ofType cp.type_)(*NOTE presumably constructor(functor) parameters cannot be out?*))
+          |> Seq.map (fun cp -> SF.Parameter(SF.Identifier(cp.name)).WithType(ofType scopeInfo cp.type_)(*NOTE presumably constructor(functor) parameters cannot be out?*))
         let ctorBody = initialisers
         SF.ConstructorDeclaration(className)
           .WithModifiers(tokenList [SK.PublicKeyword])
@@ -1016,7 +1049,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       // Parser parameters need to be passed to each state manually
       let stateParams =
         p.type_.applyParams.parameters.vec
-        |> Seq.map (parameter ofType)
+        |> Seq.map (parameter (ofType scopeInfo))
       let stateArgs =
         p.type_.applyParams.parameters.vec
         |> Seq.map (fun param -> SF.IdentifierName(param.name)) |> Seq.cast
@@ -1025,7 +1058,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       let apply =
         let applyParams =
           p.type_.applyParams.parameters.vec
-          |> Seq.collect (directionedParameter ofType)
+          |> Seq.collect (directionedParameter (ofType scopeInfo))
         let applyBody =
           let initaliseOutParams =
             applyParams
@@ -1044,6 +1077,12 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           .WithModifiers(tokenList [SK.PublicKeyword])
           .WithParameters(applyParams)
           .WithBlockBody(applyBody)
+      let caseLabel (expr : JsonTypes.Expression) : Syntax.SwitchLabelSyntax =
+        match expr with
+        | :? JsonTypes.DefaultExpression -> upcast SF.DefaultSwitchLabel()
+        | _ ->
+          let k = ofExpr scopeInfo UnknownType expr
+          upcast SF.CaseSwitchLabel(k)
       let selectStatement (se:JsonTypes.Expression option) : Syntax.StatementSyntax seq =
         match se with
         | None -> Seq.empty
@@ -1069,9 +1108,8 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                     se.selectCases.vec
                     |> Seq.map (fun sc ->
                         SF.SwitchSection() // FIXME if the case label is too big for the type of the switch expr, we get a c# compile error
-                          .AddLabels(ofExpr scopeInfo UnknownType sc.keyset // FIXME labels need to be primitives (will this return e.g. (PortId)4?)
+                          .AddLabels(caseLabel sc.keyset // FIXME labels need to be primitives (will this return e.g. (PortId)4?)
                                     |> Seq.singleton // FIXME keyset could be a set expression - expand to multiple switch labels
-                                    |> Seq.map (fun k -> SF.CaseSwitchLabel(k))
                                     |> Seq.cast |> Seq.toArray)
                           .AddStatements(Seq.append (ofPathExpr sc.state) [breakStatement] |> Seq.toArray) )
                     |> Seq.toArray) // FIXME add a default case that returns error.NoMatch (if there isn't already a default case)
@@ -1088,24 +1126,26 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                                     .WithBlockBody(Seq.map (ofStatOrDecl scopeInfo) state.components.vec // FIXME handle verify statements
                                                   |> Seq.append <| selectStatement state.selectExpression |> Seq.cast)) // TODO FIXME selectExpression could be just a pathExpression - turn into a method call
       let archIntf =
-        let intfName, typeDefScope = scopeInfo.TryGetControlInterface() |> Option.ifNone (fun () -> failwithf "No interface found for parser %s" p.name) // FIXME is this strictly an error? Just don't declare a base interface
-        let typeDef = typeDefScope.CurrentNode :?> JsonTypes.Type_Parser
-        let tyArgMap = unifyTypeArgs typeDef p.type_
-        let getTyArg (ty : JsonTypes.Type_Var) = tyArgMap.[ty.name]
-        makeGenericName (intfName) (typeDef.typeParameters.parameters.vec |> Seq.map (getTyArg >> ofType) |> tArgList)
-        |> SF.SimpleBaseType
+        scopeInfo.TryGetControlInterface()
+        |> Option.map (fun (intfName, typeDefScope) ->
+          let typeDef = typeDefScope.CurrentNode :?> JsonTypes.Type_Parser
+          let tyArgMap = unifyTypeArgs scopeInfo.TypeDefMap typeDef p.type_
+          let getTyArg (ty : JsonTypes.Type_Var) = tyArgMap.[ty.name]
+          makeGenericName (intfName) (typeDef.typeParameters.parameters.vec |> Seq.map (getTyArg >> ofType scopeInfo) |> tArgList)
+          |> SF.SimpleBaseType)
+        |> Option.tryIfNone (fun () -> printfn "WARNING: No interface found for parser %s" p.name; None) // FIXME is this strictly an error? Just don't declare a base interface
       SF.ClassDeclaration(className)
-        .AddBaseListTypes(archIntf)
         .WithModifiers(tokenList [ SK.SealedKeyword ])
         .AddMembers(fields |> Seq.cast |> Seq.toArray)
         .AddMembers(ctor, apply)
         .AddMembers(states |> Seq.cast |> Seq.toArray)
+      |> fun cls -> match archIntf with Some intf -> cls.AddBaseListTypes intf | None -> cls
       |> Transformed.declOf
   | :? JsonTypes.P4Control as pc ->
       let argsClassName = argsClassNameFor pc.name
       let applyCtorParams =
         pc.type_.applyParams.parameters.vec
-        |> Seq.fzip (parameter ofType)
+        |> Seq.fzip (parameter (ofType scopeInfo))
       let scopeInfo : ScopeInfo =
         let customExprMap =
           applyCtorParams // FIXME is it really okay to use the args closure type name as the param name too?
@@ -1117,7 +1157,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       let ctor, ctorParamProperties =
         let ctorParams =
           pc.constructorParams.parameters.vec
-          |> Seq.map (fun cp -> SF.Parameter(SF.Identifier(cp.name)).WithType(ofType cp.type_)(*NOTE presumably constructor(functor) parameters cannot be out*))
+          |> Seq.map (fun cp -> SF.Parameter(SF.Identifier(cp.name)).WithType(ofType scopeInfo cp.type_)(*NOTE presumably constructor(functor) parameters cannot be out*))
         let ctor =
           SF.ConstructorDeclaration(className)
             .WithModifiers(tokenList [SK.PublicKeyword])
@@ -1134,16 +1174,11 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       let apply, argsClass =
         let applyParams =
           pc.type_.applyParams.parameters.vec
-          |> Seq.collect (fun param -> directionedParameter ofType param |> Seq.map (fun csParam -> (param, csParam)))
+          |> Seq.collect (fun param -> directionedParameter (ofType scopeInfo) param |> Seq.map (fun csParam -> (param, csParam)))
         let argsClass =
-          let properties =
-            let accessorsFor (dir : JsonTypes.Direction) =
-              match dir with
-              | JsonTypes.Direction.NoDirection | JsonTypes.Direction.In -> Property.Get
-              | JsonTypes.Direction.Out | JsonTypes.Direction.InOut -> Property.GetSet
+          let fields =
             applyCtorParams
-            |> Seq.map (fun (p,cp) -> SF.PropertyDeclaration(cp.Type, cp.Identifier)
-                                        .WithAccessors(accessorsFor p.direction)
+            |> Seq.map (fun (p,cp) -> (uninitialisedField cp.Type cp.Identifier.Text)
                                         .WithModifiers(tokenList [SK.PublicKeyword]))
             |> Seq.cast |> Seq.toArray
           let ctor = SF.ConstructorDeclaration(argsClassName)
@@ -1151,7 +1186,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                         .WithParameters(applyCtorParams |> Seq.map (fun (p,cp) -> (cp.Identifier.Text, cp.Type)))
                         .WithBlockBody(applyCtorParams |> Seq.map (fun (p,cp) -> upcast assignment (thisAccess cp.Identifier.Text) (SF.IdentifierName(cp.Identifier))))
           SF.ClassDeclaration(argsClassName)
-            .AddMembers(properties)
+            .AddMembers(fields)
             .AddMembers(ctor)
         let instantiateArgsClass : Syntax.StatementSyntax =
           let argsClassType = SF.IdentifierName(argsClass.Identifier)
@@ -1183,18 +1218,20 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
         if Seq.isEmpty results.Usings |> not then failwithf "Usings declared within P4Control - currently unhandled" // FIXME E.g. Type_Typedef - could be solved by scoping the control in its own namespace?
         results.Declarations |> Seq.toArray
       let archIntf =
-        let intfName, typeDefScope = scopeInfo.TryGetControlInterface() |> Option.ifNone (fun () -> failwithf "No interface found for control %s" pc.name) // FIXME is this strictly an error? Just don't declare a base interface
-        let typeDef = typeDefScope.CurrentNode :?> JsonTypes.Type_Control
-        let tyArgMap = unifyTypeArgs typeDef pc.type_
-        let getTyArg (ty : JsonTypes.Type_Var) = tyArgMap.[ty.name]
-        makeGenericName (intfName) (typeDef.typeParameters.parameters.vec |> Seq.map (getTyArg >> ofType) |> tArgList)
-        |> SF.SimpleBaseType
+        scopeInfo.TryGetControlInterface()
+        |> Option.map (fun (intfName, typeDefScope) ->
+          let typeDef = typeDefScope.CurrentNode :?> JsonTypes.Type_Control
+          let tyArgMap = unifyTypeArgs scopeInfo.TypeDefMap typeDef pc.type_
+          let getTyArg (ty : JsonTypes.Type_Var) = tyArgMap.[ty.name]
+          makeGenericName (intfName) (typeDef.typeParameters.parameters.vec |> Seq.map (getTyArg >> ofType scopeInfo) |> tArgList)
+          |> SF.SimpleBaseType)
+        |> Option.tryIfNone (fun () -> printfn "WARNING: No interface found for control %s" pc.name; None)
       SF.ClassDeclaration(className)
-        .AddBaseListTypes(archIntf)
         .WithModifiers(tokenList [ SK.SealedKeyword ])
         .AddMembers(ctorParamProperties)
         .AddMembers(argsClass, ctor, apply)
         .AddMembers(locals)
+      |> fun cls -> match archIntf with Some intf -> cls.AddBaseListTypes intf | None -> cls
       |> Transformed.declOf
   | :? JsonTypes.Declaration as decl ->
       match decl with
@@ -1210,23 +1247,24 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                         |> Seq.toList
             match types with
             | [] -> None
-            | [ty] -> ofType ty |> Some
-            | types -> tupleTypeOf (Seq.map ofType types) |> Some
+            | [ty] -> ofType scopeInfo ty |> Some
+            | types -> tupleTypeOf (Seq.map (ofType scopeInfo) types) |> Some
           let actionBaseType = SF.IdentifierName("ActionBase")
           let key =
             let lutTypeFor (path:JsonTypes.PathExpression) keyType resultType : Syntax.TypeSyntax =
               let matchKindName = path.path.name
-              let matchKindName = System.Char.ToUpper(matchKindName.[0]).ToString() + matchKindName.Substring(1)
-              upcast qualifiedGenericTypeName (sprintf "%sTable" matchKindName) [|keyType; resultType|]
-            let key = pt.properties.GetPropertyValueByName<JsonTypes.Key>("key") |> Option.get // key property must be present
-            seq {
-              let mutable prevTy : Syntax.TypeSyntax = upcast actionBaseType
-              for ke in Seq.rev key.keyElements.vec do
-                let keyTy = inferTypeOf scopeInfo KeepTypeDef ke.expression |> ofType
-                let lutTy = lutTypeFor ke.matchType keyTy prevTy // Each lookup gets the next lookup in the chain (or the action)
-                prevTy <- lutTy
-                yield (lutTy, ke.expression)
-            } |> Seq.rev |> Seq.toArray
+              upcast makeGenericName (scopeInfo.GetLookupType(matchKindName)) (tArgList [keyType; resultType])
+            pt.properties.GetPropertyValueByName<JsonTypes.Key>("key")
+            |> Option.map (fun key ->
+              seq {
+                let mutable prevTy : Syntax.TypeSyntax = upcast actionBaseType
+                for ke in Seq.rev key.keyElements.vec do
+                  let keyTy = inferTypeOf scopeInfo KeepTypeDef ke.expression |> ofType scopeInfo
+                  let lutTy = lutTypeFor ke.matchType keyTy prevTy // Each lookup gets the next lookup in the chain (or the action)
+                  prevTy <- lutTy
+                  yield (lutTy, ke.expression)
+              } |> Seq.rev |> Seq.toArray)
+            |> Option.ifNoneValue Array.empty
           let tableField =
             Seq.tryFirst key |> Option.map (fun (lutTy, kExpr) ->
               field lutTy "lookup" (constructorCall lutTy []))
@@ -1302,7 +1340,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let directedParams =
             pt.parameters.parameters.vec
             |> Seq.filter (fun p -> p.direction <> JsonTypes.Direction.NoDirection)
-            |> Seq.collect (directionedParameter ofType)
+            |> Seq.collect (directionedParameter (ofType scopeInfo))
           let onApply =
             SF.MethodDeclaration(voidType, "OnApply")
               .WithModifiers(tokenList [SK.PublicKeyword; SK.OverrideKeyword])
@@ -1324,11 +1362,11 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
               .WithModifiers(tokenList [SK.PublicKeyword; SK.SealedKeyword])
               .WithBaseTypes([actionBaseType])
               .AddMembers(directionlessParams // Store undirected args in readonly fields
-                          |> Seq.map (fun p -> (uninitialisedField (ofType p.type_) p.name).AddModifiers(SF.Token SK.ReadOnlyKeyword))
+                          |> Seq.map (fun p -> (uninitialisedField (ofType scopeInfo p.type_) p.name).AddModifiers(SF.Token SK.ReadOnlyKeyword))
                           |> Seq.cast |> Seq.toArray)
               .AddMembers(SF.ConstructorDeclaration(className)
                             .WithModifiers(tokenList [SK.PublicKeyword])
-                            .WithParameters(directionlessParams |> Seq.map (parameter ofType))
+                            .WithParameters(directionlessParams |> Seq.map (parameter (ofType scopeInfo)))
                             .WithBase([memberAccess (sprintf "action_list.%s" name)])
                             .WithBlockBody(directionlessParams // Set readonly fields
                                            |> Seq.map (fun p -> assignment (thisAccess p.name) (SF.IdentifierName(p.name)))
@@ -1371,7 +1409,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             pt.properties.GetPropertyValueByName<JsonTypes.ExpressionValue>("size")
             |> Option.map (fun size -> field int32Name "size" (ofExpr scopeInfo (CsType int32Name) size.expression)) // FIXME using InfInt to mean int32...
           let defaultActionName = "default_action"
-          let defaultAction =
+          let defaultAction = // FIXME handle default action arguments properly!
             pt.properties.GetPropertyValueByName<JsonTypes.ExpressionValue>("default_action")
             |> Option.map (fun da -> actionOfExpr da.expression None) // FIXME default_action must be in the action list, but the actual class could still have a different name via an annotation...
             |> Option.map (fun (name, expr, p4action, actionScope) ->
@@ -1383,7 +1421,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let apply =
             let apply_resultType = SF.IdentifierName(apply_result.Identifier)
             let result = SF.IdentifierName("result")
-            let parameters = pt.parameters.parameters.vec |> Seq.collect (directionedParameter ofType)
+            let parameters = pt.parameters.parameters.vec |> Seq.collect (directionedParameter (ofType scopeInfo))
             SF.MethodDeclaration(SF.IdentifierName(apply_result.Identifier), "apply")
               .WithModifiers(tokenList [SK.PublicKeyword])
               .WithParameters(Seq.append scopeInfo.ControlBlockApplyArgsParameters parameters)
@@ -1434,6 +1472,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let tableClass =
             SF.ClassDeclaration(tableClassName)
               .WithModifiers(tokenList [SK.PrivateKeyword; SK.SealedKeyword])
+              .WithBaseTypes([tableBaseName])
               .AddMembers(tableField |> Option.cast |> Option.toArray)
               .AddMembers(apply)
               .AddMembers(action_list)
@@ -1454,13 +1493,13 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
               upcast fqName
             else
               upcast makeGenericName fqName (tArgList (typeParameterNames |> Seq.map SF.IdentifierName |> Seq.cast))
-          SF.MethodDeclaration(m.type_.returnType |> Option.map (ofType) |> Option.ifNoneValue voidType, m.name)
+          SF.MethodDeclaration(m.type_.returnType |> Option.map (ofType scopeInfo) |> Option.ifNoneValue voidType, m.name)
             .WithModifiers(tokenList [SK.StaticKeyword])
             .WithTypeParameters(typeParameterNames |> Seq.map (fun name -> SF.TypeParameter(name)))
-            .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter ofType))
+            .WithParameters(m.type_.parameters.parameters.vec |> Seq.map (parameter (ofType scopeInfo)))
             .WithBlockBody([SF.ExpressionStatement(
                               SF.InvocationExpression(fullName)
-                                .WithArguments(m.type_.parameters.parameters.vec |> Seq.map (fun p -> upcast SF.IdentifierName(p.name))))])
+                                .WithArguments(m.type_.parameters.parameters.vec |> Seq.map (fun p -> upcast SF.IdentifierName(variableNameFor p.name))))])
           |> Transformed.declOf
       | :? JsonTypes.Attribute -> failwith "JsonTypes.Attribute not handled yet" // FIXME
       | :? JsonTypes.ParserState -> failwith "JsonTypes.ParserState not handled yet" // FIXME
@@ -1468,7 +1507,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let parameters =
             let parameters =
               a.parameters.parameters.vec
-              |> Seq.collect (directionedParameter ofType)
+              |> Seq.collect (directionedParameter (ofType scopeInfo))
             Seq.append scopeInfo.ControlBlockApplyArgsParameters parameters // Add args closure parameters if needed, e.g. for accessing a control block's arguments
           SF.MethodDeclaration(voidType, a.name)
             .WithModifiers(tokenList [SK.StaticKeyword])
@@ -1490,7 +1529,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       | :? JsonTypes.Declaration_Variable -> failwith "JsonTypes.Declaration_Variable not handled yet" // FIXME
       | :? JsonTypes.Declaration_Constant as dc -> // FIXME if these aren't in a class, they need to not be wrapped in a FieldDeclaration
           let expr = ofExpr scopeInfo (CJType.JsonType dc.type_) dc.initializer
-          let decl = variableDeclaration dc.name (ofType dc.type_) (Some expr)
+          let decl = variableDeclaration dc.name (ofType scopeInfo dc.type_) (Some expr)
           SF.FieldDeclaration(decl)
             .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword; SK.ReadOnlyKeyword])
           |> Transformed.declOf
@@ -1509,7 +1548,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let specialise (name : Syntax.NameSyntax) =
             match di.type_ with
             | :? JsonTypes.Type_Name -> name
-            | :? JsonTypes.Type_Specialized as spec -> makeGenericName name (spec.arguments.vec |> Seq.map ofType |> tArgList)
+            | :? JsonTypes.Type_Specialized as spec -> makeGenericName name (spec.arguments.vec |> Seq.map (ofType scopeInfo) |> tArgList)
             //FIXME not really sure what Type_SpecializedCanonical is for? has both arguments and substitutions
             //| :? JsonTypes.Type_SpecializedCanonical as spec -> makeGenericName name (spec.arguments.vec |> Seq.map ofType |> tArgList)
             | _ -> failwithf "Expecting type Type_Name in declarationOfNode:Declaration_Instance; got type %s." (di.type_.GetType().Name)
@@ -1524,10 +1563,14 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                 .WithBlockBody([SF.ExpressionStatement invocation])
               |> Transformed.declOf
           | :? JsonTypes.Type_Extern ->
-            let ty = ofType di.type_
+            let ty = ofType scopeInfo di.type_
             field ty (csFieldNameOf di.name) (constructorCall (tyScope.GetArchName(P4Type.ExternObject) |> specialise) (Seq.map (ofExpr scopeInfo UnknownType) di.arguments.vec))
             |> Transformed.declOf
-          | _ -> failwithf "Unhandled resolved type %s in declarationOfNode:Declaration_Instance" (di.type_.GetType().Name)
+          | :? JsonTypes.P4Control ->
+            let ty = ofType scopeInfo di.type_
+            field ty (csFieldNameOf di.name) (constructorCall ty (Seq.map (ofExpr scopeInfo UnknownType) di.arguments.vec))
+            |> Transformed.declOf
+          | _ -> failwithf "Unhandled resolved type %s in declarationOfNode:Declaration_Instance" (tyScope.CurrentNode.GetType().Name)
       | :? JsonTypes.Function -> failwith "JsonTypes.Function not handled yet" // FIXME
       | _ ->
           // JsonTypes.Declaration is not abstract or sealed, so it could also be an unimplemented class here
@@ -1544,7 +1587,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       |> Transformed.declOf
   | :? JsonTypes.Type_Var -> failwith "JsonTypes.Type_Var not handled yet" // FIXME
   | :? JsonTypes.Type_Typedef as td ->
-      SF.UsingDirective(nameOfType FullyQualifiedType td.type_)
+      SF.UsingDirective(nameOfType scopeInfo FullyQualifiedType td.type_)
         .WithAlias(SF.NameEquals(SF.IdentifierName(td.name)))
       |> Transformed.usingOf
   | :? JsonTypes.INamed as potentiallyDefinedInArch ->
@@ -1587,7 +1630,8 @@ let initScopeFor (program : JsonTypes.Program) : ScopeInfo =
     ThisMap = program.ThisMap;
     ArchMap = Map.empty;
     LookupMap = Reflection.getLibMap();
-    ControlInterfaceMap = Map.empty; }
+    ControlInterfaceMap = Map.empty;
+    TypeDefMap = Map.empty; }
 let standardUsings =
   [| "System"; libraryNameString |]
   |> Array.map (fun ns -> SF.UsingDirective(SF.ParseName ns))
@@ -1631,12 +1675,20 @@ let ofModel (model : JsonTypes.Program) : Syntax.CompilationUnitSyntax =
                   .WithModifiers(tokenList [SK.PublicKeyword])
                   .AddMembers(results.Declarations |> Seq.toArray))
 let ofProgram (program : JsonTypes.Program) (p4Map : Map<P4Type*string,string>) (lookupMap : Map<string,string>) (architectureClass : string) : Syntax.CompilationUnitSyntax =
+  let typeDefMap =
+      program.P4.declarations.vec
+      |> Seq.filter (fun decl -> decl :? JsonTypes.Type_Typedef)
+      |> Seq.cast<JsonTypes.Type_Typedef>
+      |> Seq.map (fun tyDef -> tyDef.name, tyDef.type_)
+      |> Map.ofSeq
+
   let topLevelName = "Program"
   let scope : ScopeInfo =
     let scope = initScopeFor program
     { scope with
         ArchMap = Map.union scope.ArchMap p4Map;
-        LookupMap = Map.union scope.LookupMap lookupMap }
+        LookupMap = Map.union scope.LookupMap lookupMap;
+        TypeDefMap = typeDefMap; }
 
   let controlIntfMap =
     let packageInst =
@@ -1665,6 +1717,7 @@ let ofProgram (program : JsonTypes.Program) (p4Map : Map<P4Type*string,string>) 
           | :? JsonTypes.Type_Control as control -> typeScope.TryGetArchNameString(P4Type.Control)
           | unhandled -> failwithf "Unhandled type %s for package parameter" (unhandled.GetType().Name)
           |> Option.ifNone (fun () -> failwithf "Could not find architecture element for package parameter type def (%s)" typeScope.CurrentPathString)
+        //ERROR // FIXME arith1 p is being resolved to Parser by TryResolveType
         let concreteType = packageTypeScope.TryResolveType(arg.type_) |> Option.ifNone (fun () -> failwithf "Could not resolve package argument type %s" (arg.type_.GetType().Name))
         concreteType.CurrentPathString, (archIntfName, typeScope))
     |> Map.ofSeq

@@ -56,9 +56,5 @@ namespace P4ToCSharp.Library
         throw new ArgumentException("cannot be null or whitespace; must be a match_kind value.", "matchKind");
       MatchKind = matchKind;
     }
-    public P4LookupAttribute(Enum matchKind) : this(matchKind.ToString("G"))
-    {
-    }
-
   }
 }

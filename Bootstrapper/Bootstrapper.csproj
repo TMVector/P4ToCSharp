@@ -4,18 +4,15 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{D456F4B7-D198-4825-A23B-6E2D3D8BFA91}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <ProjectGuid>{F28A0C84-9ABB-465C-9A55-48191D962C00}</ProjectGuid>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Bootstrapper</RootNamespace>
     <AssemblyName>Bootstrapper</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -25,7 +22,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -34,9 +30,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Pax">
-      <HintPath>..\..\..\pax\Bin\Pax.exe</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -48,17 +41,20 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="very_simple_model.p4.json.arch.cs" />
-    <Compile Include="vss-example.p4.json.gen.cs" />
-    <Compile Include="VSSModel.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
+    <Compile Include="x-bmv2.p4.json.gen.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\P4ToCSharp.Lib\P4ToCSharp.Lib.csproj">
       <Project>{4ac851b0-bb98-40e4-b338-746733ed44d1}</Project>
       <Name>P4ToCSharp.Lib</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\v1model\v1model.csproj">
+      <Project>{5260d798-d94a-4a60-810a-563a1fc2b0d0}</Project>
+      <Name>v1model</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\vss-model\vss-model.csproj">
+      <Project>{d7fb9dfd-c90b-41ff-82a6-75921e53be18}</Project>
+      <Name>vss-model</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -73,4 +73,5 @@ module Util =
   let inline snd4 (_,b,_,_) = b
   let inline third4 (_,_,c,_) = c
   let inline fourth4 (_,_,_,d) = d
+  let inline castUp x = x |> Seq.singleton |> Seq.cast |> Seq.first
 
