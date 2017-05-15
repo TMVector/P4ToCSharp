@@ -282,10 +282,10 @@ module JsonTypes =
     inherit Type_ArchBlock(node_id, node_type, name, declid, annotations, typeParameters)
     interface IContainer
     member this.constructorParams : ParameterList = constructorParams
-    override this.NamedInScope(name) =
-      match this.constructorParams.parameters.declarationsMap.TryFind name |> Option.cast with
-      | None -> base.NamedInScope name
-      | x -> x
+//    override this.NamedInScope(name) =
+//      match this.constructorParams.parameters.declarationsMap.TryFind name |> Option.cast with
+//      | None -> base.NamedInScope name
+//      | x -> x
 
   [<Sealed>]
   type Type_Parser(node_id, node_type, name, declid, annotations, typeParameters, applyParams) =

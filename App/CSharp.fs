@@ -1690,6 +1690,7 @@ let ofProgram (program : JsonTypes.Program) (p4Map : Map<P4Type*string,string>) 
         LookupMap = Map.union scope.LookupMap lookupMap;
         TypeDefMap = typeDefMap; }
 
+  // Create map of p4-path of control-def to (C# interface name, control-decl scope)
   let controlIntfMap =
     let packageInst =
       program.P4.declarations.vec
@@ -1717,7 +1718,6 @@ let ofProgram (program : JsonTypes.Program) (p4Map : Map<P4Type*string,string>) 
           | :? JsonTypes.Type_Control as control -> typeScope.TryGetArchNameString(P4Type.Control)
           | unhandled -> failwithf "Unhandled type %s for package parameter" (unhandled.GetType().Name)
           |> Option.ifNone (fun () -> failwithf "Could not find architecture element for package parameter type def (%s)" typeScope.CurrentPathString)
-        //ERROR // FIXME arith1 p is being resolved to Parser by TryResolveType
         let concreteType = packageTypeScope.TryResolveType(arg.type_) |> Option.ifNone (fun () -> failwithf "Could not resolve package argument type %s" (arg.type_.GetType().Name))
         concreteType.CurrentPathString, (archIntfName, typeScope))
     |> Map.ofSeq
