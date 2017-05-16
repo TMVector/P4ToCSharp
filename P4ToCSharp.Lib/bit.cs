@@ -331,6 +331,10 @@ namespace P4ToCSharp.Library
     {
       return v.Value;
     }
+    public static implicit operator int(bit8 v)
+    {
+      return v.Value;
+    }
 
     /// <summary>Truncates the value</summary>
     private static bit8 OfValue(UInt64 v)

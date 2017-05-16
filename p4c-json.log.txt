@@ -1,0 +1,269 @@
+root@ZEDEKIAH:~/gh/p4c/build# for f in ../testdata/p4_16_samples/*.p4 ; do ./p4c-json --p4v 16 --toJSON /mnt/c/temp/p4/$
+{f##*/}.json $f ; done
+../testdata/p4_16_samples/cast-call.p4(26): error: cast: Cannot unify T function<T>(x) to bit<32>
+    x = (bit<32>)f<bit<6>>(6w5);
+        ^^^^^^^^^^
+../testdata/p4_16_samples/cast-call.p4(26): error: cast: Illegal cast from T function<T>(x) to bit<32>
+    x = (bit<32>)f<bit<6>>(6w5);
+        ^^^^^^^^^^
+../testdata/p4_16_samples/cast-call.p4(26): error: cast is not a method
+    x = (bit<32>)f<bit<6>>(6w5);
+        ^^^^^^^^^^^^^^^^^^
+../testdata/p4_16_samples/cast-call.p4(26): error: Could not find type of cast
+    x = (bit<32>)f<bit<6>>(6w5);
+        ^^^^^^^^^^^^^^^^^^
+../testdata/p4_16_samples/cast_noop.p4(1): error: cast: Cannot unify type int with bool
+const bool x = (bool)1;
+               ^^^^^^^
+../testdata/p4_16_samples/cast_noop.p4(1): error: cast: Illegal cast from int to bool
+const bool x = (bool)1;
+               ^^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(50): error: << left operand of shift must be a numeric type, not int
+        x = 5 << 3;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(50): error: Could not find type of <<
+        x = 5 << 3;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(53): error: >> left operand of shift must be a numeric type, not int
+        x = 5 >> 1;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(53): error: Could not find type of >>
+        x = 5 >> 1;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(56): error: << left operand of shift must be a numeric type, not int
+        x = 5 << 0;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(56): error: Could not find type of <<
+        x = 5 << 0;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(57): error: >> left operand of shift must be a numeric type, not int
+        x = 5 >> 0;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(57): error: Could not find type of >>
+        x = 5 >> 0;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(62): error: ==: not defined on int and int
+        w = 5 == 3;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(62): error: Could not find type of ==
+        w = 5 == 3;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(65): error: !=: not defined on int and int
+        w = 5 != 3;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(65): error: Could not find type of !=
+        w = 5 != 3;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(68): error: <: not defined on int and int
+        w = 5 < 3;
+            ^^^^^
+../testdata/p4_16_samples/constant_folding.p4(68): error: Could not find type of <
+        w = 5 < 3;
+            ^^^^^
+../testdata/p4_16_samples/constant_folding.p4(71): error: >: not defined on int and int
+        w = 5 > 3;
+            ^^^^^
+../testdata/p4_16_samples/constant_folding.p4(71): error: Could not find type of >
+        w = 5 > 3;
+            ^^^^^
+../testdata/p4_16_samples/constant_folding.p4(74): error: <=: not defined on int and int
+        w = 5 <= 3;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(74): error: Could not find type of <=
+        w = 5 <= 3;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(77): error: >=: not defined on int and int
+        w = 5 >= 3;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(77): error: Could not find type of >=
+        w = 5 >= 3;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(94): error: << left operand of shift must be a numeric type, not int
+        z = 1 << 9;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(94): error: Could not find type of <<
+        z = 1 << 9;
+            ^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(95): warning: <<: shifting value with 8 bits by 9
+        z = 8w1 << 9;
+            ^^^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(96): error: >> left operand of shift must be a numeric type, not int
+        z = 10 >> 9;
+            ^^^^^^^
+../testdata/p4_16_samples/constant_folding.p4(96): error: Could not find type of >>
+        z = 10 >> 9;
+            ^^^^^^^
+../testdata/p4_16_samples/const.p4(19): warning: 48057234611961600: value does not fit in 48 bits
+const bit<48> tooLarge = 48w0xAA_BB_CC_DD_EE_FF_00
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+../testdata/p4_16_samples/const.p4(21): error: z: Cannot unify bit<1> to bit<32>
+const bit<32> max = 32w0xFFFF_FFFF;
+                                   ^
+../testdata/p4_16_samples/constsigned.p4(37): warning: 128: signed value does not fit in 8 bits
+const int<8> e0 = -8s128
+                   ^^^^^
+../testdata/p4_16_samples/constsigned.p4(38): warning: 129: signed value does not fit in 8 bits
+const int<8> f0 = -8s129
+                   ^^^^^
+../testdata/p4_16_samples/constsigned.p4(39): warning: 255: signed value does not fit in 8 bits
+const int<8> g0 = -8s255
+                   ^^^^^
+../testdata/p4_16_samples/constsigned.p4(40): warning: 256: signed value does not fit in 8 bits
+const int<8> h0 = -8s256
+                   ^^^^^
+../testdata/p4_16_samples/constsigned.p4(44): warning: 128: signed value does not fit in 8 bits
+const int<8> l0 = 8s128
+                  ^^^^^
+../testdata/p4_16_samples/constsigned.p4(45): warning: 129: signed value does not fit in 8 bits
+const int<8> m0 = 8s129
+                  ^^^^^
+../testdata/p4_16_samples/constsigned.p4(46): warning: 255: signed value does not fit in 8 bits
+const int<8> n0 = 8s255
+                  ^^^^^
+../testdata/p4_16_samples/constsigned.p4(47): warning: 256: signed value does not fit in 8 bits
+const int<8> o0 = 8s256
+                  ^^^^^
+../testdata/p4_16_samples/constsigned.p4(21): warning: 128: signed value does not fit in 8 bits
+const int<8> e = -128;
+                  ^^^
+../testdata/p4_16_samples/constsigned.p4(22): warning: 129: signed value does not fit in 8 bits
+const int<8> f = -129;
+                  ^^^
+../testdata/p4_16_samples/constsigned.p4(23): warning: 255: signed value does not fit in 8 bits
+const int<8> g = -255;
+                  ^^^
+../testdata/p4_16_samples/constsigned.p4(24): warning: 256: signed value does not fit in 8 bits
+const int<8> h = -256;
+                  ^^^
+../testdata/p4_16_samples/constsigned.p4(28): warning: 128: signed value does not fit in 8 bits
+const int<8> l = 128;
+                 ^^^
+../testdata/p4_16_samples/constsigned.p4(29): warning: 129: signed value does not fit in 8 bits
+const int<8> m = 129;
+                 ^^^
+../testdata/p4_16_samples/constsigned.p4(30): warning: 255: signed value does not fit in 8 bits
+const int<8> n = 255;
+                 ^^^
+../testdata/p4_16_samples/constsigned.p4(31): warning: 256: signed value does not fit in 8 bits
+const int<8> o = 256;
+                 ^^^
+../testdata/p4_16_samples/decl.p4(33): warning: y shadows y
+                bit y;
+                ^^^^^^
+../testdata/p4_16_samples/decl.p4(30)
+            bit y;
+            ^^^^^^
+../testdata/p4_16_samples/decl.p4(37): warning: y shadows y
+                    bit y;
+                    ^^^^^^
+../testdata/p4_16_samples/decl.p4(33)
+                bit y;
+                ^^^^^^
+../testdata/p4_16_samples/direct-call1.p4(9): error: Cannot extract field apply from p which has type Type(parser p)
+        p.apply();
+          ^^^^^
+../testdata/p4_16_samples/direct-call1.p4(9)
+        p.apply();
+        ^
+../testdata/p4_16_samples/direct-call1.p4(9): error: Could not find type of p.apply
+        p.apply();
+        ^^^^^^^
+../testdata/p4_16_samples/direct-call2.p4(9): error: Cannot extract field apply from p which has type Type(parser p)
+        p.apply();
+          ^^^^^
+../testdata/p4_16_samples/direct-call2.p4(9)
+        p.apply();
+        ^
+../testdata/p4_16_samples/direct-call2.p4(9): error: Could not find type of p.apply
+        p.apply();
+        ^^^^^^^
+../testdata/p4_16_samples/direct-call2.p4(10): error: Cannot extract field apply from p which has type Type(parser p)
+        p.apply();
+          ^^^^^
+../testdata/p4_16_samples/direct-call2.p4(10)
+        p.apply();
+        ^
+../testdata/p4_16_samples/direct-call2.p4(10): error: Could not find type of p.apply
+        p.apply();
+        ^^^^^^^
+../testdata/p4_16_samples/direct-call.p4(21): error: Cannot extract field apply from c which has type Type(control c)
+    apply { c.apply(); }
+              ^^^^^
+../testdata/p4_16_samples/direct-call.p4(21)
+    apply { c.apply(); }
+            ^
+../testdata/p4_16_samples/direct-call.p4(21): error: Could not find type of c.apply
+    apply { c.apply(); }
+            ^^^^^^^
+../testdata/p4_16_samples/inline.p4(25): warning: y shadows y
+    action b(in bit x, out bit y)
+                               ^
+../testdata/p4_16_samples/inline.p4(17)
+control p(out bit y)
+                  ^
+../testdata/p4_16_samples/large.p4(17): warning: 103929005307130220006098923584552504982110632080: value does not fit in 128 bits
+const bit<128> large = 0x1234567890123456789012345678901234567890;
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../testdata/p4_16_samples/nested-tuple.p4(25): warning: T shadows struct T
+extern void f<T>(in T data);
+              ^
+../testdata/p4_16_samples/nested-tuple.p4(17)
+struct T { bit f; }
+       ^
+../testdata/p4_16_samples/octal.p4(3): error: ==: Cannot evaluate initializer to a compile-time constant
+const bool t1 = (n1 == 377);
+                 ^^^^^^^^^
+../testdata/p4_16_samples/octal.p4(4): error: ==: Cannot evaluate initializer to a compile-time constant
+const bool t2 = (n1 == 255);
+                 ^^^^^^^^^
+../testdata/p4_16_samples/octal.p4(5): error: ==: Cannot evaluate initializer to a compile-time constant
+const bool t3 = (n2 == 377);
+                 ^^^^^^^^^
+../testdata/p4_16_samples/octal.p4(6): error: ==: Cannot evaluate initializer to a compile-time constant
+const bool t4 = (n2 == 255);
+                 ^^^^^^^^^
+../testdata/p4_16_samples/reject.p4(20): warning: start: implicit transition to `reject'
+    state start {
+          ^^^^^
+../testdata/p4_16_samples/shadow1.p4(20): warning: counter shadows counter
+  bit<16> counter;
+  ^^^^^^^^^^^^^^^^
+../testdata/p4_16_samples/shadow1.p4(17)
+extern counter {}
+       ^^^^^^^
+../testdata/p4_16_samples/shadow3.p4(20): warning: p shadows p
+  bit<8> p = 0;
+  ^^^^^^^^^^^^^
+../testdata/p4_16_samples/shadow3.p4(19)
+control MyIngress(inout H p) {
+                          ^
+../testdata/p4_16_samples/shadow.p4(22): warning: x shadows x
+            bit x;
+            ^^^^^^
+../testdata/p4_16_samples/shadow.p4(20)
+        bit x;
+        ^^^^^^
+../testdata/p4_16_samples/spec-ex04.p4(24): warning: 170: signed value does not fit in 8 bits
+const int<8> b8 = 8s0b1010_1010
+                  ^^^^^^^^^^^^^
+../testdata/p4_16_samples/strength.p4(50): warning: 15: signed value does not fit in 4 bits
+        w = w - 4s0xF
+                ^^^^^
+../testdata/p4_16_samples/strength.p4(38): warning: 16: value does not fit in 4 bits
+        y = y * 16;
+                ^^
+../testdata/p4_16_samples/string_anno.p4:21:7: warning: missing terminating " character
+ @name("string with
+       ^
+../testdata/p4_16_samples/string_anno.p4:22:8: warning: missing terminating " character
+ newline") const bit d = 1;
+        ^
+../testdata/p4_16_samples/type-shadow.p4(18): warning: D shadows D
+   void f<D>(in D d); // D shadows D
+          ^
+../testdata/p4_16_samples/type-shadow.p4(16)
+extern X<D>
+         ^
+../testdata/p4_16_samples/unreachable-accept.p4(31): warning: start: implicit transition to `reject'
+    state start {
+          ^^^^^

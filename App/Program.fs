@@ -45,6 +45,10 @@ module Main =
   let saveCs = P4ToCSharp.App.CSharp.saveToFile
 
   let generateModel filename =
+    if not (System.IO.File.Exists filename) then
+      eprintfn "File %s not found" filename
+      System.Environment.Exit(1)
+
     // Deserialise the P4 JSON
     let ir = deserialise filename
 
@@ -56,6 +60,13 @@ module Main =
     saveCs cs archFilename
 
   let generateProgram filename dllFilename =
+    if not (System.IO.File.Exists filename) then
+      eprintfn "File %s not found" filename
+      System.Environment.Exit(1)
+    if not (System.IO.File.Exists dllFilename) then
+      eprintfn "File %s not found" dllFilename
+      System.Environment.Exit(1)
+
     // Deserialise the P4 JSON
     let ir = deserialise filename // FIXME also compile P4->JSON in this step instead of requiring precompilation
 
@@ -78,13 +89,16 @@ module Main =
       System.AppDomain.CurrentDomain.UnhandledException.Add(fun e ->
         let ex = e.ExceptionObject :?> System.Exception
         #if DEBUG
-        eprintf "ERROR: %O" ex
+        eprintfn "ERROR: %O" ex
         #else
-        eprintf "ERROR: %s" ex.Message
+        eprintfn "ERROR: %s" ex.Message
         #endif
         System.Environment.Exit(1)
         )
-
+    else
+      System.AppDomain.CurrentDomain.ProcessExit.Add(fun e ->
+        System.Console.ReadKey() |> ignore // Hold the terminal (for a short time)
+        )
     let argParser = ArgumentParser.Create<MainArgs>(programName = "p4tocs.exe")
 
     // Parse command-line arguments

@@ -22,14 +22,19 @@ module JsonTypes =
   type ID = string
 
   // Helpful interfaces
+  [<AllowNullLiteral>]
   type INamed =
     abstract member Name : ID
 
   // Marker interfaces
   // FIXME it's really annoying how these don't guarantee they are Nodes
+  [<AllowNullLiteral>]
   type INode = interface end
+  [<AllowNullLiteral>]
   type IDeclaration = inherit INode
+  [<AllowNullLiteral>]
   type IContainer = inherit IDeclaration
+  [<AllowNullLiteral>]
   type ICompileTimeValue = inherit INode
 
   // FIXME Makeshift map types + should be immutable
@@ -44,6 +49,7 @@ module JsonTypes =
   // Now follows the types which will be deserialised from the JSON output of the p4c compiler IR.
   //-----------------------------------------------------------------------------------------------
   let mutable private maxNodeId = 0
+  [<AllowNullLiteral>]
   type Node [<JsonConstructor>](node_id, node_type) =
     inherit obj()
     interface INode
@@ -63,39 +69,45 @@ module JsonTypes =
       | :? Node as other -> this.Node_ID >= 0 && this.Node_ID = other.Node_ID
       | _ -> base.Equals(other)
 
+  [<AllowNullLiteral>]
   type Vector<'T> [<JsonConstructor>](node_id, node_type, vec) =
     inherit Node(node_id, node_type)
     new(vec) = Vector(-1, "Vector", vec)
     member this.vec : vector<'T> = vec // value is json list
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type IndexedVector<'T> [<JsonConstructor>](node_id, node_type, vec, declarations) =
     inherit Vector<'T>(node_id, node_type, vec)
     new(declarations) = IndexedVector(-1, "IndexedVector", declarations |> Array.map snd, declarations |> Array.map (fun (k,v) -> k, v :> obj :?> IDeclaration))
     member this.declarations : OrderedMap<string, IDeclaration> = declarations // value is json dictionary
     member this.declarationsMap = declarations |> Map.ofSeq
+    static member val empty = new IndexedVector<'T>(System.Int32.MaxValue - (maxNodeId <- maxNodeId + 1; maxNodeId), "IndexedVector", Array.empty, Array.empty)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type NameMap<'T>(node_id, node_type, symbols) =
     inherit Node(node_id, node_type)
     // FIXME We are using one datastructure instead of parameterising like in the C++.
     //       This has the problem of not enforcing single value when it's not supposed to be a multimap...
     member this.symbols : OrderedMultiMap<string, 'T> = symbols // value is json dictionary
 
+  [<AllowNullLiteral>]
   type Type(node_id, node_type) =
     inherit Node(node_id, node_type)
 
+  [<AllowNullLiteral>]
   type Type_Base(node_id, node_type) =
     inherit Type(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Unknown [<JsonConstructor>](node_id, node_type) =
     inherit Type_Base(node_id, node_type)
     new() = Type_Unknown(-1, "Type_Unknown")
 
+  [<AllowNullLiteral>]
   type StatOrDecl(node_id, node_type) =
     inherit Node(node_id, node_type)
 
+  [<AllowNullLiteral>]
   type Declaration(node_id, node_type, name, declid) =
     inherit StatOrDecl(node_id, node_type)
     interface IDeclaration
@@ -104,7 +116,7 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Type_Declaration(node_id, node_type, name, declid) =
     inherit Type(node_id, node_type)
     interface IDeclaration
@@ -113,17 +125,17 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Expression(node_id, node_type, type_) =
     inherit Node(node_id, node_type)
     [<JsonPropertyAttribute("type")>]
     member this.type_ : Type = type_
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Operation(node_id, node_type, type_) =
     inherit Expression(node_id, node_type, type_)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Path [<JsonConstructor>](node_id, node_type, name, absolute) =
     inherit Node(node_id, node_type)
     new(name, ?absolute) =
@@ -140,7 +152,7 @@ module JsonTypes =
         || (this.absolute = other.absolute && this.name = other.name)
       | _ -> false
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Annotation(node_id, node_type, name, expr) =
     inherit Node(node_id, node_type)
     member this.name : ID = name
@@ -148,7 +160,7 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Annotations(node_id, node_type, annotations) =
     inherit Node(node_id, node_type)
     member this.annotations : Vector<Annotation> = annotations
@@ -160,32 +172,32 @@ module JsonTypes =
 
   type Direction = NoDirection | In | Out | InOut (*  NOTE P4 has copy-in/copy-out semantics *)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Type(node_id, node_type, type_) =
     inherit Type(node_id, node_type)
     [<JsonProperty("type")>]
     member this.type_ : Type = type_ // type
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Boolean(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_State(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Bits(node_id, node_type, size, isSigned) =
     inherit Type_Base(node_id, node_type)
     member this.size : int = size
     member this.isSigned : bool = isSigned
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Varbits(node_id, node_type, size) =
     inherit Type_Base(node_id, node_type)
     member this.size : int = size
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Parameter(node_id, node_type, name, declid, annotations, direction, type_) =
     inherit Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
@@ -193,45 +205,46 @@ module JsonTypes =
     [<JsonProperty("type")>]
     member this.type_ : Type = type_ // type
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ParameterList(node_id, node_type, parameters) =
     inherit Node(node_id, node_type)
     member this.parameters : IndexedVector<Parameter> = parameters
+    static member val empty = new ParameterList(System.Int32.MaxValue - (maxNodeId <- maxNodeId + 1; maxNodeId), "ParameterList", IndexedVector.empty)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Var(node_id, node_type, name, declid) =
     inherit Type_Declaration(node_id, node_type, name, declid)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_InfInt(node_id, node_type, declid) =
     inherit Type(node_id, node_type)
     member this.declid : int = declid
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Dontcare(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Void(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_MatchKind(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type TypeParameters(node_id, node_type, parameters) =
     inherit Node(node_id, node_type)
     member this.parameters : IndexedVector<Type_Var> = parameters
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type StructField(node_id, node_type, name, declid, annotations, type_) =
     inherit Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
     [<JsonProperty("type")>]
     member this.type_ : Type = type_ // type
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Type_StructLike(node_id, node_type, name, declid, annotations, fields) =
     inherit Type_Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
@@ -245,29 +258,29 @@ module JsonTypes =
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Struct(node_id, node_type, name, declid, annotations, fields) =
     inherit Type_StructLike(node_id, node_type, name, declid, annotations, fields)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Union(node_id, node_type, name, declid, annotations, fields) =
     inherit Type_StructLike(node_id, node_type, name, declid, annotations, fields)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Header(node_id, node_type, name, declid, annotations, fields) =
     inherit Type_StructLike(node_id, node_type, name, declid, annotations, fields)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Set(node_id, node_type, elementType) =
     inherit Type(node_id, node_type)
     member this.elementType : Type = elementType
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Tuple(node_id, node_type, components) =
     inherit Type(node_id, node_type)
     member this.components : Vector<Type> = components
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Type_ArchBlock(node_id, node_type, name, declid, annotations, typeParameters) =
     inherit Type_Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
@@ -277,35 +290,35 @@ module JsonTypes =
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Package(node_id, node_type, name, declid, annotations, typeParameters, constructorParams) =
     inherit Type_ArchBlock(node_id, node_type, name, declid, annotations, typeParameters)
     interface IContainer
-    member this.constructorParams : ParameterList = constructorParams
-    override this.NamedInScope(name) =
-      match this.constructorParams.parameters.declarationsMap.TryFind name |> Option.cast with
-      | None -> base.NamedInScope name
-      | x -> x
+    member this.constructorParams : ParameterList = if constructorParams = null then ParameterList.empty else constructorParams
+//    override this.NamedInScope(name) =
+//      match this.constructorParams.parameters.declarationsMap.TryFind name |> Option.cast with
+//      | None -> base.NamedInScope name
+//      | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Parser(node_id, node_type, name, declid, annotations, typeParameters, applyParams) =
     inherit Type_ArchBlock(node_id, node_type, name, declid, annotations, typeParameters)
-    member this.applyParams : ParameterList = applyParams
+    member val applyParams : ParameterList = if applyParams = null then ParameterList.empty else applyParams
     override this.NamedInScope(name) =
       match this.applyParams.parameters.declarationsMap.TryFind name |> Option.cast with
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Control(node_id, node_type, name, declid, annotations, typeParameters, applyParams) =
     inherit Type_ArchBlock(node_id, node_type, name, declid, annotations, typeParameters)
-    member this.applyParams : ParameterList = applyParams
+    member val applyParams : ParameterList = if applyParams = null then ParameterList.empty else applyParams
     override this.NamedInScope(name) =
       match this.applyParams.parameters.declarationsMap.TryFind name |> Option.cast with
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Name(node_id, node_type, path) =
     inherit Type(node_id, node_type)
     member this.path : Path = path
@@ -318,35 +331,35 @@ module JsonTypes =
         || this.path = other.path
       | _ -> false
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Stack(node_id, node_type, elementType, size) =
     inherit Type(node_id, node_type)
     member this.elementType : Type = elementType
     member this.size : Expression = size
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Specialized(node_id, node_type, baseType, arguments) =
     inherit Type(node_id, node_type)
     member this.baseType : Type_Name = baseType
     member this.arguments : Vector<Type> = arguments
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_SpecializedCanonical(node_id, node_type, baseType, arguments, substituted) =
     inherit Type(node_id, node_type)
     member this.baseType : Type = baseType
     member this.arguments : Vector<Type> = arguments
     member this.substituted : Type = substituted
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Declaration_ID(node_id, node_type, name, declid) =
     inherit Declaration(node_id, node_type, name, declid)
     interface ICompileTimeValue
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_String(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Enum(node_id, node_type, name, declid, members) =
     inherit Type_Declaration(node_id, node_type, name, declid)
     member this.members : IndexedVector<Declaration_ID> = members
@@ -359,18 +372,18 @@ module JsonTypes =
       | None -> base.NamedInScope name
       | x -> x
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type PropertyValue(node_id, node_type) =
     inherit Node(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Property(node_id, node_type, name, declid, annotations, value, isConstant) =
     inherit Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
     member this.value : PropertyValue = value
     member this.isConstant : bool = isConstant
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type TableProperties(node_id, node_type, properties) =
     inherit Node(node_id, node_type)
     member this.properties : IndexedVector<Property> = properties
@@ -383,11 +396,11 @@ module JsonTypes =
       |> Option.map (fun p -> p.value)
       |> Option.cast<_,'a>
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type P4Table(node_id, node_type, name, declid, annotations, parameters, properties) =
     inherit Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
-    member this.parameters : ParameterList = parameters
+    member val parameters : ParameterList = if parameters = null then ParameterList.empty else parameters
     member this.properties : TableProperties = properties
     override this.NamedChild(name) =
       this.properties.properties.declarationsMap.TryFind name |> Option.cast
@@ -397,26 +410,26 @@ module JsonTypes =
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Table(node_id, node_type, table) =
     inherit Type(node_id, node_type)
     member this.table : P4Table = table
     override this.NamedChild(name) =
       table.NamedChild(name)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ActionListElement(node_id, node_type, annotations, expression) =
     inherit Node(node_id, node_type)
     interface IDeclaration
     member this.annotations : Annotations = annotations
     member this.expression : Expression = expression
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ActionList(node_id, node_type, actionList) =
     inherit PropertyValue(node_id, node_type)
     member this.actionList : IndexedVector<ActionListElement> = actionList
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_ActionEnum(node_id, node_type, actionList) =
     inherit Type(node_id, node_type)
     member this.actionList : ActionList = actionList
@@ -425,23 +438,23 @@ module JsonTypes =
       | None -> base.NamedChild name
       | x -> x
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Type_MethodBase(node_id, node_type, typeParameters, returnType, parameters) =
     inherit Type(node_id, node_type)
     member this.typeParameters : TypeParameters = typeParameters
     member this.returnType : Type option = returnType // if != nullptr
-    member this.parameters : ParameterList = parameters
+    member val parameters : ParameterList = if parameters = null then ParameterList.empty else parameters
     override this.NamedInScope(name) =
       match this.parameters.parameters.declarationsMap.TryFind name
             |> Option.tryIfNone (fun () -> this.typeParameters.parameters.declarationsMap.TryFind name)|> Option.cast with
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Method(node_id, node_type, typeParameters, returnType, parameters) =
     inherit Type_MethodBase(node_id, node_type, typeParameters, returnType, parameters)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ArgumentInfo(node_id, node_type, leftValue, compileTimeConstant, type_) =
     inherit Node(node_id, node_type)
     member this.leftValue : bool = leftValue
@@ -449,18 +462,18 @@ module JsonTypes =
     [<JsonProperty("type")>]
     member this.type_ : Type = type_ // type
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_MethodCall(node_id, node_type, typeArguments, returnType, arguments) =
     inherit Type(node_id, node_type)
     member this.typeParameters : Vector<Type> = typeArguments
     member this.returnType : Type_Var = returnType
     member this.arguments : Vector<ArgumentInfo> = arguments
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Action(node_id, node_type, typeParameters, returnType, parameters) =
     inherit Type_MethodBase(node_id, node_type, typeParameters, returnType, parameters)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Method(node_id, node_type, name, declid, type_, isAbstract, annotations) =
     inherit Declaration(node_id, node_type, name, declid)
     [<JsonProperty("type")>]
@@ -476,7 +489,7 @@ module JsonTypes =
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Typedef(node_id, node_type, name, declid, annotations, type_) =
     inherit Type_Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
@@ -484,12 +497,12 @@ module JsonTypes =
     member this.type_ : Type = type_ // type
     // FIXME does this need NamedChild override, or are we manually following type?
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type NameList(node_id, node_type, names) =
     inherit Node(node_id, node_type)
     member this.names : vector<ID> = names
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Attribute(node_id, node_type, name, declid, type_, locals, optional) =
     inherit Declaration(node_id, node_type, name, declid)
     [<JsonProperty("type")>]
@@ -497,7 +510,7 @@ module JsonTypes =
     member this.locals : NameList option = locals // if != nullptr
     member this.optional : bool = optional
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Extern(node_id, node_type, name, declid, typeParameters, methods, attributes, annotations) =
     inherit Type_Declaration(node_id, node_type, name, declid)
     member this.typeParameters : TypeParameters = typeParameters
@@ -514,135 +527,135 @@ module JsonTypes =
       | None -> base.NamedInScope name
       | x -> x
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Operation_Unary(node_id, node_type, type_, expr) =
     inherit Operation(node_id, node_type, type_)
     member this.expr : Expression = expr
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Neg(node_id, node_type, type_, expr) =
     inherit Operation_Unary(node_id, node_type, type_, expr)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Cmpl(node_id, node_type, type_, expr) =
     inherit Operation_Unary(node_id, node_type, type_, expr)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type LNot(node_id, node_type, type_, expr) =
     inherit Operation_Unary(node_id, node_type, type_, expr)
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Operation_Binary(node_id, node_type, type_, left, right) =
     inherit Operation(node_id, node_type, type_)
     member this.left : Expression = left
     member this.right : Expression = right
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Operation_Ternary(node_id, node_type, type_, e0, e1, e2) =
     inherit Operation(node_id, node_type, type_)
     member this.e0 : Expression = e0
     member this.e1 : Expression = e1
     member this.e2 : Expression = e2
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Operation_Relation(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Mul(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Div(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Mod(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Add(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Sub(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Shl(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Shr(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Equ(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Neq(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Lss(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Leq(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Grt(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Geq(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type BAnd(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type BOr(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type BXor(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type LAnd(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type LOr(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Literal(node_id, node_type, type_) =
     inherit Expression(node_id, node_type, type_)
     interface ICompileTimeValue
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Constant(node_id, node_type, type_, value, base_) =
     inherit Literal(node_id, node_type, type_)
     member this.value : int = value // FIXME can also be bigint
     [<JsonProperty("base")>]
     member this.base_ : uint32 = base_ // base
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type BoolLiteral(node_id, node_type, type_, value) =
     inherit Literal(node_id, node_type, type_)
     member this.value : bool = value
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type StringLiteral(node_id, node_type, type_, value) =
     inherit Literal(node_id, node_type, type_)
     member this.value : string = value
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type PathExpression [<JsonConstructor>](node_id, node_type, type_, path) =
     inherit Expression(node_id, node_type, type_)
     new(path, ?type_) =
@@ -652,16 +665,16 @@ module JsonTypes =
     override this.ToString() =
       this.path.ToString()
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type TypeNameExpression(node_id, node_type, type_, typeName) =
     inherit Expression(node_id, node_type, type_)
     member this.typeName : Type_Name = typeName
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Slice(node_id, node_type, type_, e0, e1, e2) =
     inherit Operation_Ternary(node_id, node_type, type_, e0, e1, e2)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Member(node_id, node_type, type_, expr, member_) =
     inherit Operation_Unary(node_id, node_type, type_, expr)
     [<JsonProperty("member")>]
@@ -669,58 +682,58 @@ module JsonTypes =
     override this.ToString() =
       sprintf "%O.%s" this.expr this.member_
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Concat(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ArrayIndex(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Range(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Mask(node_id, node_type, type_, left, right) =
     inherit Operation_Binary(node_id, node_type, type_, left, right)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Mux(node_id, node_type, type_, e0, e1, e2) =
     inherit Operation_Ternary(node_id, node_type, type_, e0, e1, e2)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type DefaultExpression(node_id, node_type, type_) =
     inherit Expression(node_id, node_type, type_)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type This(node_id, node_type, type_) =
     inherit Expression(node_id, node_type, type_)
     // NOTE rely on thisMap, cannot implement NamedChild
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Cast(node_id, node_type, destType, expr) =
     inherit Operation_Unary(node_id, node_type, destType, expr)
     member this.destType : Type = destType
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type SelectCase(node_id, node_type, keyset, state) =
     inherit Node(node_id, node_type)
     member this.keyset : Expression = keyset
     member this.state : PathExpression = state
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ListExpression(node_id, node_type, type_, components) =
     inherit Expression(node_id, node_type, type_)
     member this.components : Vector<Expression> = components
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type SelectExpression(node_id, node_type, type_, select, selectCases) =
     inherit Expression(node_id, node_type, type_)
     member this.select : ListExpression = select
     member this.selectCases : Vector<SelectCase> = selectCases
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type MethodCallExpression [<JsonConstructor>](node_id, node_type, type_, method_, typeArguments, arguments) =
     inherit Expression(node_id, node_type, type_)
     new(method_, arguments, ?typeArguments, ?type_) =
@@ -736,13 +749,13 @@ module JsonTypes =
     member this.WithArguments(args : Expression seq) =
       new MethodCallExpression(node_id, node_type, type_, method_, typeArguments, Vector(args |> Seq.toArray))
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ConstructorCallExpression(node_id, node_type, type_, arguments) =
     inherit Expression(node_id, node_type, type_)
     member this.constructedType : Type = this.type_
     member this.arguments : Vector<Expression> = arguments
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ParserState(node_id, node_type, name, declid, annotations, components, selectExpression) =
     inherit Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
@@ -753,7 +766,7 @@ module JsonTypes =
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type P4Parser(node_id, node_type, name, declid, type_, constructorParams, parserLocals, states) =
     inherit Type_Declaration(node_id, node_type, name, declid)
     interface IContainer
@@ -771,11 +784,11 @@ module JsonTypes =
       | None -> base.NamedInScope name
       | x -> x
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Statement(node_id, node_type) =
     inherit StatOrDecl(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type BlockStatement(node_id, node_type, annotations, components) =
     inherit Statement(node_id, node_type)
     member this.annotations : Annotations = annotations
@@ -786,7 +799,7 @@ module JsonTypes =
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type P4Control(node_id, node_type, name, declid, type_, constructorParams, controlLocals, body) =
     inherit Type_Declaration(node_id, node_type, name, declid)
     interface IContainer
@@ -803,18 +816,18 @@ module JsonTypes =
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type P4Action(node_id, node_type, name, declid, annotations, parameters, body) =
     inherit Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
-    member this.parameters : ParameterList = parameters
+    member val parameters : ParameterList = if parameters = null then ParameterList.empty else parameters
     member this.body : BlockStatement = body
     override this.NamedInScope(name) =
       match this.parameters.parameters.declarationsMap.TryFind name |> Option.cast with
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Error(node_id, node_type, name, declid, members) =
     inherit Type_Declaration(node_id, node_type, name, declid)
     member this.members : IndexedVector<Declaration_ID> = members
@@ -827,7 +840,7 @@ module JsonTypes =
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Declaration_MatchKind [<JsonConstructor>](node_id, node_type, members) =
     inherit Node(node_id, node_type)
     new(members) = Declaration_MatchKind(-1, "Declaration_MatchKind", members)
@@ -841,29 +854,29 @@ module JsonTypes =
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ExpressionValue(node_id, node_type, expression) =
     inherit PropertyValue(node_id, node_type)
     member this.expression : Expression = expression
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ExpressionListValue(node_id, node_type, expressions) =
     inherit PropertyValue(node_id, node_type)
     member this.expressions : Vector<Expression> = expressions
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type KeyElement(node_id, node_type, annotations, expression, matchType) =
     inherit Node(node_id, node_type)
     member this.annotations : Annotations = annotations
     member this.expression : Expression = expression
     member this.matchType : PathExpression = matchType
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Key(node_id, node_type, keyElements) =
     inherit PropertyValue(node_id, node_type)
     member this.keyElements : Vector<KeyElement> = keyElements
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Declaration_Variable(node_id, node_type, name, declid, annotations, type_, initializer) =
     inherit Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
@@ -871,7 +884,7 @@ module JsonTypes =
     member this.type_ : Type = type_ // type
     member this.initializer : Expression option = initializer // if != nullptr
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Declaration_Constant(node_id, node_type, name, declid, annotations, type_, initializer) =
     inherit Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
@@ -879,7 +892,7 @@ module JsonTypes =
     member this.type_ : Type = type_ // type
     member this.initializer : Expression = initializer
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Declaration_Instance(node_id, node_type, name, declid, annotations, type_, arguments, properties, initializer) =
     inherit Declaration(node_id, node_type, name, declid)
     member this.annotations : Annotations = annotations
@@ -890,7 +903,7 @@ module JsonTypes =
     member this.initializer : BlockStatement option = initializer // if != nullptr
     // FIXME NamedChild/NamedInScope?
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type P4Program(node_id, node_type, declarations) =
     inherit Node(node_id, node_type)
     member this.declarations : IndexedVector<Node> = declarations
@@ -903,50 +916,50 @@ module JsonTypes =
       | None -> base.NamedInScope name
       | x -> x
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ExitStatement(node_id, node_type) =
     inherit Statement(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ReturnStatement(node_id, node_type, expression) =
     inherit Statement(node_id, node_type)
     member this.expression : Expression option = expression // if != nullptr
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type EmptyStatement(node_id, node_type) =
     inherit Statement(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type AssignmentStatement(node_id, node_type, left, right) =
     inherit Statement(node_id, node_type)
     member this.left : Expression = left
     member this.right : Expression = right
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type IfStatement(node_id, node_type, condition, ifTrue, ifFalse) =
     inherit Statement(node_id, node_type)
     member this.condition : Expression = condition
     member this.ifTrue : Statement = ifTrue
     member this.ifFalse : Statement option = ifFalse // if != nullptr
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type MethodCallStatement(node_id, node_type, methodCall) =
     inherit Statement(node_id, node_type)
     member this.methodCall : MethodCallExpression = methodCall
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type SwitchCase(node_id, node_type, label, statement) =
     inherit Node(node_id, node_type)
     member this.label : Expression = label
     member this.statement : Statement option = statement // if != nullptr
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type SwitchStatement(node_id, node_type, expression, cases) =
     inherit Statement(node_id, node_type)
     member this.expression : Expression = expression
     member this.cases : Vector<SwitchCase> = cases
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Function(node_id, node_type, name, declid, type_, body) =
     inherit Declaration(node_id, node_type, name, declid)
     [<JsonProperty("type")>]
@@ -958,40 +971,40 @@ module JsonTypes =
       | x -> x
 
   // FIXME not sure about NamedChild/NamedInScope for any of these (Block/children)
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Block(node_id, node_type, node, constantValue) =
     inherit Node(node_id, node_type)
     interface ICompileTimeValue
     member this.node : Node = node
     member this.constantValue : OrderedMap<Node, ICompileTimeValue> = constantValue
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type TableBlock(node_id, node_type, node, constantValue, container) =
     inherit Block(node_id, node_type, node, constantValue)
     member this.container : P4Table = container
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type InstantiatedBlock(node_id, node_type, node, constantValue, instanceType) =
     inherit Block(node_id, node_type, node, constantValue)
     member this.instanceType : Type = instanceType
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ParserBlock(node_id, node_type, node, constantValue, instanceType, container) =
     inherit InstantiatedBlock(node_id, node_type, node, constantValue, instanceType)
     member this.container : P4Parser = container
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ControlBlock(node_id, node_type, node, constantValue, instanceType, container) =
     inherit InstantiatedBlock(node_id, node_type, node, constantValue, instanceType)
     member this.container : P4Control = container
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type PackageBlock(node_id, node_type, node, constantValue, instanceType, type_) =
     inherit InstantiatedBlock(node_id, node_type, node, constantValue, instanceType)
     [<JsonProperty("type")>]
     member this.type_ : Type_Package = type_ // type
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ExternBlock(node_id, node_type, node, constantValue, instanceType, type_, constructor_) =
     inherit InstantiatedBlock(node_id, node_type, node, constantValue, instanceType)
     [<JsonProperty("type")>]
@@ -999,42 +1012,42 @@ module JsonTypes =
     [<JsonProperty("constructor")>]
     member this.constructor_ : Method = constructor_ // constructor
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ToplevelBlock(node_id, node_type, node, constantValue) =
     inherit Block(node_id, node_type, node, constantValue)
 
   type CounterType = NONE | PACKETS | BYTES | BOTH
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Block(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Counter(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Expression(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_FieldListCalculation(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Meter(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_Register(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Type_AnyTable(node_id, node_type) =
     inherit Type_Base(node_id, node_type)
 
   // FIXME not sure about NamedChild/NamedInScope for these (HeaderOrMetadata/children)
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_) =
     inherit Node(node_id, node_type)
     member this.type_name : ID = type_name
@@ -1045,55 +1058,56 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Header(node_id, node_type, type_name, name, annotations, type_) =
     inherit HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type HeaderStack(node_id, node_type, type_name, name, annotations, type_, size) =
     inherit HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_)
     member this.size : int = size
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Metadata(node_id, node_type, type_name, name, annotations, type_) =
     inherit HeaderOrMetadata(node_id, node_type, type_name, name, annotations, type_)
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type HeaderRef(node_id, node_type, type_) =
     inherit Expression(node_id, node_type, type_)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ConcreteHeaderRef(node_id, node_type, type_name, name, annotations, type_, ref) =
     inherit HeaderRef(node_id, node_type, type_)
     member this.ref : HeaderOrMetadata = ref
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type HeaderStackItemRef(node_id, node_type, type_, base_, index_) =
     inherit HeaderRef(node_id, node_type, type_)
     member this.base_ : Expression = base_ // sic
     member this.index_ : Expression = index_ // sic
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type NamedRef(node_id, node_type, type_, name) =
     inherit Expression(node_id, node_type, type_)
     member this.name : ID = name
     interface INamed with
       member this.Name = this.name
 
+  [<AllowNullLiteral>]
   type If(node_id, node_type, type_, pred, ifTrue, ifFalse) =
     inherit Expression(node_id, node_type, type_)
     member this.pred : Expression = pred
     member this.ifTrue : Vector<Expression> option = ifTrue // if != nullptr
     member this.ifFalse : Vector<Expression> option = ifFalse // if != nullptr
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type NamedCond(node_id, node_type, type_, pred, ifTrue, ifFalse, name) =
     inherit If(node_id, node_type, type_, pred, ifTrue, ifFalse)
     member this.name : string = name
     interface INamed with
       member this.Name = this.name
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Apply(node_id, node_type, type_, name, actions) =
     inherit Expression(node_id, node_type, type_)
     member this.name : ID = name
@@ -1101,7 +1115,7 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Primitive(node_id, node_type, type_, name, operands) =
     inherit Operation(node_id, node_type, type_)
     member this.name : string = name
@@ -1109,7 +1123,7 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type FieldList(node_id, node_type, name, payload, annotations, fields) =
     inherit Node(node_id, node_type)
     member this.name : ID = name
@@ -1119,7 +1133,7 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type FieldListCalculation(node_id, node_type, name, input, algorithm, output_width, annotations) =
     inherit Node(node_id, node_type)
     member this.name : ID = name
@@ -1134,20 +1148,20 @@ module JsonTypes =
     { update : bool;
       name : ID;
       cond : Expression; }
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type CalculatedField(node_id, node_type, field, specs, annotations) =
     inherit Node(node_id, node_type)
     member this.field : Expression option = field // if != nullptr
     member this.specs : vector<CalculatedField_update_or_verify> = specs
     member this.annotations : Annotations = annotations
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type CaseEntry(node_id, node_type, values, action) =
     inherit Node(node_id, node_type)
     member this.values : vector<CaseEntry * Constant> = values
     member this.action : ID = action
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type V1Parser(node_id, node_type, name, stmts, select, cases, default_return, parse_error, drop, annotations) =
     inherit Node(node_id, node_type)
     member this.name : ID = name
@@ -1161,11 +1175,11 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ParserException(node_id, node_type) =
     inherit Node(node_id, node_type)
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Attached(node_id, node_type, name, annotations) =
     inherit Node(node_id, node_type)
     member this.name : ID = name
@@ -1173,7 +1187,7 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type Stateful(node_id, node_type, name, annotations, table, direct, saturating, instance_count) =
     inherit Attached(node_id, node_type, name, annotations)
     member this.table : ID = table
@@ -1181,37 +1195,37 @@ module JsonTypes =
     member this.saturating : bool = saturating
     member this.instance_count : int = instance_count
 
-  [<AbstractClass>]
+  [<AllowNullLiteral>][<AbstractClass>]
   type CounterOrMeter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_) =
     inherit Stateful(node_id, node_type, name, annotations, table, direct, saturating, instance_count)
     [<JsonProperty("type")>]
     member this.type_ : CounterType = type_ // type
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Counter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_, max_width, min_width) =
     inherit CounterOrMeter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_)
     member this.max_width : int = max_width
     member this.min_width : int = min_width
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type  Meter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_, result, pre_color, implementation) =
     inherit CounterOrMeter(node_id, node_type, name, annotations, table, direct, saturating, instance_count, type_)
     member this.result : Expression option = result // if != nullptr
     member this.pre_color : Expression option = pre_color // if != nullptr
     member this.implementation : ID = implementation
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type Register(node_id, node_type, name, annotations, table, direct, saturating, instance_count, layout, width, signed_) =
     inherit Stateful(node_id, node_type, name, annotations, table, direct, saturating, instance_count)
     member this.layout : ID = layout
     member this.width : int = width
     member this.signed_ : bool = signed_ // sic
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type PrimitiveAction(node_id, node_type) =
     inherit Node(node_id, node_type)
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ActionArg(node_id, node_type, type_, action_name, name, read, write) =
     inherit Expression(node_id, node_type, type_)
     member this.action_name : string = action_name
@@ -1221,7 +1235,7 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ActionFunction(node_id, node_type, name, action, args, annotations) =
     inherit Node(node_id, node_type)
     member this.name : ID = name
@@ -1231,14 +1245,14 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ActionProfile(node_id, node_type, name, annotations, selector, actions, size) =
     inherit Attached(node_id, node_type, name, annotations)
     member this.selector : ID = selector
     member this.actions : vector<ID> = actions
     member this.size : int = size
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type ActionSelector(node_id, node_type, name, annotations, key, mode, type_) =
     inherit Attached(node_id, node_type, name, annotations)
     member this.key : ID = key
@@ -1246,7 +1260,7 @@ module JsonTypes =
     [<JsonProperty("type")>]
     member this.type_ : ID = type_ // type
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type V1Table(node_id, node_type, name, reads, reads_types, min_size, max_size, size, action_profile, actions,
                 default_action, default_action_args, properties, annotations) =
     inherit Node(node_id, node_type)
@@ -1265,7 +1279,7 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type V1Control(node_id, node_type, name, code, annotations) =
     inherit Node(node_id, node_type)
     member this.name : ID = name
@@ -1274,12 +1288,12 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type V1Program(node_id, node_type, scope) =
     inherit Node(node_id, node_type)
     member this.scope : NameMap<Node> = scope // multimap
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type v1HeaderType(node_id, node_type, name, as_metadata, as_header) = // sic
     inherit Node(node_id, node_type)
     member this.name : ID = name
@@ -1288,7 +1302,7 @@ module JsonTypes =
     interface INamed with
       member this.Name = this.name
 
-  [<Sealed>]
+  [<AllowNullLiteral>][<Sealed>]
   type IntMod(node_id, node_type, type_, expr, width) =
     inherit Operation_Unary(node_id, node_type, type_, expr)
     member this.width : uint32 = width

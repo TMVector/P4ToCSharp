@@ -55,8 +55,8 @@ control deparser(packet_out b, in Headers h) {
 }
 
 control ingress(inout Headers h, inout Meta m, inout standard_metadata_t sm) {
-    action set_port() { sm.egress_spec = m.v; }
-    table t() {
+    action set_port() { sm.egress_spec = (bit<9>)m.v; }
+    table t {
         actions = { set_port; }
         const default_action = set_port();
     }
