@@ -1692,35 +1692,36 @@ let ofProgram (program : JsonTypes.Program) (p4Map : Map<P4Type*string,string>) 
 
   // Create map of p4-path of control-def to (C# interface name, control-decl scope)
   let controlIntfMap =
-    let packageInst =
-      program.P4.declarations.vec
-      |> Seq.filter (fun decl -> decl :? JsonTypes.Declaration_Instance)
-      |> Seq.cast<JsonTypes.Declaration_Instance>
-      |> Seq.trySingle
-      |> Option.ifNone (fun () -> failwithf "A package instantiation could not be found.") // TODO Is this really an error?
-    let packageTypeScope =
-      scope.TryResolveType(packageInst.type_)
-      |> Option.ifNone (fun () -> failwithf "Unhandled type %s for package instantiation (could not be resolved)" (packageInst.type_.GetType().Name))
-    let package =
-      match packageTypeScope.CurrentNode with
-      | :? JsonTypes.Type_Package as tyPackage -> tyPackage
-      | unexpected -> failwithf "Declaration instance type %s not resolved to Type_Package" (unexpected.GetType().Name)
-    package.constructorParams.parameters.vec
-    |> Seq.zip packageInst.arguments.vec
-    |> Seq.choose (fun (arg,param) ->
-        match tryGetTypePath param.type_ with
-        | Some _ -> Some (arg, scope.TryResolveType(param.type_) |> Option.ifNone (fun () -> failwithf "Could not resolve type %s" (param.type_.GetType().Name)))
-        | _ -> None)
-    |> Seq.map (fun (arg,typeScope) ->
-        let archIntfName =
-          match typeScope.CurrentNode with
-          | :? JsonTypes.Type_Parser as parser -> typeScope.TryGetArchNameString(P4Type.Parser)
-          | :? JsonTypes.Type_Control as control -> typeScope.TryGetArchNameString(P4Type.Control)
-          | unhandled -> failwithf "Unhandled type %s for package parameter" (unhandled.GetType().Name)
-          |> Option.ifNone (fun () -> failwithf "Could not find architecture element for package parameter type def (%s)" typeScope.CurrentPathString)
-        let concreteType = packageTypeScope.TryResolveType(arg.type_) |> Option.ifNone (fun () -> failwithf "Could not resolve package argument type %s" (arg.type_.GetType().Name))
-        concreteType.CurrentPathString, (archIntfName, typeScope))
-    |> Map.ofSeq
+    program.P4.declarations.vec
+    |> Seq.filter (fun decl -> decl :? JsonTypes.Declaration_Instance)
+    |> Seq.cast<JsonTypes.Declaration_Instance>
+    |> Seq.trySingle
+    |> Option.tryIfNone (fun () -> eprintfn "WARNING: A package instantiation could not be found."; None) // TODO Some better way to handle warnings/errors in the transpiler
+    |> Option.map (fun packageInst ->
+      let packageTypeScope =
+        scope.TryResolveType(packageInst.type_)
+        |> Option.ifNone (fun () -> failwithf "Unhandled type %s for package instantiation (could not be resolved)" (packageInst.type_.GetType().Name))
+      let package =
+        match packageTypeScope.CurrentNode with
+        | :? JsonTypes.Type_Package as tyPackage -> tyPackage
+        | unexpected -> failwithf "Declaration instance type %s not resolved to Type_Package" (unexpected.GetType().Name)
+      package.constructorParams.parameters.vec
+      |> Seq.zip packageInst.arguments.vec
+      |> Seq.choose (fun (arg,param) ->
+          match tryGetTypePath param.type_ with
+          | Some _ -> Some (arg, scope.TryResolveType(param.type_) |> Option.ifNone (fun () -> failwithf "Could not resolve type %s" (param.type_.GetType().Name)))
+          | _ -> None)
+      |> Seq.map (fun (arg,typeScope) ->
+          let archIntfName =
+            match typeScope.CurrentNode with
+            | :? JsonTypes.Type_Parser as parser -> typeScope.TryGetArchNameString(P4Type.Parser)
+            | :? JsonTypes.Type_Control as control -> typeScope.TryGetArchNameString(P4Type.Control)
+            | unhandled -> failwithf "Unhandled type %s for package parameter" (unhandled.GetType().Name)
+            |> Option.ifNone (fun () -> failwithf "Could not find architecture element for package parameter type def (%s)" typeScope.CurrentPathString)
+          let concreteType = packageTypeScope.TryResolveType(arg.type_) |> Option.ifNone (fun () -> failwithf "Could not resolve package argument type %s" (arg.type_.GetType().Name))
+          concreteType.CurrentPathString, (archIntfName, typeScope))
+      |> Map.ofSeq)
+    |> Option.ifNoneValue scope.ControlInterfaceMap
 
   let scope =
     { scope with

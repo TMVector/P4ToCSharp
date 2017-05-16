@@ -45,6 +45,10 @@ module Main =
   let saveCs = P4ToCSharp.App.CSharp.saveToFile
 
   let generateModel filename =
+    if not (System.IO.File.Exists filename) then
+      eprintfn "File %s not found" filename
+      System.Environment.Exit(1)
+
     // Deserialise the P4 JSON
     let ir = deserialise filename
 
@@ -56,6 +60,13 @@ module Main =
     saveCs cs archFilename
 
   let generateProgram filename dllFilename =
+    if not (System.IO.File.Exists filename) then
+      eprintfn "File %s not found" filename
+      System.Environment.Exit(1)
+    if not (System.IO.File.Exists dllFilename) then
+      eprintfn "File %s not found" dllFilename
+      System.Environment.Exit(1)
+
     // Deserialise the P4 JSON
     let ir = deserialise filename // FIXME also compile P4->JSON in this step instead of requiring precompilation
 
