@@ -25,8 +25,8 @@ header hdr {
 
 control compute(inout hdr h) {
     action add()
-    { h.c = h.a + h.b; }
-    table t() {
+    { h.c = (bit<64>)(h.a + h.b); }
+    table t {
         actions = { add; }
         const default_action = add;
     }
