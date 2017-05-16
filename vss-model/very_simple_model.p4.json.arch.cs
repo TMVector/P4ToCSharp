@@ -26,7 +26,7 @@ namespace vss_model
     [P4(P4Type.ExternObject, "packet_in")]
     public interface packet_in
     {
-      void extract<T>(out T hdr);
+      void extract<T>(out T hdr) where T : new();
       void extract<T>(out T variableSizeHeader, bit32 variableFieldSizeInBits);
       T lookahead<T>();
       void advance(bit32 sizeInBits);

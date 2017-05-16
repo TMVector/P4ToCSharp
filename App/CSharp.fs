@@ -1151,6 +1151,10 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           applyCtorParams // FIXME is it really okay to use the args closure type name as the param name too?
           |> Seq.map (fun (p,cp) -> (p.name, idMemberAccess (SF.IdentifierName(argsClassName)) [cp.Identifier]))
           |> Map.addSeqTo scopeInfo.OverrideExprForNameMap
+        let customExprMap =
+          pc.controlLocals.vec // FIXME is it really okay to use the args closure type name as the param name too?
+          |> Seq.map (fun (decl) -> (decl.name, eMemberAccess (SF.IdentifierName(argsClassName)) ["Instance"; decl.name]))
+          |> Map.addSeqTo customExprMap
         let argsParam = SF.Parameter(SF.Identifier(argsClassName)).WithType(SF.IdentifierName(argsClassName))
         { scopeInfo.AppendScopeParameters(argsParam) with OverrideExprForNameMap = customExprMap }
       let className = classNameFor pc.name
@@ -1180,11 +1184,14 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             applyCtorParams
             |> Seq.map (fun (p,cp) -> (uninitialisedField cp.Type cp.Identifier.Text)
                                         .WithModifiers(tokenList [SK.PublicKeyword]))
+            |> Seq.append [(uninitialisedField (SF.IdentifierName(className)) "Instance").WithModifiers(tokenList [SK.PublicKeyword])]
             |> Seq.cast |> Seq.toArray
           let ctor = SF.ConstructorDeclaration(argsClassName)
                         .WithModifiers(tokenList [SK.PublicKeyword])
-                        .WithParameters(applyCtorParams |> Seq.map (fun (p,cp) -> (cp.Identifier.Text, cp.Type)))
-                        .WithBlockBody(applyCtorParams |> Seq.map (fun (p,cp) -> upcast assignment (thisAccess cp.Identifier.Text) (SF.IdentifierName(cp.Identifier))))
+                        .WithParameters(applyCtorParams |> Seq.map (fun (p,cp) -> (cp.Identifier.Text, cp.Type))
+                                                        |> Seq.append [("Instance", upcast SF.IdentifierName(className))])
+                        .WithBlockBody(applyCtorParams |> Seq.map (fun (p,cp) -> assignment (thisAccess cp.Identifier.Text) (SF.IdentifierName(cp.Identifier)))
+                                                       |> Seq.append [assignment (thisAccess "Instance") (SF.IdentifierName("Instance"))] |> Seq.cast)
           SF.ClassDeclaration(argsClassName)
             .AddMembers(fields)
             .AddMembers(ctor)
@@ -1192,7 +1199,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           let argsClassType = SF.IdentifierName(argsClass.Identifier)
           let objCreation =
             SF.ObjectCreationExpression(argsClassType)
-              .WithArgumentList(applyCtorParams |> Seq.map (fun (_,p) -> SF.IdentifierName(p.Identifier)) |> exprArgList)
+              .WithArgumentList(applyCtorParams |> Seq.map (fun (_,p) -> SF.IdentifierName(p.Identifier) :> Expr) |> Seq.append [SF.ThisExpression()] |> exprArgList)
           upcast SF.LocalDeclarationStatement(variableDeclaration argsClass.Identifier.Text argsClassType (Some objCreation |> Option.cast))
         let apply = SF.MethodDeclaration(voidType, "apply")
                       .WithModifiers(tokenList [SK.PublicKeyword])
@@ -1504,13 +1511,21 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       | :? JsonTypes.Attribute -> failwith "JsonTypes.Attribute not handled yet" // FIXME
       | :? JsonTypes.ParserState -> failwith "JsonTypes.ParserState not handled yet" // FIXME
       | :? JsonTypes.P4Action as a ->
+          // Check if this action is top-level, or in a control (in which case it should not be static)
+          let topLevel = (scopeInfo.AncestorScopes |> Seq.length) <= 2
           let parameters =
             let parameters =
               a.parameters.parameters.vec
               |> Seq.collect (directionedParameter (ofType scopeInfo))
             Seq.append scopeInfo.ControlBlockApplyArgsParameters parameters // Add args closure parameters if needed, e.g. for accessing a control block's arguments
+          let scopeInfo =
+            { scopeInfo with
+                OverrideExprForNameMap =
+                  a.parameters.parameters.vec
+                  |> Seq.map (fun p -> let pn = variableNameFor p.name in (pn, SF.IdentifierName(pn) :> Expr))
+                  |> Map.addSeqTo scopeInfo.OverrideExprForNameMap }
           SF.MethodDeclaration(voidType, a.name)
-            .WithModifiers(tokenList [SK.StaticKeyword])
+            .WithModifiers(tokenList (if topLevel then [SK.StaticKeyword] else []))
             .WithParameters(parameters)
             .AddBodyStatements( // FIXME centralise this (initialising out + copying captures) to separate function(s)
               // Init out parameters
@@ -1526,7 +1541,12 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
               |> Seq.cast |> Seq.toArray)
             .AddBodyStatements(ofBlockStatement scopeInfo a.body |> Seq.toArray)
           |> Transformed.declOf
-      | :? JsonTypes.Declaration_Variable -> failwith "JsonTypes.Declaration_Variable not handled yet" // FIXME
+      | :? JsonTypes.Declaration_Variable as v ->
+          v.initializer
+          |> Option.map (ofExpr scopeInfo (JsonType v.type_))
+          |> Option.map (field (ofType scopeInfo v.type_)  v.name)
+          |> Option.ifNone (fun () -> uninitialisedField (ofType scopeInfo v.type_)  v.name) // FIXME this should be in the constructor
+          |> Transformed.declOf
       | :? JsonTypes.Declaration_Constant as dc -> // FIXME if these aren't in a class, they need to not be wrapped in a FieldDeclaration
           let expr = ofExpr scopeInfo (CJType.JsonType dc.type_) dc.initializer
           let decl = variableDeclaration dc.name (ofType scopeInfo dc.type_) (Some expr)
