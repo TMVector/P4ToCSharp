@@ -78,9 +78,9 @@ module Main =
       System.AppDomain.CurrentDomain.UnhandledException.Add(fun e ->
         let ex = e.ExceptionObject :?> System.Exception
         #if DEBUG
-        eprintf "ERROR: %O" ex
+        eprintfn "ERROR: %O" ex
         #else
-        eprintf "ERROR: %s" ex.Message
+        eprintfn "ERROR: %s" ex.Message
         #endif
         System.Environment.Exit(1)
         )
