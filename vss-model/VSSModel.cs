@@ -27,7 +27,7 @@ namespace vss_model
     {
     }
 
-    public sealed class VSS_impl<H> : Pax.ByteBased_PacketProcessor, VSS<H>
+    public class VSS_impl<H> : Pax.ByteBased_PacketProcessor, VSS<H>
     {
       public static byte[] GetBytes(string bitString)
       {
@@ -81,7 +81,16 @@ namespace vss_model
 
       }
 
+
+      Parser<H> p; Pipe<H> map; Deparser<H> d;
       public void Use(Parser<H> p, Pipe<H> map, Deparser<H> d)
+      {
+        this.p = p;
+        this.map = map;
+        this.d = d;
+      }
+
+      public void Run()
       {
         if (System.Diagnostics.Debugger.IsAttached)
           System.AppDomain.CurrentDomain.ProcessExit += (o, e) => Console.ReadKey();

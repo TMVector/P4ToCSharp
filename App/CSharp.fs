@@ -1575,13 +1575,24 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
           match tyScope.CurrentNode with
           | :? JsonTypes.Type_Package as package ->
               // Generate a main method that will invoke new package().use(...)
-              let newPackage = constructorCall (tyScope.GetArchName(P4Type.Package) |> specialise) []
-              let useMethod = SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, newPackage, SF.IdentifierName("Use"))
-              let invocation = SF.InvocationExpression(useMethod, di.arguments.vec |> Seq.map (ofExpr scopeInfo UnknownType) |> exprArgList)
+              let packageType = tyScope.GetArchName(P4Type.Package) |> specialise
+              let useArgs = di.arguments.vec |> Seq.map (ofExpr scopeInfo UnknownType) |> exprArgList
+              let processor =
+                SF.ClassDeclaration("Processor")
+                  .WithModifiers(tokenList [SK.PublicKeyword; SK.SealedKeyword])
+                  .WithBaseTypes([packageType])
+                  .AddMembers(SF.ConstructorDeclaration("Processor")
+                                .WithModifiers(tokenList [SK.PublicKeyword])
+                                .WithParameters(Seq.empty)
+                                .WithBlockBody([SF.InvocationExpression(thisAccess "Use", useArgs) |> SF.ExpressionStatement]))
+              let newPackage = constructorCall (SF.IdentifierName("Processor")) []
+              let useMethod = SF.MemberAccessExpression(SK.SimpleMemberAccessExpression, newPackage, SF.IdentifierName("Run"))
+              let invocation = SF.InvocationExpression(useMethod)
               SF.MethodDeclaration(voidType, "Main")
                 .WithModifiers(tokenList [SK.PublicKeyword; SK.StaticKeyword])
                 .WithBlockBody([SF.ExpressionStatement invocation])
               |> Transformed.declOf
+              |> Transformed.addDecl processor
           | :? JsonTypes.Type_Extern ->
             let ty = ofType scopeInfo di.type_
             field ty (csFieldNameOf di.name) (constructorCall (tyScope.GetArchName(P4Type.ExternObject) |> specialise) (Seq.map (ofExpr scopeInfo UnknownType) di.arguments.vec))
