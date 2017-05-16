@@ -95,7 +95,10 @@ module Main =
         #endif
         System.Environment.Exit(1)
         )
-
+    else
+      System.AppDomain.CurrentDomain.ProcessExit.Add(fun e ->
+        System.Console.ReadKey() |> ignore // Hold the terminal (for a short time)
+        )
     let argParser = ArgumentParser.Create<MainArgs>(programName = "p4tocs.exe")
 
     // Parse command-line arguments
