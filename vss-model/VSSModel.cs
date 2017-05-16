@@ -13,182 +13,163 @@ namespace vss_model
     [P4(P4Type.ExternFunction, "verify")]
     public static void verify(bool condition, P4ToCSharp.Library.error err)
     {
-      if (!condition)
-        throw new P4Exception(err);
+      Core.verify(condition, err);
     }
 
-    public sealed class packet_in_impl : packet_in
+    public sealed class packet_in : Core.packet_in, Architecture.packet_in
     {
-      public void extract<T>(out T hdr)
+      public packet_in(byte[] data) : base(data)
       {
-        throw new NotImplementedException();
-      }
-      //void packet_in.extract<T>(out T headerLValue)
-      //{
-      //  //ParserModel.verify(!headerLValue.valid$, error.OverwritingHeader); // Removed
-      //  bitsToExtract = sizeofInBits(headerLValue);
-      //  lastBitNeeded = this.nextBitIndex + bitsToExtract;
-      //  ParserModel.verify(this.lengthInBits >= lastBitNeeded, error.PacketTooShort);
-      //  headerLValue = this.data.extractBits(this.nextBitIndex, bitsToExtract);
-      //  headerLValue.valid$ = true;
-      //  if headerLValue.isNext$ {
-      //    verify(headerLValue.nextIndex$ < headerLValue.size, error.StackOutOfBounds);
-      //    headerLValue.nextIndex$ = headerLValue.nextIndex$ +1;
-      //  }
-      //  this.nextBitIndex += bitsToExtract;
-      //}
-
-      public void extract<T>(out T variableSizeHeader, bit32 variableFieldSizeInBits)
-      {
-        throw new NotImplementedException();
-      }
-      //void packet_in.extract<T>(out T headerLvalue,
-      //                          in bit<32> variableFieldSize)
-      //{
-      //  //ParserModel.verify(!headerLvalue.valid$, error.OverwritingHeader); // Removed
-      //  bitsToExtract = sizeOfFixedPart(headerLvalue) + variableFieldSize;
-      //  lastBitNeeded = this.nextBitIndex + bitsToExtract;
-      //  ParserModel.verify(this.lengthInBits >= lastBitNeeded, error.PacketTooShort);
-      //  ParserModel.verify(bitsToExtract <= headerLvalue.maxSize, error.HeaderTooShort);
-      //  headerLvalue = this.data.extractBits(this.nextBitIndex, bitsToExtract);
-      //  headerLvalue.varbitField.size = variableFieldSize;
-      //  headerLvalue.valid$ = true;
-      //  if headerLValue.isNext$ {
-      //    verify(headerLValue.nextIndex$ < headerLValue.size, error.StackOutOfBounds);
-      //    headerLValue.nextIndex$ = headerLValue.nextIndex$ +1;
-      //  }
-      //  this.nextBitIndex += bitsToExtract;
-      //}
-
-
-      public T lookahead<T>()
-      {
-        throw new NotImplementedException();
-      }
-      //T packet_in.lookahead<T>()
-      //{
-      //  bitsToExtract = sizeof(T);
-      //  lastBitNeeded = this.nextBitIndex + bitsToExtract;
-      //  ParserModel.verify(this.lengthInBits >= lastBitNeeded, error.PacketTooShort);
-      //  T tmp = this.data.extractBits(this.nextBitIndex, bitsToExtract);
-      //  return tmp;
-      //}
-
-
-      public void advance(bit32 sizeInBits)
-      {
-        throw new NotImplementedException();
-      }
-      //void packet_in.advance(bit<32> bits)
-      //{
-      //  lastBitNeeded = this.nextBitIndex + bits;
-      //  ParserModel.verify(this.lengthInBits >= lastBitNeeded, error.PacketTooShort);
-      //  this.nextBitIndex += bits;
-      //}
-
-      public bit32 length()
-      {
-        throw new NotImplementedException();
       }
     }
 
-    public sealed class packet_out_impl : packet_out
+    public sealed class packet_out : Core.packet_out, Architecture.packet_out
     {
-      byte[] data;
-      UInt32 lengthInBits = 0;
-
-      public packet_out_impl()
-      {
-        // TODO init data array
-      }
-
-      public void emit<T>(T hdr)// where T : HeaderBase
-      {
-        //this.emit(hdr.valid$, hdr); // If hdr.valid$ ≝ (hdr != null), then emit'2 will need a null check also
-      }
-
-      public void emit<T>(bool condition, T data)
-      {
-        //if (!condition) return;
-
-        //if (typeof(T).IsAssignableFrom(typeof(IBitString)))
-        //{
-        //  // T is a base type
-        //  var bitstring = (IBitString)(object)data;
-        //  // Written starting with the most-significant bit
-        //}
-        //else if (typeof(T).IsAssignableFrom(typeof(HeaderBase)))
-        //{
-        //  // T is a header type
-        //  var header = (HeaderBase)(object)data;
-        //  // Check valid
-        //  if (header.isValid())
-        //  {
-        //    // TODO Emit header
-        //  }
-        //}
-        //else if (typeof(T) == typeof(HeaderBase[]))
-        //{
-        //  // T is a header stack
-        //  var headerStack = (HeaderBase[])(object)data;
-        //  foreach (var header in headerStack)
-        //  {
-        //    if (header.isValid()) // Is valid
-        //      emit(header);
-        //  }
-        //}
-        //else if (typeof(T).IsAssignableFrom(typeof(IStruct)))
-        //{
-        //  // T is a struct type
-        //  var @struct = (IStruct)(object)data;
-        //  // Need to emit each field in T in order... Reflection? D: Add a method to the struct? Like we do with Extract/Write on headers
-        //}
-        //this.data.append(data);
-        //this.lengthInBits += data.lengthInBits;
-      }
     }
-    //packet_out {
-    //  byte[] data;
-    //  unsigned lengthInBits;
-    //  void initializeForWriting()
-    //  {
-    //    this.data.clear();
-    //    this.lengthInBits = 0;
-    //  }
-    //  // append entire header if it is valid
-    //  // T must be a header type
-    //  void emit<T>(T header)
-    //  {
-    //    this.emit(header.valid$, header);
-    //  }
-    //  // append the data to the packet if the condition is true
-    //  void emit<T>(bool cond, T data)
-    //  {
-    //    if (!cond) return;
-    //    this.data.append(data);
-    //    this.lengthInBits += data.lengthInBits;
-    //  }
-    //}
-    // The first version only accepts headers, and the second one accepts arbitrary data.
-    //We describe the two-argument emit method.For a base type T, emit:
-    // • does nothing if the condition is false,
-    // • otherwise it appends the data value to the tail of the packet_out.
-    //For derived type, emit recursively proceeds on fields:
-    // • If the argument is a header, its validity bit is AND-ed with the condition bit to determine; if
-    //   the result is false no action is taken
-    // • If the argument is a header stack, the emit statement is applied to each component of the
-    //   stack starting from the element with index 0.
-    // • If the argument is a struct containing multiple fields, the emit is recursively applied to each
-    //   component of the struct in the order of their declaration in the struct.
-    //Appending a bit-string or integer value to a packet_out writes the value starting with the mostsignificant
-    //bit.This process is the inverse of data extraction.
 
-    public sealed class VSS_impl<H> : VSS<H>
+    public class VSS_impl<H> : Pax.ByteBased_PacketProcessor, VSS<H>
     {
+      public static byte[] GetBytes(string bitString)
+      {
+        byte[] arr = new byte[bitString.Length / 2];
+        for (int i = 0; i < bitString.Length; i += 2)
+          arr[i / 2] = Convert.ToByte(bitString.Substring(i, 2), 16);
+        return arr;
+      }
+      public static string GetHex(byte[] arr)
+      {
+        StringBuilder sb = new StringBuilder(arr.Length * 2);
+        for (int i = 0; i < arr.Length; i++)
+          sb.Append(arr[i].ToString("X"));
+        return sb.ToString();
+      }
+      public static bool ArrEquals(byte[] a, byte[] b)
+      {
+        if (a.Length != b.Length) return false;
+        for (int i = 0; i < a.Length; i++)
+        {
+          if (a[i] != b[i]) return false;
+        }
+        return true;
+      }
+      public packet_out ProcessPacket(byte[] packet, Parser<H> p, Pipe<H> map, Deparser<H> d)
+      {
+        H hdr = default(H);
+        P4ToCSharp.Library.error parserError = Architecture.error.NoError; // FIXME move lib.error to Core.error?
+        try
+        {
+          p.apply(new packet_in(packet), out hdr);
+        }
+        catch (P4Exception ex)
+        {
+          parserError = ex.Error;
+          Console.Error.WriteLine("P4 exception. " + ex.Error);
+        }
+        var inCtrl = new InControl();
+        OutControl outCtrl;
+        map.apply(hdr, ref hdr, parserError, inCtrl, out outCtrl);
+        packet_out po = new packet_out();
+        d.apply(hdr, ref hdr, po);
+        // TODO do something with the result
+        return po;
+      }
+
+      public override void process_packet(int in_port, byte[] packet)
+      {
+        throw new NotImplementedException();
+
+
+      }
+
+
+      Parser<H> p; Pipe<H> map; Deparser<H> d;
       public void Use(Parser<H> p, Pipe<H> map, Deparser<H> d)
       {
-        // TODO the arch should be set up here to process packets
-        // Expected to be called from the Main method?
+        this.p = p;
+        this.map = map;
+        this.d = d;
+      }
+
+      public void Run()
+      {
+        if (System.Diagnostics.Debugger.IsAttached)
+          System.AppDomain.CurrentDomain.ProcessExit += (o, e) => Console.ReadKey();
+
+        var args = Environment.GetCommandLineArgs().Skip(1).ToArray();
+        if (args.Length == 0)
+        {
+          Console.Error.WriteLine("Please specify a .STF file. To process packets from the network, please run via Pax.");
+          Environment.Exit(1);
+        }
+        else
+        {
+          // Process packets from the STF file, checking outputs are correct
+          string stfPath = args[0];
+          if (!stfPath.EndsWith(".stf") || !System.IO.File.Exists(stfPath))
+          {
+            Console.Error.WriteLine("Invalid STF file specified or could not be found.");
+            Environment.Exit(1);
+          }
+          System.IO.FileInfo stfFile = new System.IO.FileInfo(stfPath);
+          using (var reader = stfFile.OpenText())
+          {
+            packet_out lastPacketOut = null;
+            while (!reader.EndOfStream)
+            {
+              string line = reader.ReadLine().Split('#')[0];
+              var lineParts = line.Split(' ');
+              switch (lineParts[0])
+              {
+                case "": break;
+                case "packet":
+                  {
+                    var intf = Convert.ToInt32(lineParts[1]);
+                    var arr = GetBytes(String.Join("", lineParts.Skip(2)));
+                    var po = ProcessPacket(arr, p, map, d);
+                    lastPacketOut = po;
+                    break;
+                  }
+                case "expect":
+                  {
+                    var intf = Convert.ToInt32(lineParts[1]);
+                    var arr = GetBytes(String.Join("", lineParts.Skip(2)));
+                    if (lastPacketOut != null)
+                    {
+                      if (lastPacketOut.LengthInBits % 8 != 0)
+                      {
+                        Console.Error.WriteLine("Packet length was not an integral number of bytes ({0})", lastPacketOut.LengthInBits);
+                        Environment.Exit(1);
+                      }
+                      var result = new byte[lastPacketOut.LengthInBits / 8];
+                      Array.Copy(lastPacketOut.Data, result, result.Length);
+                      if (ArrEquals(arr, result))
+                      { }
+                      else
+                      {
+                        Console.Error.WriteLine("Output not what was expected:");
+                        Console.Error.WriteLine(" EXP: {0}", GetHex(arr));
+                        Console.Error.WriteLine(" RCV: {0}", GetHex(result));
+                        Environment.Exit(1);
+                      }
+                    }
+                    else
+                    {
+                      Console.Error.WriteLine("Expected packet but there was none.");
+                      Environment.Exit(1);
+                    }
+                    break;
+                  }
+                case "add":
+                case "set_default":
+                default:
+                  Console.Error.WriteLine("Cannot handle command {0}", lineParts[0]);
+                  Environment.Exit(1);
+                  break;
+              }
+            }
+          }
+        }
+        Console.WriteLine("Done.");
       }
     }
 
@@ -243,7 +224,7 @@ namespace vss_model
           throw new NotImplementedException("Ck16.update operation on headers is not implemented.");
           //ERROR
         }
-        else if (typeof(T) == typeof(Tuple<>))
+        else if (typeof(T) == typeof(Tuple<>)) // FIXME would array be better? Items aren't typed then...
         {
           // TODO handle tuples
           throw new NotImplementedException("Ck16.update operation on lists is not implemented.");
