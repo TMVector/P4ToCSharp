@@ -720,6 +720,7 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
           let str : string =
             match c.base_ with
             | 10u -> c.value.ToString("D")
+            | 2u // C# doesn't have base 2 literals yet, so use hex
             | 16u -> System.String.Format("0x{0:X}", c.value)
             | _ -> failwithf "Unhandled base %d for JsonTypes.Constant" c.base_ // FIXME don't need to fail, just generate in hex instead
           let expr = SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(str, c.value))
@@ -1028,7 +1029,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
         |> Seq.map (fun decl ->
             match decl with
             | :? Syntax.FieldDeclarationSyntax as field ->
-                let initialisers = field.Declaration.Variables |> Seq.map (fun vd -> assignment (SF.IdentifierName(vd.Identifier)) vd.Initializer.Value)
+                let initialisers = field.Declaration.Variables |> Seq.choose (fun vd -> if vd.Initializer <> null then Some (assignment (SF.IdentifierName(vd.Identifier)) vd.Initializer.Value) else None)
                 let fieldDecl = SF.FieldDeclaration(SF.VariableDeclaration(field.Declaration.Type).WithVariables(SF.SeparatedList(field.Declaration.Variables |> Seq.map (fun vd -> vd.WithInitializer(null)))))
                 fieldDecl, initialisers
             | _ -> failwithf "Unhandled type %s found for parser local" (decl.GetType().Name))
@@ -1100,7 +1101,8 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                   let exprType = inferTypeOf scopeInfo ResolveTypeDef expr
                   let castType =
                     match exprType with
-                    | :? JsonTypes.Type_Bits as tb -> smallestTypeToHold tb.size
+                    | :? JsonTypes.Type_Bits as tb -> smallestTypeToHold tb.size :> Syntax.TypeSyntax
+                    | :? JsonTypes.Type_Boolean as tb -> boolType
                     | _ -> failwithf "Type of (%s) not handled in switch expression" exprType.Node_Type
                   SF.CastExpression(castType, expr |> ofExpr scopeInfo UnknownType)
                 SF.SwitchStatement(selectExpr)
@@ -1246,7 +1248,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       | :? JsonTypes.StructField -> failwith "JsonTypes.StructField not handled yet" // FIXME
       | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
       | :? JsonTypes.Property -> failwith "JsonTypes.Property not handled yet" // FIXME
-      | :? JsonTypes.P4Table as pt -> // TODO handles the entries property
+      | :? JsonTypes.P4Table as pt ->
           let resultTy : Syntax.TypeSyntax option =
             let types = pt.parameters.parameters.vec
                         |> Seq.filter (fun p -> p.direction = JsonTypes.Direction.Out)
@@ -1272,6 +1274,25 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                   yield (lutTy, ke.expression)
               } |> Seq.rev |> Seq.toArray)
             |> Option.ifNoneValue Array.empty
+          let rec getName (expr : JsonTypes.Expression) : string =
+            match expr with
+            | :? JsonTypes.MethodCallExpression as mce -> getName mce.method_
+            | :? JsonTypes.PathExpression as path -> path.path.name
+          let entries =
+            pt.properties.GetPropertyValueByName<JsonTypes.EntriesList>("entries")
+            |> Option.filter (fun _ -> if key.Length = 1 then true else printf "WARNING: entries property not handled for composite keys"; false)
+            |> Option.map (fun entries ->
+                let keyType = key.[0] |> fst
+                entries.entries.vec
+                |> Array.map (fun entry ->
+                    let actionType = SF.ParseTypeName(getName entry.action)
+                    let actionCtorArgs =
+                      match entry.action with :? JsonTypes.MethodCallExpression as mce -> mce.arguments.vec | _ -> Array.empty
+                      |> Array.map (ofExpr scopeInfo UnknownType)
+                    SF.InvocationExpression(memberAccess "lookup.Add")
+                      .WithArgumentList([ofExpr scopeInfo UnknownType (entry.keys.components.vec |> Seq.single);
+                                         constructorCall actionType actionCtorArgs :> Expr] |> exprArgList)
+                    )) // TODO handle entries
           let tableField =
             Seq.tryFirst key |> Option.map (fun (lutTy, kExpr) ->
               field lutTy "lookup" (constructorCall lutTy []))
@@ -1322,7 +1343,12 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                   yield! parameters |> List.map (fun (p,f) -> assert(p.direction = JsonTypes.Direction.NoDirection); f.Value)
                 }
               ofExpr scopeInfo UnknownType (methodCall.WithArguments args)
-            let name = name |> Option.ifNone (fun () -> (ofExpr scopeInfo UnknownType actionExpr).ToString()) // Use annotated name in preference to a stringified cs expression for the method
+            let name =
+              name
+              |> Option.ifNone (fun () ->
+                  getName actionExpr
+                  //(ofExpr scopeInfo UnknownType actionExpr).ToString()
+                  ) // Use annotated name in preference to a stringified cs expression for the method
             // FIXME this is not a very good way to get a name...
             let name = name.Replace('.', '_').Replace("(","").Replace(")","").Replace(",","") // get a name usable in class names/enum
             if name.Contains(".") || name.Contains("-") || name.Contains("(") || name.Contains(")") || name.Contains("<") || name.Contains(">") || name.Contains(" ") || name.Contains(",") then

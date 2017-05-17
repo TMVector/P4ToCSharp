@@ -218,7 +218,7 @@ module JsonTypes =
   [<AllowNullLiteral>][<Sealed>]
   type Type_InfInt(node_id, node_type, declid) =
     inherit Type(node_id, node_type)
-    member this.declid : int = declid
+    member this.declid : int64 = declid
 
   [<AllowNullLiteral>][<Sealed>]
   type Type_Dontcare(node_id, node_type) =
@@ -641,7 +641,7 @@ module JsonTypes =
   [<AllowNullLiteral>][<Sealed>]
   type Constant(node_id, node_type, type_, value, base_) =
     inherit Literal(node_id, node_type, type_)
-    member this.value : int = value // FIXME can also be bigint
+    member this.value : int64 = value // FIXME can also be bigint
     [<JsonProperty("base")>]
     member this.base_ : uint32 = base_ // base
 
@@ -1306,6 +1306,18 @@ module JsonTypes =
   type IntMod(node_id, node_type, type_, expr, width) =
     inherit Operation_Unary(node_id, node_type, type_, expr)
     member this.width : uint32 = width
+    
+  [<AllowNullLiteral>][<Sealed>]
+  type Entry(node_id, node_type, annotations, keys, action) =
+    inherit Node(node_id, node_type)
+    member val annotations : Annotations option = annotations
+    member val keys : ListExpression = keys
+    member val action : Expression = action
+    
+  [<AllowNullLiteral>][<Sealed>]
+  type EntriesList(node_id, node_type, entries) =
+    inherit PropertyValue(node_id, node_type)
+    member val entries : Vector<Entry> = entries
 
 
   let TypeLookup, Types =
@@ -1497,8 +1509,10 @@ module JsonTypes =
         ("V1Program", typeof<V1Program>);
         ("v1HeaderType", typeof<v1HeaderType>);
         ("IntMod", typeof<IntMod>);
+        ("EntriesList", typeof<EntriesList>);
+        ("Entry", typeof<Entry>);
       |]
-    (TypeNames |> Map.ofSeq, TypeNames |> Seq.map snd |> HashSet)
+    (TypeNames |> Map.ofArray, TypeNames |> Array.map snd |> HashSet)
 
   type KeyValuePair<'key,'value> =
     {

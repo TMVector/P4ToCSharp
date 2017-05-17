@@ -170,7 +170,7 @@ namespace v1model
       throw new NotImplementedException();
     }
 
-    public sealed class V1Switch<H, M> : Architecture.V1Switch<H, M>
+    public class V1Switch<H, M> : Architecture.V1Switch<H, M>
     {
       public static byte[] GetBytes(string bitString)
       {
