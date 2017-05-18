@@ -26,3 +26,4 @@ FOR %%F in (*.stf) DO (
 REM for /F "tokens=*" %F in (C:\working\part-ii-project\P4ToCSharp\v1model\v1model-p4c_16_corpus.txt) do cp %~nF* v1model\
 REM for /R %F in (*.p4) do %p4tocs% generate-program %~nF.p4.json --architecture-library %v1model% >> transpile.log 2>&1
 REM for /R %F in (*.p4) do IF EXIST "%~nF.p4.json.gen.cs" ( %csc% /t:exe /out:%~nF.exe "%~nF.p4.json.gen.cs" /r:%v1model% /r:%p4tocslib% >> compile.log)
+REM for /R %F in (*.exe) do @IF EXIST %~nF.stf (echo %~nF & %~nxF %~nF.stf)

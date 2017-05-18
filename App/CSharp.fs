@@ -225,7 +225,16 @@ let classNameFor (name:string) = name
 let argsClassNameFor (name:string) = sprintf "%s_Args" (classNameFor name)
 let variableNameFor (name : string) =
   match name with
-  | "base" | "class" -> sprintf "@%s" name
+  | "abstract" | "as" | "base" | "bool" | "break" | "byte" | "case" | "catch" | "char" | "checked"
+  | "class" | "const" | "continue" | "decimal" | "default" | "delegate" | "do" | "double" | "else"
+  | "enum" | "event" | "explicit" | "extern" | "false" | "finally" | "fixed" | "float" | "for"
+  | "foreach" | "goto" | "if" | "implicit" | "in" | "int" | "interface" | "internal" | "is" | "lock"
+  | "long" | "namespace" | "new" | "null" | "object" | "operator" | "out" | "override" | "params" 
+  | "private" | "protected" | "public" | "readonly" | "ref" | "return" | "sbyte" | "sealed" | "short"
+  | "sizeof" | "stackalloc" | "static" | "string" | "struct" | "switch" | "this" | "throw" | "true"
+  | "try" | "typeof" | "uint" | "ulong" | "unchecked" | "unsafe" | "ushort" | "using" | "using static"
+  | "void" | "volatile" | "while" 
+    -> sprintf "@%s" name
   | _ -> name
 let csFieldNameOf p4Name =
   variableNameFor p4Name // FIXME any changes needed? Illegal chars etc
@@ -367,6 +376,10 @@ let isFixedBitSize (size) =
   match size with
   | 1 | 4 | 8 | 16 | 32 | 48 | 64 -> true
   | _ -> false
+let isFixedIntSize (size) =
+  match size with
+  | 8 | 16 | 32 | 64 -> true
+  | _ -> false
 
 let assignment lExpr rExpr =
   SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, lExpr, rExpr))
@@ -417,14 +430,15 @@ let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
                                     SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset))) // FIXME types in headers: bit fixed/var + int
       if fixedSize then invoc else invoc.AddArgumentListArguments(SF.Argument(literalInt bits.size))
   | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name)
-let createWriteExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) fieldExpr =
+let createWriteExpr (cast : JsonTypes.Type -> Expr -> Expr) arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) fieldExpr =
   match ty with
   | :? JsonTypes.Type_Bits as bits ->
       let N = if isFixedBitSize bits.size then string bits.size else "N"
+      let cast (ty:JsonTypes.Type_Bits) = if ty.isSigned then cast (JsonTypes.Type_Bits(ty.size, false)) else cast ty
       SF.InvocationExpression(memberAccess (sprintf "BitHelper.Write%s" N))
         .AddArgumentListArguments(SF.Argument(arrExpr),
                                   SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset)),
-                                  SF.Argument(fieldExpr))
+                                  SF.Argument(cast bits fieldExpr))
   | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name) // FIXME types in headers: bit fixed/var + int
 
 type Syntax.PropertyDeclarationSyntax with
@@ -494,7 +508,7 @@ type Syntax.ClassDeclarationSyntax with
       |> Seq.cast<Syntax.MemberDeclarationSyntax>
       |> Seq.toArray
     this.AddMembers(properties)
-  member this.ImplementHeaderBase(header : JsonTypes.Type_Header, scopeInfo : ScopeInfo) =
+  member this.ImplementHeaderBase(cast : JsonTypes.Type -> Expr -> Expr, header : JsonTypes.Type_Header, scopeInfo : ScopeInfo) =
     let arrName, offsetName = "data", "offset"
     let size (field:JsonTypes.StructField) =
       match resolveType scopeInfo ResolveTypeDef field.type_ with
@@ -512,7 +526,7 @@ type Syntax.ClassDeclarationSyntax with
               SF.Parameter(SF.Identifier(offsetName)).WithType(uint32Type); |])
         .WithBlockBody(
           let changeBytesToBits = SF.ExpressionStatement(SF.AssignmentExpression(SK.MultiplyAssignmentExpression, SF.IdentifierName(offsetName), literalInt 8))
-          let extractExprFor = createExtractExpr <| SF.IdentifierName(arrName) <| SF.IdentifierName(offsetName)
+          let extractExprFor ty bitOffset = cast ty (createExtractExpr (SF.IdentifierName(arrName)) (SF.IdentifierName(offsetName)) ty bitOffset)
           let extractStatements =
             fields
             |> Seq.mapFold (fun bitOffset (field, ty, size) -> assignment field (extractExprFor ty bitOffset), bitOffset + size) 0 |> fst
@@ -532,7 +546,7 @@ type Syntax.ClassDeclarationSyntax with
               SF.Parameter(SF.Identifier(offsetName)).WithType(uint32Type); |])
         .WithBlockBody(
           let changeBytesToBits = SF.ExpressionStatement(SF.AssignmentExpression(SK.MultiplyAssignmentExpression, SF.IdentifierName(offsetName), literalInt 8))
-          let writeExprFor = createWriteExpr <| SF.IdentifierName(arrName) <| SF.IdentifierName(offsetName)
+          let writeExprFor = createWriteExpr cast (SF.IdentifierName(arrName)) (SF.IdentifierName(offsetName))
           let writeStatements =
             fields
             |> Seq.mapFold (fun bitOffset (field, ty, size) -> SF.ExpressionStatement(writeExprFor ty bitOffset field), bitOffset + size) 0 |> fst
@@ -610,6 +624,25 @@ let inferTypeOf (scope:ScopeInfo) (typedefBehaviour:TypeDefBehaviour) (expr:Json
 //      | _ -> failwith "Tried to follow a name expression that wasn't a valid name expression"
 //    getTypeOf expr
 
+
+let paren expr : Syntax.ExpressionSyntax = upcast SF.ParenthesizedExpression expr
+let isBitN (width) =
+  match width with
+  | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
+  | s when s <= 64 -> isFixedBitSize s
+  | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
+let isIntN (width) =
+  match width with
+  | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
+  | s when s <= 64 -> isFixedIntSize s
+  | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
+let cast (ofType : ScopeInfo -> JsonTypes.Type -> Syntax.TypeSyntax) (scopeInfo : ScopeInfo) (ty:JsonTypes.Type) (expr : Syntax.ExpressionSyntax) : Syntax.ExpressionSyntax =
+  match ty with
+  | :? JsonTypes.Type_Bits as bits when not (isBitN bits.size) ->
+      // Handle cast to bitN as a special case
+      upcast SF.InvocationExpression(SF.ParseName("bitN.OfValue"))
+               .AddArgumentListArguments(SF.Argument expr, SF.Argument(literalInt bits.size).WithNameColon(SF.NameColon("width")))
+  | _ -> paren (SF.CastExpression(ofType scopeInfo ty, expr))
 let declarationOfStructLike (ofType : ScopeInfo -> JsonTypes.Type -> Syntax.TypeSyntax) (scopeInfo : ScopeInfo) (structLike : JsonTypes.Type_StructLike) =
   match structLike with
   | :? JsonTypes.Type_Struct as str ->
@@ -626,7 +659,7 @@ let declarationOfStructLike (ofType : ScopeInfo -> JsonTypes.Type -> Syntax.Type
         .WithModifiers(tokenList([| SK.PublicKeyword; SK.SealedKeyword |]))
         .WithBaseList(SF.BaseList(SF.SeparatedList([| headerBaseBaseType |])))
         .AddStructLikeFields(header, ofType scopeInfo)
-        .ImplementHeaderBase(header, scopeInfo) // TODO: Headers need a validity bit (can it be represented by null? What about checking the validity bit?) (could use extension method?)
+        .ImplementHeaderBase(cast ofType scopeInfo, header, scopeInfo) // TODO: Headers need a validity bit (can it be represented by null? What about checking the validity bit?) (could use extension method?)
   | _ -> failwithf "Unhandled subtype of JsonTypes.Type_StructLike: %s" (structLike.GetType().Name)
 let declarationOfError (baseType : Syntax.NameSyntax) (newErrorMembers : JsonTypes.Declaration_ID seq) =
   SF.ClassDeclaration(errorName.Identifier)
@@ -645,20 +678,6 @@ let declarationOfEnum (error : JsonTypes.Type_Enum) =
   (createEnum error.name (error.members.vec |> Seq.map (fun memb -> memb.name)))
     .WithModifiers(tokenList [SK.PublicKeyword])
 
-let paren expr : Syntax.ExpressionSyntax = upcast SF.ParenthesizedExpression expr
-let isBitN (width) =
-  match width with
-  | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
-  | s when s <= 64 -> isFixedBitSize s
-  | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
-let cast (ofType : ScopeInfo -> JsonTypes.Type -> Syntax.TypeSyntax) (scopeInfo : ScopeInfo) (ty:JsonTypes.Type) (expr : Syntax.ExpressionSyntax) : Syntax.ExpressionSyntax =
-  match ty with
-  | :? JsonTypes.Type_Bits as bits when not (isBitN bits.size) ->
-      // Handle cast to bitN as a special case
-      upcast SF.InvocationExpression(SF.ParseName("bitN.OfValue"))
-               .AddArgumentListArguments(SF.Argument expr, SF.Argument(literalInt bits.size).WithNameColon(SF.NameColon("width")))
-  | _ -> paren (SF.CastExpression(ofType scopeInfo ty, expr))
-
 let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
   let scopeInfo = scopeInfo.EnterChildScope(e)
   let ofExpr = ofExpr scopeInfo
@@ -675,6 +694,7 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
           cast ofType scopeInfo c.destType (ofExpr UnknownType op.expr)
       | :? JsonTypes.IntMod -> failwith "IntMod not supported" // This is only used in BMv2 so shouldn't appear here
       | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Unary: %s" (op.GetType().Name)
+      |> (fun rv -> match expectedType with | JsonType ty -> cast ofType scopeInfo ty rv | _ -> rv)
   | :? JsonTypes.Operation_Binary as op -> // FIXME what about when the operands are of different type?
       let lExpr = ofExpr UnknownType op.left
       let rExpr = ofExpr UnknownType op.right
@@ -708,6 +728,7 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
                                          .WithArgumentList(exprArgList [| lExpr; rExpr (* FIXME 2nd arg should be count for Enumerable.Range - use custom method? *) |])
         //| :? JsonTypes.Mask -> "&&&" // FIXME implement
         | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Binary: %s" (op.GetType().Name) )
+      |> (fun rv -> match expectedType with | JsonType ty -> cast ofType scopeInfo ty rv | _ -> rv)
   | :? JsonTypes.Operation_Ternary as op ->
       match op with
       | :? JsonTypes.Slice -> upcast SF.InvocationExpression(eMemberAccess (ofExpr UnknownType op.e0) [|"Slice"|])
@@ -720,6 +741,7 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
           let str : string =
             match c.base_ with
             | 10u -> c.value.ToString("D")
+            | 2u // C# doesn't have base 2 literals yet, so use hex
             | 16u -> System.String.Format("0x{0:X}", c.value)
             | _ -> failwithf "Unhandled base %d for JsonTypes.Constant" c.base_ // FIXME don't need to fail, just generate in hex instead
           let expr = SF.LiteralExpression(SK.NumericLiteralExpression, SF.Literal(str, c.value))
@@ -823,10 +845,16 @@ and nameOfType (scopeInfo : ScopeInfo) (fqType:TypeQualification) (t : JsonTypes
   match t with
   | :? JsonTypes.Type_Bits as bits ->
       let bitsName =
-        if isBitN bits.size then // NOTE isBitN errors if size is invalid
-          SF.IdentifierName(sprintf "bit%d" bits.size)
+        if bits.isSigned then
+          if isIntN bits.size then // NOTE isIntN errors if size is invalid
+            SF.IdentifierName(sprintf "int%d" bits.size)
+          else
+            SF.IdentifierName("intN")
         else
-          SF.IdentifierName("bitN")
+          if isBitN bits.size then // NOTE isBitN errors if size is invalid
+            SF.IdentifierName(sprintf "bit%d" bits.size)
+          else
+            SF.IdentifierName("bitN")
       match fqType with
       | UnqualifiedType -> upcast bitsName
       | FullyQualifiedType -> upcast SF.QualifiedName(libraryName, bitsName)
@@ -856,7 +884,8 @@ and statementOfDeclaration (scopeInfo:ScopeInfo) (n : JsonTypes.Declaration) : S
   | :? JsonTypes.P4Action -> failwithf "Type %s is not valid in statementToDeclaration" (n.GetType().Name)
   | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
   | :? JsonTypes.Declaration_Variable as v ->
-      upcast SF.LocalDeclarationStatement(variableDeclaration v.name (ofType scopeInfo v.type_) (v.initializer |> Option.map (ofExpr scopeInfo (JsonType v.type_))))
+      let ty = ofType scopeInfo v.type_
+      upcast SF.LocalDeclarationStatement(variableDeclaration v.name ty (v.initializer |> Option.map (ofExpr scopeInfo (JsonType v.type_)) |> Option.tryIfNone (fun () -> constructorCall ty [] :> Expr |> Some)))
   | :? JsonTypes.Declaration_Constant as c ->
       // Local constants are just handled like variables
       upcast SF.LocalDeclarationStatement(variableDeclaration c.name (ofType scopeInfo c.type_) (Some (ofExpr scopeInfo (JsonType c.type_) c.initializer)))
@@ -1028,7 +1057,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
         |> Seq.map (fun decl ->
             match decl with
             | :? Syntax.FieldDeclarationSyntax as field ->
-                let initialisers = field.Declaration.Variables |> Seq.map (fun vd -> assignment (SF.IdentifierName(vd.Identifier)) vd.Initializer.Value)
+                let initialisers = field.Declaration.Variables |> Seq.choose (fun vd -> if vd.Initializer <> null then Some (assignment (SF.IdentifierName(vd.Identifier)) vd.Initializer.Value) else None)
                 let fieldDecl = SF.FieldDeclaration(SF.VariableDeclaration(field.Declaration.Type).WithVariables(SF.SeparatedList(field.Declaration.Variables |> Seq.map (fun vd -> vd.WithInitializer(null)))))
                 fieldDecl, initialisers
             | _ -> failwithf "Unhandled type %s found for parser local" (decl.GetType().Name))
@@ -1100,7 +1129,8 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                   let exprType = inferTypeOf scopeInfo ResolveTypeDef expr
                   let castType =
                     match exprType with
-                    | :? JsonTypes.Type_Bits as tb -> smallestTypeToHold tb.size
+                    | :? JsonTypes.Type_Bits as tb -> smallestTypeToHold tb.size :> Syntax.TypeSyntax
+                    | :? JsonTypes.Type_Boolean as tb -> boolType
                     | _ -> failwithf "Type of (%s) not handled in switch expression" exprType.Node_Type
                   SF.CastExpression(castType, expr |> ofExpr scopeInfo UnknownType)
                 SF.SwitchStatement(selectExpr)
@@ -1246,7 +1276,7 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
       | :? JsonTypes.StructField -> failwith "JsonTypes.StructField not handled yet" // FIXME
       | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
       | :? JsonTypes.Property -> failwith "JsonTypes.Property not handled yet" // FIXME
-      | :? JsonTypes.P4Table as pt -> // TODO handles the entries property
+      | :? JsonTypes.P4Table as pt ->
           let resultTy : Syntax.TypeSyntax option =
             let types = pt.parameters.parameters.vec
                         |> Seq.filter (fun p -> p.direction = JsonTypes.Direction.Out)
@@ -1272,6 +1302,10 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                   yield (lutTy, ke.expression)
               } |> Seq.rev |> Seq.toArray)
             |> Option.ifNoneValue Array.empty
+          let rec getName (expr : JsonTypes.Expression) : string =
+            match expr with
+            | :? JsonTypes.MethodCallExpression as mce -> getName mce.method_
+            | :? JsonTypes.PathExpression as path -> path.path.name
           let tableField =
             Seq.tryFirst key |> Option.map (fun (lutTy, kExpr) ->
               field lutTy "lookup" (constructorCall lutTy []))
@@ -1322,7 +1356,12 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                   yield! parameters |> List.map (fun (p,f) -> assert(p.direction = JsonTypes.Direction.NoDirection); f.Value)
                 }
               ofExpr scopeInfo UnknownType (methodCall.WithArguments args)
-            let name = name |> Option.ifNone (fun () -> (ofExpr scopeInfo UnknownType actionExpr).ToString()) // Use annotated name in preference to a stringified cs expression for the method
+            let name =
+              name
+              |> Option.ifNone (fun () ->
+                  getName actionExpr
+                  //(ofExpr scopeInfo UnknownType actionExpr).ToString()
+                  ) // Use annotated name in preference to a stringified cs expression for the method
             // FIXME this is not a very good way to get a name...
             let name = name.Replace('.', '_').Replace("(","").Replace(")","").Replace(",","") // get a name usable in class names/enum
             if name.Contains(".") || name.Contains("-") || name.Contains("(") || name.Contains(")") || name.Contains("<") || name.Contains(">") || name.Contains(" ") || name.Contains(",") then
@@ -1474,13 +1513,44 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                   //return result;
                   yield upcast SF.ReturnStatement(SF.IdentifierName("result"))
                 })
+          let entries =
+            pt.properties.GetPropertyValueByName<JsonTypes.EntriesList>("entries")
+            |> Option.filter (fun _ -> if key.Length = 1 then true else printf "WARNING: entries property not handled for composite keys"; false)
+            |> Option.map (fun entries ->
+                let keyType = key.[0] |> fst
+                entries.entries.vec
+                |> Array.map (fun entry ->
+                    let actionName = getName entry.action
+                    let actionType = SF.ParseTypeName(sprintf "ActionBase.%s_Action" actionName)
+                    let actionDecl =
+                      let actionScope =
+                        scopeInfo.ResolveIdentifier(actionName) // FIXME what about if the action is global?
+                        |> Option.ifNone (fun () -> failwithf "Couldn't resolve action named %s" actionName)
+                      match actionScope.CurrentNode with :? JsonTypes.P4Action as act -> act | _ -> failwithf "Action name did not resolve to an action"
+                    let actionCtorArgs =
+                      actionDecl.parameters.parameters.vec
+                      |> Seq.filter (fun p -> p.direction = JsonTypes.Direction.NoDirection)
+                      |> Seq.zip (match entry.action with :? JsonTypes.MethodCallExpression as mce -> mce.arguments.vec | _ -> Array.empty)
+                      |> Seq.map (fun (a,p) -> ofExpr scopeInfo (JsonType p.type_) a)
+                    SF.InvocationExpression(memberAccess "lookup.Add")
+                      .WithArgumentList([ofExpr scopeInfo UnknownType (entry.keys.components.vec |> Seq.single);
+                                         constructorCall actionType actionCtorArgs :> Expr] |> exprArgList)
+                    |> SF.ExpressionStatement :> Syntax.StatementSyntax
+                    ))
+            |> Option.ifNoneValue Array.empty
           let tableClassName = sprintf "%s_t" pt.name
           let tableClassType = SF.IdentifierName(tableClassName)
+          let ctor =
+            SF.ConstructorDeclaration(tableClassName)
+              .WithModifiers(tokenList [SK.PublicKeyword])
+              .AddParameterListParameters()
+              .AddBodyStatements(entries)
           let tableClass =
             SF.ClassDeclaration(tableClassName)
               .WithModifiers(tokenList [SK.PrivateKeyword; SK.SealedKeyword])
               .WithBaseTypes([tableBaseName])
               .AddMembers(tableField |> Option.cast |> Option.toArray)
+              .AddMembers(ctor)
               .AddMembers(apply)
               .AddMembers(action_list)
               .AddMembers(apply_result)

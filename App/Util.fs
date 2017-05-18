@@ -8,6 +8,8 @@ module Util =
       Seq.tryHead
     let trySingle<'a> : seq<'a> -> 'a option =
       Seq.truncate 2 >> Seq.toArray >> (fun s -> if s.Length = 1 then Some s.[0] else None)
+    let single<'a> : seq<'a> -> 'a =
+      Seq.truncate 2 >> Seq.toArray >> (fun s -> s.[0])
     let inline ofType<'src,'dst> (xs:'src seq) =
       xs
       |> Seq.filter (fun x -> x :> obj :? 'dst)

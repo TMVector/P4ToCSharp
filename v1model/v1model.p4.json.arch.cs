@@ -226,6 +226,7 @@ namespace v1model
     public interface V1Switch<H, M> : IPackage
     {
       void Use(Parser<H, M> p, VerifyChecksum<H, M> vr, Ingress<H, M> ig, Egress<H, M> eg, ComputeChecksum<H, M> ck, Deparser<H> dep);
+      void Run();
     }
   }
 }

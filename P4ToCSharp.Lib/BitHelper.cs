@@ -26,7 +26,7 @@ namespace P4ToCSharp.Library
       if (arr.Length * 8 < bitOffset + 1) throw new P4Exception(error.PacketTooShort);
       uint startByte = bitOffset / 8;
       uint localBitOffset = bitOffset % 8;
-      byte data = Extract8(arr, startByte).Value;
+      byte data = Extract8(arr, startByte * 8).Value;
       data >>= (int)localBitOffset;
       return new bit1((byte)(data & 1));
     }
@@ -39,7 +39,7 @@ namespace P4ToCSharp.Library
       if (arr.Length * 8 < bitOffset + bitLength) throw new P4Exception(error.PacketTooShort);
       uint startByte = bitOffset / 8;
       uint localBitOffset = bitOffset % 8;
-      uint data = Extract32(arr, startByte).Value; // FIXME is it okay to extract 32 bits when we don't know it's safe?
+      uint data = Extract32(arr, startByte * 8).Value; // FIXME is it okay to extract 32 bits when we don't know it's safe?
       data >>= (int)localBitOffset;
       data &= (~0u) >> (32 - (int)bitLength);
       return new bitN(bitLength, data); // FIXME this is the wrong endianness? (at least for STF)
@@ -50,7 +50,7 @@ namespace P4ToCSharp.Library
       if (arr.Length * 8 < bitOffset + 4) throw new P4Exception(error.PacketTooShort);
       uint startByte = bitOffset / 8;
       uint localBitOffset = bitOffset % 8;
-      byte data = Extract8(arr, startByte).Value;
+      byte data = Extract8(arr, startByte * 8).Value;
       data >>= (int)localBitOffset;
       return new bit4((byte)(data & 0xF));
     }
@@ -120,31 +120,31 @@ namespace P4ToCSharp.Library
     {
       uint startByte = bitOffset / 8;
       uint localBitOffset = bitOffset % 8;
-      byte data = Extract8(arr, startByte).Value;
+      byte data = Extract8(arr, startByte * 8).Value;
       data &= (byte)(~(1 << (int)localBitOffset));
       data |= (byte)(value.Value << (int)localBitOffset);
-      Write8(arr, startByte, new bit8(data));
+      Write8(arr, startByte * 8, new bit8(data));
     }
 
     public static void WriteN(byte[] arr, uint bitOffset, bitN value)
     {
       uint startByte = bitOffset / 8;
       int localBitOffset = (int)bitOffset % 8;
-      uint data = Extract32(arr, startByte).Value;
+      uint data = Extract32(arr, startByte * 8).Value;
       uint mask = ((~0u) >> (32 - (int)value.BitWidth)) << localBitOffset;
       data &= ~mask;
       data |= (uint)(value.Value << localBitOffset);
-      Write32(arr, startByte, new bit32(data));
+      Write32(arr, startByte * 8, new bit32(data));
     }
 
     public static void Write4(byte[] arr, uint bitOffset, bit4 value)
     {
       uint startByte = bitOffset / 8;
       uint localBitOffset = bitOffset % 8;
-      byte data = Extract8(arr, startByte).Value;
+      byte data = Extract8(arr, startByte * 8).Value;
       data &= (byte)(~(0xF << (int)localBitOffset));
       data |= (byte)(value.Value << (int)localBitOffset);
-      Write8(arr, startByte, new bit8(data));
+      Write8(arr, startByte * 8, new bit8(data));
     }
 
     public static void Write8(byte[] arr, uint bitOffset, bit8 value)
@@ -179,8 +179,8 @@ namespace P4ToCSharp.Library
       Debug.Assert(bitOffset % 8 == 0, "Offset for Write48 must be a multiple of 8");
       fixed (byte* p = &arr[bitOffset / 8])
       {
-        *((uint*)p) = (uint)value.Value;
-        *((ushort*)(p + 4)) = (ushort)(value.Value/* >> 32*/);
+        *((uint*)p) = (uint)v;
+        *((ushort*)(p + 4)) = (ushort)(v/* >> 32*/);
       }
     }
 
@@ -190,7 +190,7 @@ namespace P4ToCSharp.Library
       Debug.Assert(bitOffset % 8 == 0, "Offset for Write64 must be a multiple of 8");
       fixed (byte* p = &arr[bitOffset / 8])
       {
-        *((ulong*)p) = value.Value;
+        *((ulong*)p) = v;
       }
     }
 
