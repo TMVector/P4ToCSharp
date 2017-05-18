@@ -120,7 +120,7 @@ control TopPipe(inout Parsed_Packet_struct headers,
       * Decrements packet Ipv4 TTL.
       */
      table ipv4_match_table {
-         key = { headers.ip.dstAddr : lpm; }
+         key = { headers.ip.dstAddr : exact; }
          actions = {
               Drop_action;
               Set_nhop_action;

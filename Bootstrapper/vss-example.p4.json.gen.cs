@@ -234,7 +234,7 @@ public class Program
 
         private sealed class ipv4_match_table_t : ITable
         {
-            P4ToCSharp.Library.LpmTable<bit32, ActionBase> lookup = new P4ToCSharp.Library.LpmTable<bit32, ActionBase>();
+            P4ToCSharp.Library.ExactTable<bit32, ActionBase> lookup = new P4ToCSharp.Library.ExactTable<bit32, ActionBase>();
 
             public ipv4_match_table_t()
             {
