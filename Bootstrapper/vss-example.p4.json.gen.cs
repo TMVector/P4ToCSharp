@@ -117,13 +117,13 @@ public class Program
         }
     }
 
-    public sealed class Parsed_packet : IStruct
+    public sealed class Parsed_Packet_struct : IStruct
     {
         public Ethernet_h ethernet;
         public IPV4_h ip;
     }
 
-    sealed class TopParser : vss_model.Architecture.Parser<Parsed_packet>
+    sealed class TopParser : vss_model.Architecture.Parser<Parsed_Packet_struct>
     {
         Ck16 ck;
 
@@ -132,13 +132,13 @@ public class Program
             ck = new vss_model.VSSModel.Ck16_impl();
         }
 
-        public void apply(packet_in b, out Parsed_packet p)
+        public void apply(packet_in b, out Parsed_Packet_struct p)
         {
-            p = new Parsed_packet();
+            p = new Parsed_Packet_struct();
             start(b, p);
         }
 
-        void start(packet_in b, Parsed_packet p)
+        void start(packet_in b, Parsed_Packet_struct p)
         {
             b.extract<Ethernet_h>(out p.ethernet);
             switch ((System.UInt16)p.ethernet.etherType)
@@ -149,7 +149,7 @@ public class Program
             }
         }
 
-        void parse_ipv4(packet_in b, Parsed_packet p)
+        void parse_ipv4(packet_in b, Parsed_Packet_struct p)
         {
             b.extract<IPV4_h>(out p.ip);
             vss_model.VSSModel.verify((p.ip.version == 4), error.IPv4IncorrectVersion);
@@ -160,26 +160,26 @@ public class Program
             accept(b, p);
         }
 
-        void accept(packet_in b, Parsed_packet p)
+        void accept(packet_in b, Parsed_Packet_struct p)
         {
         }
 
-        void reject(packet_in b, Parsed_packet p)
+        void reject(packet_in b, Parsed_Packet_struct p)
         {
         }
     }
 
-    sealed class TopPipe : vss_model.Architecture.Pipe<Parsed_packet>
+    sealed class TopPipe : vss_model.Architecture.Pipe<Parsed_Packet_struct>
     {
         class TopPipe_Args
         {
             public TopPipe Instance;
-            public Parsed_packet headers;
+            public Parsed_Packet_struct headers;
             public P4ToCSharp.Library.error parseError;
             public InControl inCtrl;
             public OutControl outCtrl;
 
-            public TopPipe_Args(TopPipe Instance, Parsed_packet headers, P4ToCSharp.Library.error parseError, InControl inCtrl, OutControl outCtrl)
+            public TopPipe_Args(TopPipe Instance, Parsed_Packet_struct headers, P4ToCSharp.Library.error parseError, InControl inCtrl, OutControl outCtrl)
             {
                 this.Instance = Instance;
                 this.headers = headers;
@@ -193,7 +193,7 @@ public class Program
         {
         }
 
-        public void apply(Parsed_packet headers_capture, ref Parsed_packet headers, P4ToCSharp.Library.error parseError, InControl inCtrl, out OutControl outCtrl)
+        public void apply(Parsed_Packet_struct headers_capture, ref Parsed_Packet_struct headers, P4ToCSharp.Library.error parseError, InControl inCtrl, out OutControl outCtrl)
         {
             outCtrl = new OutControl();
             headers = headers_capture;
@@ -565,15 +565,15 @@ public class Program
         }
     }
 
-    sealed class TopDeparser : vss_model.Architecture.Deparser<Parsed_packet>
+    sealed class TopDeparser : vss_model.Architecture.Deparser<Parsed_Packet_struct>
     {
         class TopDeparser_Args
         {
             public TopDeparser Instance;
-            public Parsed_packet p;
+            public Parsed_Packet_struct p;
             public packet_out b;
 
-            public TopDeparser_Args(TopDeparser Instance, Parsed_packet p, packet_out b)
+            public TopDeparser_Args(TopDeparser Instance, Parsed_Packet_struct p, packet_out b)
             {
                 this.Instance = Instance;
                 this.p = p;
@@ -585,7 +585,7 @@ public class Program
         {
         }
 
-        public void apply(Parsed_packet p_capture, ref Parsed_packet p, packet_out b)
+        public void apply(Parsed_Packet_struct p_capture, ref Parsed_Packet_struct p, packet_out b)
         {
             p = p_capture;
             TopDeparser_Args TopDeparser_Args = new TopDeparser_Args(this, p, b);
@@ -604,7 +604,7 @@ public class Program
         Ck16 ck = new vss_model.VSSModel.Ck16_impl();
     }
 
-    public sealed class Processor : vss_model.VSSModel.VSS_impl<Parsed_packet>
+    public sealed class Processor : vss_model.VSSModel.VSS_impl<Parsed_Packet_struct>
     {
         public Processor()
         {

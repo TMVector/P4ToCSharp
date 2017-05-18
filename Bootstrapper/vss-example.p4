@@ -59,12 +59,12 @@ error {
 }
 
 // List of all recognized headers
-struct Parsed_packet {
+struct Parsed_Packet_struct {
     Ethernet_h ethernet;
     IPV4_h     ip;
 }
 
-parser TopParser(packet_in b, out Parsed_packet p) {
+parser TopParser(packet_in b, out Parsed_Packet_struct p) {
     Ck16() ck;  // instantiate checksum unit
 
     state start {
@@ -89,7 +89,7 @@ parser TopParser(packet_in b, out Parsed_packet p) {
 
 // match-action pipeline section
 
-control TopPipe(inout Parsed_packet headers,
+control TopPipe(inout Parsed_Packet_struct headers,
                 in error parseError, // parser error
                 in InControl inCtrl, // input port
                 out OutControl outCtrl) {
@@ -205,7 +205,7 @@ control TopPipe(inout Parsed_packet headers,
 }
 
 // deparser section
-control TopDeparser(inout Parsed_packet p, packet_out b) {
+control TopDeparser(inout Parsed_Packet_struct p, packet_out b) {
     Ck16() ck;
     apply {
         b.emit(p.ethernet);
