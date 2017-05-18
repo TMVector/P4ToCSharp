@@ -34,7 +34,7 @@ header Ethernet_h {
 }
 
 // IPv4 header without options
-header Ipv4_h {
+header IPV4_h {
     bit<4>       version;
     bit<4>       ihl;
     bit<8>       diffserv;
@@ -61,7 +61,7 @@ error {
 // List of all recognized headers
 struct Parsed_packet {
     Ethernet_h ethernet;
-    Ipv4_h     ip;
+    IPV4_h     ip;
 }
 
 parser TopParser(packet_in b, out Parsed_packet p) {

@@ -65,7 +65,7 @@ public class Program
         }
     }
 
-    public sealed class Ipv4_h : HeaderBase
+    public sealed class IPV4_h : HeaderBase
     {
         public bit4 version;
         public bit4 ihl;
@@ -120,7 +120,7 @@ public class Program
     public sealed class Parsed_packet : IStruct
     {
         public Ethernet_h ethernet;
-        public Ipv4_h ip;
+        public IPV4_h ip;
     }
 
     sealed class TopParser : vss_model.Architecture.Parser<Parsed_packet>
@@ -151,11 +151,11 @@ public class Program
 
         void parse_ipv4(packet_in b, Parsed_packet p)
         {
-            b.extract<Ipv4_h>(out p.ip);
+            b.extract<IPV4_h>(out p.ip);
             vss_model.VSSModel.verify((p.ip.version == 4), error.IPv4IncorrectVersion);
             vss_model.VSSModel.verify((p.ip.ihl == 5), error.IPv4OptionsNotSupported);
             ck.clear();
-            ck.update<Ipv4_h>(p.ip);
+            ck.update<IPV4_h>(p.ip);
             vss_model.VSSModel.verify((ck.get() == 0), error.IPv4ChecksumError);
             accept(b, p);
         }
@@ -594,11 +594,11 @@ public class Program
             {
                 TopDeparser_Args.Instance.ck.clear();
                 TopDeparser_Args.p.ip.hdrChecksum = ((bit16)0);
-                TopDeparser_Args.Instance.ck.update<Ipv4_h>(TopDeparser_Args.p.ip);
+                TopDeparser_Args.Instance.ck.update<IPV4_h>(TopDeparser_Args.p.ip);
                 TopDeparser_Args.p.ip.hdrChecksum = TopDeparser_Args.Instance.ck.get();
             }
 
-            TopDeparser_Args.b.emit<Ipv4_h>(TopDeparser_Args.p.ip);
+            TopDeparser_Args.b.emit<IPV4_h>(TopDeparser_Args.p.ip);
         }
 
         Ck16 ck = new vss_model.VSSModel.Ck16_impl();
