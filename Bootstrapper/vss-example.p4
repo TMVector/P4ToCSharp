@@ -127,7 +127,7 @@ control TopPipe(inout Parsed_Packet_struct headers,
          }
 
          size = 1024;
-         default_action = Drop_action;
+         default_action = Set_nhop_action(32w0, 0);
      }
 
      /**

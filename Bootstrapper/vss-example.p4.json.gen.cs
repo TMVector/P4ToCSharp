@@ -309,7 +309,7 @@ public class Program
                 }
             }
 
-            private ActionBase default_action = new ActionBase.Drop_action_Action();
+            private ActionBase default_action = new ActionBase.Set_nhop_action_Action();
         }
 
         void Send_to_cpu(TopPipe_Args TopPipe_Args)
