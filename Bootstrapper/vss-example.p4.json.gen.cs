@@ -42,14 +42,14 @@ public class Program
 
     public sealed class Ethernet_h : HeaderBase
     {
-        public EthernetAddress dstAddr;
+        public EthernetAddress destAddr;
         public EthernetAddress srcAddr;
         public bit16 etherType;
 
         public override void Parse(byte[] data, uint offset)
         {
             offset *= 8;
-            dstAddr = ((bit48)BitHelper.Extract48(data, offset + 0));
+            destAddr = ((bit48)BitHelper.Extract48(data, offset + 0));
             srcAddr = ((bit48)BitHelper.Extract48(data, offset + 48));
             etherType = ((bit16)BitHelper.Extract16(data, offset + 96));
             length = 112;
@@ -59,7 +59,7 @@ public class Program
         public override void Deparse(byte[] data, uint offset)
         {
             offset *= 8;
-            BitHelper.Write48(data, offset + 0, ((bit48)dstAddr));
+            BitHelper.Write48(data, offset + 0, ((bit48)destAddr));
             BitHelper.Write48(data, offset + 48, ((bit48)srcAddr));
             BitHelper.Write16(data, offset + 96, ((bit16)etherType));
         }
@@ -396,7 +396,7 @@ public class Program
 
         void Set_dmac(TopPipe_Args TopPipe_Args, EthernetAddress dmac)
         {
-            TopPipe_Args.headers.ethernet.dstAddr = dmac;
+            TopPipe_Args.headers.ethernet.destAddr = dmac;
         }
 
         dmac_t dmac = new dmac_t();

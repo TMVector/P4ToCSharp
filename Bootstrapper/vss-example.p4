@@ -28,7 +28,7 @@ typedef bit<32>  IPv4Address;
 
 // standard Ethernet header
 header Ethernet_h {
-    EthernetAddress dstAddr;
+    EthernetAddress destAddr;
     EthernetAddress srcAddr;
     bit<16>         etherType;
 }
@@ -150,7 +150,7 @@ control TopPipe(inout Parsed_packet headers,
       * @param dmac destination MAC address.
       */
       action Set_dmac(EthernetAddress dmac)
-      { headers.ethernet.dstAddr = dmac; }
+      { headers.ethernet.destAddr = dmac; }
      /**
       * Set the destination Ethernet address of the packet
       * based on the next hop IP address.
