@@ -108,7 +108,7 @@ control TopPipe(inout Parsed_Packet_struct headers,
       * @param ivp4_dest ipv4 address of next hop
       * @param port output port
       */
-      action Set_nhop(IPv4Address ipv4_dest, PortId port) {
+      action Set_nhop_action(IPv4Address ipv4_dest, PortId port) {
           nextHop = ipv4_dest;
           headers.ip.ttl = headers.ip.ttl-1;
           outCtrl.outputPort = port;
@@ -123,7 +123,7 @@ control TopPipe(inout Parsed_Packet_struct headers,
          key = { headers.ip.dstAddr : lpm; }
          actions = {
               Drop_action;
-              Set_nhop;
+              Set_nhop_action;
          }
 
          size = 1024;

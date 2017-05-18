@@ -223,7 +223,7 @@ public class Program
 
         IPv4Address nextHop;
 
-        void Set_nhop(TopPipe_Args TopPipe_Args, IPv4Address ipv4_dest, PortId port)
+        void Set_nhop_action(TopPipe_Args TopPipe_Args, IPv4Address ipv4_dest, PortId port)
         {
             TopPipe_Args.Instance.nextHop = ipv4_dest;
             TopPipe_Args.headers.ip.ttl = ((bit8)(TopPipe_Args.headers.ip.ttl - 1));
@@ -258,7 +258,7 @@ public class Program
             public enum action_list
             {
                 Drop_action,
-                Set_nhop
+                Set_nhop_action
             }
 
             public sealed class apply_result : apply_result<action_list>
@@ -291,12 +291,12 @@ public class Program
                     }
                 }
 
-                public sealed class Set_nhop_Action : ActionBase
+                public sealed class Set_nhop_action_Action : ActionBase
                 {
                     readonly IPv4Address ipv4_dest;
                     readonly PortId port;
 
-                    public Set_nhop_Action(IPv4Address ipv4_dest, PortId port) : base(action_list.Set_nhop)
+                    public Set_nhop_action_Action(IPv4Address ipv4_dest, PortId port) : base(action_list.Set_nhop_action)
                     {
                         this.ipv4_dest = ipv4_dest;
                         this.port = port;
@@ -304,7 +304,7 @@ public class Program
 
                     public override void OnApply(TopPipe_Args TopPipe_Args)
                     {
-                        TopPipe_Args.Instance.Set_nhop(TopPipe_Args, ipv4_dest, port);
+                        TopPipe_Args.Instance.Set_nhop_action(TopPipe_Args, ipv4_dest, port);
                     }
                 }
             }
