@@ -204,7 +204,7 @@ public class Program
                 return;
             }
 
-            TopPipe_Args.Instance.ipv4_match.apply(TopPipe_Args);
+            TopPipe_Args.Instance.ipv4_match_table.apply(TopPipe_Args);
             if ((TopPipe_Args.outCtrl.outputPort == DROP_PORT))
                 return;
             TopPipe_Args.Instance.check_ttl.apply(TopPipe_Args);
@@ -230,13 +230,13 @@ public class Program
             TopPipe_Args.outCtrl.outputPort = port;
         }
 
-        ipv4_match_t ipv4_match = new ipv4_match_t();
+        ipv4_match_table_t ipv4_match_table = new ipv4_match_table_t();
 
-        private sealed class ipv4_match_t : ITable
+        private sealed class ipv4_match_table_t : ITable
         {
             P4ToCSharp.Library.LpmTable<bit32, ActionBase> lookup = new P4ToCSharp.Library.LpmTable<bit32, ActionBase>();
 
-            public ipv4_match_t()
+            public ipv4_match_table_t()
             {
             }
 

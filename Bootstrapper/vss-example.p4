@@ -119,7 +119,7 @@ control TopPipe(inout Parsed_Packet_struct headers,
       * based on the Ipv4 destination of the current packet.
       * Decrements packet Ipv4 TTL.
       */
-     table ipv4_match {
+     table ipv4_match_table {
          key = { headers.ip.dstAddr : lpm; }
          actions = {
               Drop_action;
@@ -191,7 +191,7 @@ control TopPipe(inout Parsed_Packet_struct headers,
                return;
           }
 
-          ipv4_match.apply(); // Match result will go into nextHop
+          ipv4_match_table.apply(); // Match result will go into nextHop
           if (outCtrl.outputPort == DROP_PORT) return;
 
           check_ttl.apply();
