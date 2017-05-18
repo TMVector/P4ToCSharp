@@ -49,9 +49,9 @@ public class Program
         public override void Parse(byte[] data, uint offset)
         {
             offset *= 8;
-            dstAddr = BitHelper.Extract48(data, offset + 0);
-            srcAddr = BitHelper.Extract48(data, offset + 48);
-            etherType = BitHelper.Extract16(data, offset + 96);
+            dstAddr = ((bit48)BitHelper.Extract48(data, offset + 0));
+            srcAddr = ((bit48)BitHelper.Extract48(data, offset + 48));
+            etherType = ((bit16)BitHelper.Extract16(data, offset + 96));
             length = 112;
             setValid();
         }
@@ -59,9 +59,9 @@ public class Program
         public override void Deparse(byte[] data, uint offset)
         {
             offset *= 8;
-            BitHelper.Write48(data, offset + 0, dstAddr);
-            BitHelper.Write48(data, offset + 48, srcAddr);
-            BitHelper.Write16(data, offset + 96, etherType);
+            BitHelper.Write48(data, offset + 0, ((bit48)dstAddr));
+            BitHelper.Write48(data, offset + 48, ((bit48)srcAddr));
+            BitHelper.Write16(data, offset + 96, ((bit16)etherType));
         }
     }
 
@@ -83,18 +83,18 @@ public class Program
         public override void Parse(byte[] data, uint offset)
         {
             offset *= 8;
-            version = BitHelper.Extract4(data, offset + 0);
-            ihl = BitHelper.Extract4(data, offset + 4);
-            diffserv = BitHelper.Extract8(data, offset + 8);
-            totalLen = BitHelper.Extract16(data, offset + 16);
-            identification = BitHelper.Extract16(data, offset + 32);
-            flags = BitHelper.ExtractN(data, offset + 48, 3);
-            fragOffset = BitHelper.ExtractN(data, offset + 51, 13);
-            ttl = BitHelper.Extract8(data, offset + 64);
-            protocol = BitHelper.Extract8(data, offset + 72);
-            hdrChecksum = BitHelper.Extract16(data, offset + 80);
-            srcAddr = BitHelper.Extract32(data, offset + 96);
-            dstAddr = BitHelper.Extract32(data, offset + 128);
+            version = ((bit4)BitHelper.Extract4(data, offset + 0));
+            ihl = ((bit4)BitHelper.Extract4(data, offset + 4));
+            diffserv = ((bit8)BitHelper.Extract8(data, offset + 8));
+            totalLen = ((bit16)BitHelper.Extract16(data, offset + 16));
+            identification = ((bit16)BitHelper.Extract16(data, offset + 32));
+            flags = bitN.OfValue(BitHelper.ExtractN(data, offset + 48, 3), width: 3);
+            fragOffset = bitN.OfValue(BitHelper.ExtractN(data, offset + 51, 13), width: 13);
+            ttl = ((bit8)BitHelper.Extract8(data, offset + 64));
+            protocol = ((bit8)BitHelper.Extract8(data, offset + 72));
+            hdrChecksum = ((bit16)BitHelper.Extract16(data, offset + 80));
+            srcAddr = ((bit32)BitHelper.Extract32(data, offset + 96));
+            dstAddr = ((bit32)BitHelper.Extract32(data, offset + 128));
             length = 160;
             setValid();
         }
@@ -102,18 +102,18 @@ public class Program
         public override void Deparse(byte[] data, uint offset)
         {
             offset *= 8;
-            BitHelper.Write4(data, offset + 0, version);
-            BitHelper.Write4(data, offset + 4, ihl);
-            BitHelper.Write8(data, offset + 8, diffserv);
-            BitHelper.Write16(data, offset + 16, totalLen);
-            BitHelper.Write16(data, offset + 32, identification);
-            BitHelper.WriteN(data, offset + 48, flags);
-            BitHelper.WriteN(data, offset + 51, fragOffset);
-            BitHelper.Write8(data, offset + 64, ttl);
-            BitHelper.Write8(data, offset + 72, protocol);
-            BitHelper.Write16(data, offset + 80, hdrChecksum);
-            BitHelper.Write32(data, offset + 96, srcAddr);
-            BitHelper.Write32(data, offset + 128, dstAddr);
+            BitHelper.Write4(data, offset + 0, ((bit4)version));
+            BitHelper.Write4(data, offset + 4, ((bit4)ihl));
+            BitHelper.Write8(data, offset + 8, ((bit8)diffserv));
+            BitHelper.Write16(data, offset + 16, ((bit16)totalLen));
+            BitHelper.Write16(data, offset + 32, ((bit16)identification));
+            BitHelper.WriteN(data, offset + 48, bitN.OfValue(flags, width: 3));
+            BitHelper.WriteN(data, offset + 51, bitN.OfValue(fragOffset, width: 13));
+            BitHelper.Write8(data, offset + 64, ((bit8)ttl));
+            BitHelper.Write8(data, offset + 72, ((bit8)protocol));
+            BitHelper.Write16(data, offset + 80, ((bit16)hdrChecksum));
+            BitHelper.Write32(data, offset + 96, ((bit32)srcAddr));
+            BitHelper.Write32(data, offset + 128, ((bit32)dstAddr));
         }
     }
 
@@ -226,7 +226,7 @@ public class Program
         void Set_nhop(TopPipe_Args TopPipe_Args, IPv4Address ipv4_dest, PortId port)
         {
             TopPipe_Args.Instance.nextHop = ipv4_dest;
-            TopPipe_Args.headers.ip.ttl = (TopPipe_Args.headers.ip.ttl - 1);
+            TopPipe_Args.headers.ip.ttl = ((bit8)(TopPipe_Args.headers.ip.ttl - 1));
             TopPipe_Args.outCtrl.outputPort = port;
         }
 
@@ -235,6 +235,10 @@ public class Program
         private sealed class ipv4_match_t : ITable
         {
             P4ToCSharp.Library.LpmTable<bit32, ActionBase> lookup = new P4ToCSharp.Library.LpmTable<bit32, ActionBase>();
+
+            public ipv4_match_t()
+            {
+            }
 
             public apply_result apply(TopPipe_Args TopPipe_Args)
             {
@@ -253,8 +257,8 @@ public class Program
 
             public enum action_list
             {
-                TopPipe_Args_Instance_Drop_actionTopPipe_Args,
-                TopPipe_Args_Instance_Set_nhopTopPipe_Args
+                Drop_action,
+                Set_nhop
             }
 
             public sealed class apply_result : apply_result<action_list>
@@ -275,9 +279,9 @@ public class Program
 
                 public abstract void OnApply(TopPipe_Args TopPipe_Args);
 
-                public sealed class TopPipe_Args_Instance_Drop_actionTopPipe_Args_Action : ActionBase
+                public sealed class Drop_action_Action : ActionBase
                 {
-                    public TopPipe_Args_Instance_Drop_actionTopPipe_Args_Action() : base(action_list.TopPipe_Args_Instance_Drop_actionTopPipe_Args)
+                    public Drop_action_Action() : base(action_list.Drop_action)
                     {
                     }
 
@@ -287,12 +291,12 @@ public class Program
                     }
                 }
 
-                public sealed class TopPipe_Args_Instance_Set_nhopTopPipe_Args_Action : ActionBase
+                public sealed class Set_nhop_Action : ActionBase
                 {
                     readonly IPv4Address ipv4_dest;
                     readonly PortId port;
 
-                    public TopPipe_Args_Instance_Set_nhopTopPipe_Args_Action(IPv4Address ipv4_dest, PortId port) : base(action_list.TopPipe_Args_Instance_Set_nhopTopPipe_Args)
+                    public Set_nhop_Action(IPv4Address ipv4_dest, PortId port) : base(action_list.Set_nhop)
                     {
                         this.ipv4_dest = ipv4_dest;
                         this.port = port;
@@ -305,7 +309,7 @@ public class Program
                 }
             }
 
-            private ActionBase default_action = new ActionBase.TopPipe_Args_Instance_Drop_actionTopPipe_Args_Action();
+            private ActionBase default_action = new ActionBase.Drop_action_Action();
         }
 
         void Send_to_cpu(TopPipe_Args TopPipe_Args)
@@ -318,6 +322,10 @@ public class Program
         private sealed class check_ttl_t : ITable
         {
             P4ToCSharp.Library.ExactTable<bit8, ActionBase> lookup = new P4ToCSharp.Library.ExactTable<bit8, ActionBase>();
+
+            public check_ttl_t()
+            {
+            }
 
             public apply_result apply(TopPipe_Args TopPipe_Args)
             {
@@ -336,7 +344,7 @@ public class Program
 
             public enum action_list
             {
-                TopPipe_Args_Instance_Send_to_cpuTopPipe_Args,
+                Send_to_cpu,
                 NoAction
             }
 
@@ -358,9 +366,9 @@ public class Program
 
                 public abstract void OnApply(TopPipe_Args TopPipe_Args);
 
-                public sealed class TopPipe_Args_Instance_Send_to_cpuTopPipe_Args_Action : ActionBase
+                public sealed class Send_to_cpu_Action : ActionBase
                 {
-                    public TopPipe_Args_Instance_Send_to_cpuTopPipe_Args_Action() : base(action_list.TopPipe_Args_Instance_Send_to_cpuTopPipe_Args)
+                    public Send_to_cpu_Action() : base(action_list.Send_to_cpu)
                     {
                     }
 
@@ -397,6 +405,10 @@ public class Program
         {
             P4ToCSharp.Library.ExactTable<bit32, ActionBase> lookup = new P4ToCSharp.Library.ExactTable<bit32, ActionBase>();
 
+            public dmac_t()
+            {
+            }
+
             public apply_result apply(TopPipe_Args TopPipe_Args)
             {
                 apply_result result;
@@ -414,8 +426,8 @@ public class Program
 
             public enum action_list
             {
-                TopPipe_Args_Instance_Drop_actionTopPipe_Args,
-                TopPipe_Args_Instance_Set_dmacTopPipe_Args
+                Drop_action,
+                Set_dmac
             }
 
             public sealed class apply_result : apply_result<action_list>
@@ -436,9 +448,9 @@ public class Program
 
                 public abstract void OnApply(TopPipe_Args TopPipe_Args);
 
-                public sealed class TopPipe_Args_Instance_Drop_actionTopPipe_Args_Action : ActionBase
+                public sealed class Drop_action_Action : ActionBase
                 {
-                    public TopPipe_Args_Instance_Drop_actionTopPipe_Args_Action() : base(action_list.TopPipe_Args_Instance_Drop_actionTopPipe_Args)
+                    public Drop_action_Action() : base(action_list.Drop_action)
                     {
                     }
 
@@ -448,11 +460,11 @@ public class Program
                     }
                 }
 
-                public sealed class TopPipe_Args_Instance_Set_dmacTopPipe_Args_Action : ActionBase
+                public sealed class Set_dmac_Action : ActionBase
                 {
                     readonly EthernetAddress dmac;
 
-                    public TopPipe_Args_Instance_Set_dmacTopPipe_Args_Action(EthernetAddress dmac) : base(action_list.TopPipe_Args_Instance_Set_dmacTopPipe_Args)
+                    public Set_dmac_Action(EthernetAddress dmac) : base(action_list.Set_dmac)
                     {
                         this.dmac = dmac;
                     }
@@ -464,7 +476,7 @@ public class Program
                 }
             }
 
-            private ActionBase default_action = new ActionBase.TopPipe_Args_Instance_Drop_actionTopPipe_Args_Action();
+            private ActionBase default_action = new ActionBase.Drop_action_Action();
         }
 
         void Set_smac(TopPipe_Args TopPipe_Args, EthernetAddress smac)
@@ -477,6 +489,10 @@ public class Program
         private sealed class smac_t : ITable
         {
             P4ToCSharp.Library.ExactTable<bit4, ActionBase> lookup = new P4ToCSharp.Library.ExactTable<bit4, ActionBase>();
+
+            public smac_t()
+            {
+            }
 
             public apply_result apply(TopPipe_Args TopPipe_Args)
             {
@@ -495,8 +511,8 @@ public class Program
 
             public enum action_list
             {
-                TopPipe_Args_Instance_Drop_actionTopPipe_Args,
-                TopPipe_Args_Instance_Set_smacTopPipe_Args
+                Drop_action,
+                Set_smac
             }
 
             public sealed class apply_result : apply_result<action_list>
@@ -517,9 +533,9 @@ public class Program
 
                 public abstract void OnApply(TopPipe_Args TopPipe_Args);
 
-                public sealed class TopPipe_Args_Instance_Drop_actionTopPipe_Args_Action : ActionBase
+                public sealed class Drop_action_Action : ActionBase
                 {
-                    public TopPipe_Args_Instance_Drop_actionTopPipe_Args_Action() : base(action_list.TopPipe_Args_Instance_Drop_actionTopPipe_Args)
+                    public Drop_action_Action() : base(action_list.Drop_action)
                     {
                     }
 
@@ -529,11 +545,11 @@ public class Program
                     }
                 }
 
-                public sealed class TopPipe_Args_Instance_Set_smacTopPipe_Args_Action : ActionBase
+                public sealed class Set_smac_Action : ActionBase
                 {
                     readonly EthernetAddress smac;
 
-                    public TopPipe_Args_Instance_Set_smacTopPipe_Args_Action(EthernetAddress smac) : base(action_list.TopPipe_Args_Instance_Set_smacTopPipe_Args)
+                    public Set_smac_Action(EthernetAddress smac) : base(action_list.Set_smac)
                     {
                         this.smac = smac;
                     }
@@ -545,7 +561,7 @@ public class Program
                 }
             }
 
-            private ActionBase default_action = new ActionBase.TopPipe_Args_Instance_Drop_actionTopPipe_Args_Action();
+            private ActionBase default_action = new ActionBase.Drop_action_Action();
         }
     }
 
