@@ -64,11 +64,11 @@ struct Parsed_Packet_struct {
     IPV4_h     ip;
 }
 
-parser TopParser(packet_in b, out Parsed_Packet_struct p) {
+parser TopParser(packet_in b_param, out Parsed_Packet_struct p) {
     Ck16() ck;  // instantiate checksum unit
 
     state start {
-        b.extract(p.ethernet);
+        b_param.extract(p.ethernet);
         transition select(p.ethernet.etherType) {
             0x0800 : parse_ipv4;
             // no default rule: all other packets rejected
@@ -76,7 +76,7 @@ parser TopParser(packet_in b, out Parsed_Packet_struct p) {
     }
 
     state parse_ipv4 {
-        b.extract(p.ip);
+        b_param.extract(p.ip);
         verify(p.ip.version == 4w4, error.IPv4IncorrectVersion);
         verify(p.ip.ihl == 4w5, error.IPv4OptionsNotSupported);
         ck.clear();

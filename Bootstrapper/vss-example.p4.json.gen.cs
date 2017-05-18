@@ -132,39 +132,39 @@ public class Program
             ck = new vss_model.VSSModel.Ck16_impl();
         }
 
-        public void apply(packet_in b, out Parsed_Packet_struct p)
+        public void apply(packet_in b_param, out Parsed_Packet_struct p)
         {
             p = new Parsed_Packet_struct();
-            start(b, p);
+            start(b_param, p);
         }
 
-        void start(packet_in b, Parsed_Packet_struct p)
+        void start(packet_in b_param, Parsed_Packet_struct p)
         {
-            b.extract<Ethernet_h>(out p.ethernet);
+            b_param.extract<Ethernet_h>(out p.ethernet);
             switch ((System.UInt16)p.ethernet.etherType)
             {
                 case 0x800:
-                    parse_ipv4(b, p);
+                    parse_ipv4(b_param, p);
                     break;
             }
         }
 
-        void parse_ipv4(packet_in b, Parsed_Packet_struct p)
+        void parse_ipv4(packet_in b_param, Parsed_Packet_struct p)
         {
-            b.extract<IPV4_h>(out p.ip);
+            b_param.extract<IPV4_h>(out p.ip);
             vss_model.VSSModel.verify((p.ip.version == 4), error.IPv4IncorrectVersion);
             vss_model.VSSModel.verify((p.ip.ihl == 5), error.IPv4OptionsNotSupported);
             ck.clear();
             ck.update<IPV4_h>(p.ip);
             vss_model.VSSModel.verify((ck.get() == 0), error.IPv4ChecksumError);
-            accept(b, p);
+            accept(b_param, p);
         }
 
-        void accept(packet_in b, Parsed_Packet_struct p)
+        void accept(packet_in b_param, Parsed_Packet_struct p)
         {
         }
 
-        void reject(packet_in b, Parsed_Packet_struct p)
+        void reject(packet_in b_param, Parsed_Packet_struct p)
         {
         }
     }
