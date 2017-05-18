@@ -23,6 +23,7 @@ namespace P4ToCSharp.Library
     // FIXME perhaps better to have internal methods that extract C# datatypes, and public ones that wrap it as bitN?
     public static bit1 Extract1(byte[] arr, uint bitOffset)
     {
+      if (arr.Length * 8 < bitOffset + 1) throw new P4Exception(error.PacketTooShort);
       uint startByte = bitOffset / 8;
       uint localBitOffset = bitOffset % 8;
       byte data = Extract8(arr, startByte).Value;
@@ -35,6 +36,7 @@ namespace P4ToCSharp.Library
     {
       // TODO write some smarter logic for var width extraction
       Debug.Assert(bitLength > 0);
+      if (arr.Length * 8 < bitOffset + bitLength) throw new P4Exception(error.PacketTooShort);
       uint startByte = bitOffset / 8;
       uint localBitOffset = bitOffset % 8;
       uint data = Extract32(arr, startByte).Value; // FIXME is it okay to extract 32 bits when we don't know it's safe?
@@ -45,6 +47,7 @@ namespace P4ToCSharp.Library
 
     public static bit4 Extract4(byte[] arr, uint bitOffset)
     {
+      if (arr.Length * 8 < bitOffset + 4) throw new P4Exception(error.PacketTooShort);
       uint startByte = bitOffset / 8;
       uint localBitOffset = bitOffset % 8;
       byte data = Extract8(arr, startByte).Value;
@@ -55,12 +58,14 @@ namespace P4ToCSharp.Library
     public static bit8 Extract8(byte[] arr, uint bitOffset)
     {
       Debug.Assert(bitOffset % 8 == 0, "Offset for Extract8 must be a multiple of 8");
+      if (arr.Length * 8 < bitOffset + 8) throw new P4Exception(error.PacketTooShort);
       return new bit8(arr[bitOffset / 8]);
     }
 
     public static unsafe bit16 Extract16(byte[] arr, uint bitOffset)
     {
       Debug.Assert(bitOffset % 8 == 0, "Offset for Extract16 must be a multiple of 8");
+      if (arr.Length * 8 < bitOffset + 16) throw new P4Exception(error.PacketTooShort);
       fixed (byte* p = &arr[bitOffset / 8])
       {
         return new bit16((ushort)flip(*((ushort*)p), 2));
@@ -69,7 +74,8 @@ namespace P4ToCSharp.Library
 
     public static unsafe bit32 Extract32(byte[] arr, uint bitOffset)
     {
-      Debug.Assert(bitOffset % 8 == 0, "Offset for Extract32 must be a multiple of 8");
+      Debug.Assert(bitOffset % 8 == 0, String.Format("Offset ({0}) for Extract32 must be a multiple of 8", bitOffset));
+      if (arr.Length * 8 < bitOffset + 32) throw new P4Exception(error.PacketTooShort);
       fixed (byte* p = &arr[bitOffset / 8])
       {
         return new bit32((uint)flip(*((uint*)p), 4));
@@ -79,6 +85,7 @@ namespace P4ToCSharp.Library
     public static unsafe bit48 Extract48(byte[] arr, uint bitOffset)
     {
       Debug.Assert(bitOffset % 8 == 0, "Offset for Extract48 must be a multiple of 8");
+      if (arr.Length * 8 < bitOffset + 48) throw new P4Exception(error.PacketTooShort);
       ulong rv;
       fixed (byte* p = &arr[bitOffset / 8])
       {
@@ -91,6 +98,7 @@ namespace P4ToCSharp.Library
     public static unsafe bit64 Extract64(byte[] arr, uint bitOffset)
     {
       Debug.Assert(bitOffset % 8 == 0, "Offset for Extract64 must be a multiple of 8");
+      if (arr.Length * 8 < bitOffset + 48) throw new P4Exception(error.PacketTooShort);
       fixed (byte* p = &arr[bitOffset / 8])
       {
         return new bit64(flip(*((ulong*)p), 8));
@@ -100,6 +108,7 @@ namespace P4ToCSharp.Library
     public static byte[] ExtractBytes(byte[] arr, uint bitOffset, uint length)
     {
       Debug.Assert(bitOffset % 8 == 0, "Offset for ExtractBytes must be a multiple of 8");
+      if (arr.Length * 8 < bitOffset + 8 * length) throw new P4Exception(error.PacketTooShort);
       byte[] r = new byte[length];
       Buffer.BlockCopy(arr, (int)(bitOffset / 8), r, 0, (int)length);
       return r;

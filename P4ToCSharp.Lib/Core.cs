@@ -26,6 +26,7 @@ namespace P4ToCSharp.Library
           hdr = new T();
           var h = (HeaderBase)(object)hdr;
           h.Parse(data, bitOffset);
+          bitOffset += h.Length;
         }
         else
         {

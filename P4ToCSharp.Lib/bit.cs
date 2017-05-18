@@ -89,6 +89,10 @@ namespace P4ToCSharp.Library
     {
       return Value.GetHashCode();
     }
+    public override string ToString()
+    {
+      return string.Format("{0}w{1}", BitWidth, Value);
+    }
 
     // NOTE we don't support any arithmetic for this datatype
     public static bool operator <(bitN a, IBitString b) { return a.Value < b.Value; }
@@ -154,6 +158,10 @@ namespace P4ToCSharp.Library
     public override int GetHashCode()
     {
       return Value;
+    }
+    public override string ToString()
+    {
+      return string.Format("{0}w{1}", BitWidth, Value);
     }
 
     public static bool operator <(bit1 a, IBitString b) { return a.Value < b.Value; }
@@ -240,6 +248,10 @@ namespace P4ToCSharp.Library
     {
       return Value;
     }
+    public override string ToString()
+    {
+      return string.Format("{0}w{1}", BitWidth, Value);
+    }
 
     public static bool operator <(bit4 a, IBitString b) { return a.Value < b.Value; }
     public static bool operator >(bit4 a, IBitString b) { return a.Value > b.Value; }
@@ -309,6 +321,10 @@ namespace P4ToCSharp.Library
     public override int GetHashCode()
     {
       return Value;
+    }
+    public override string ToString()
+    {
+      return string.Format("{0}w{1}", BitWidth, Value);
     }
 
     public static bool operator <(bit8 a, IBitString b) { return a.Value < b.Value; }
@@ -393,6 +409,10 @@ namespace P4ToCSharp.Library
     {
       return Value;
     }
+    public override string ToString()
+    {
+      return string.Format("{0}w{1}", BitWidth, Value);
+    }
 
     public static bool operator <(bit16 a, IBitString b) { return a.Value < b.Value; }
     public static bool operator >(bit16 a, IBitString b) { return a.Value > b.Value; }
@@ -471,6 +491,10 @@ namespace P4ToCSharp.Library
     public override int GetHashCode()
     {
       return (int)Value;
+    }
+    public override string ToString()
+    {
+      return string.Format("{0}w{1}", BitWidth, Value);
     }
 
     public static bool operator <(bit32 a, IBitString b) { return a.Value < b.Value; }
@@ -563,6 +587,10 @@ namespace P4ToCSharp.Library
     {
       return (int)Value;
     }
+    public override string ToString()
+    {
+      return string.Format("{0}w{1}", BitWidth, Value);
+    }
 
     public static bool operator <(bit48 a, IBitString b) { return a.Value < b.Value; }
     public static bool operator >(bit48 a, IBitString b) { return a.Value > b.Value; }
@@ -632,6 +660,10 @@ namespace P4ToCSharp.Library
     public override int GetHashCode()
     {
       return (int)Value;
+    }
+    public override string ToString()
+    {
+      return string.Format("{0}w{1}", BitWidth, Value);
     }
 
     public static bool operator <(bit64 a, IBitString b) { return a.Value < b.Value; }

@@ -1,0 +1,35 @@
+﻿{
+  "handlers": [
+    {
+      "class_name": "Processor",
+      "args": {
+      }
+    }
+  ],
+  "interfaces": [
+    {
+      "interface_name" : "nat0-eth0",
+      "lead_handler" : "Processor",
+      "pcap_filter" : "",
+      "environment" : {
+        "tag": " on nat-eth0"
+      }
+    },
+    {
+      "interface_name" : "nat0-eth1",
+      "lead_handler" : "Processor",
+      "pcap_filter" : "",
+      "environment" : {
+        "tag": " on nat-eth1"
+      }
+    },
+    {
+      "interface_name" : "nat0-eth2",
+      "lead_handler" : "Processor",
+      "pcap_filter" : "",
+      "environment" : {
+        "tag": " on nat-eth2"
+      }
+    }
+  ]
+}
