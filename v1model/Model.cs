@@ -195,6 +195,25 @@ namespace v1model
         }
         return true;
       }
+      public static bool StrArrEquals(string a, byte[] b)
+      {
+        if (a.Length > b.Length * 2) return false;
+        for (int i = 0; i < b.Length; i++)
+        {
+          int ia = i * 2;
+          string aStr;
+          if (ia + 1 < a.Length)
+            aStr = a.Substring(ia, 2);
+          else if (ia < a.Length)
+            aStr = a.Substring(ia, 1);
+          else
+            return false;
+          if (aStr == "*" || aStr == "**")
+          { }
+          else if(Convert.ToByte(aStr, 16) != b[i]) return false;
+        }
+        return true;
+      }
       public packet_out ProcessPacket(byte[] packet, Parser<H, M> p, VerifyChecksum<H, M> vr, Ingress<H, M> ig, Egress<H, M> eg, ComputeChecksum<H, M> ck, Deparser<H> dep)
       {
         H hdr = default(H);
@@ -218,10 +237,25 @@ namespace v1model
         // TODO do something with the result
         return po;
       }
+
+      Parser<H, M> p; VerifyChecksum<H, M> vr; Ingress<H, M> ig; Egress<H, M> eg; ComputeChecksum<H, M> ck; Deparser<H> dep;
       public void Use(Parser<H, M> p, VerifyChecksum<H, M> vr, Ingress<H, M> ig, Egress<H, M> eg, ComputeChecksum<H, M> ck, Deparser<H> dep)
       {
+        this.p = p;
+        this.vr = vr;
+        this.ig = ig;
+        this.eg = eg;
+        this.ck = ck;
+        this.dep = dep;
+      }
+
+      public void Run()
+      {
         if (System.Diagnostics.Debugger.IsAttached)
-          System.AppDomain.CurrentDomain.ProcessExit += (o,e) => Console.ReadKey();
+          System.AppDomain.CurrentDomain.ProcessExit += (o, e) =>
+          {
+            Console.ReadKey();
+          };
 
         var args = Environment.GetCommandLineArgs().Skip(1).ToArray();
         if (args.Length == 0)
@@ -260,22 +294,18 @@ namespace v1model
                 case "expect":
                   {
                     var intf = Convert.ToInt32(lineParts[1]);
-                    var arr = GetBytes(String.Join("", lineParts.Skip(2)));
+                    var arr = String.Join("", lineParts.Skip(2));
                     if (lastPacketOut != null)
                     {
-                      if (lastPacketOut.LengthInBits % 8 != 0)
-                      {
-                        Console.Error.WriteLine("Packet length was not an integral number of bytes ({0})", lastPacketOut.LengthInBits);
-                        Environment.Exit(1);
-                      }
-                      var result = new byte[lastPacketOut.LengthInBits / 8];
+                      uint len = (lastPacketOut.LengthInBits + 7) / 8;
+                      var result = new byte[len];
                       Array.Copy(lastPacketOut.Data, result, result.Length);
-                      if (ArrEquals(arr, result))
+                      if (StrArrEquals(arr, result))
                       { }
                       else
                       {
                         Console.Error.WriteLine("Output not what was expected:");
-                        Console.Error.WriteLine(" EXP: {0}", GetHex(arr));
+                        Console.Error.WriteLine(" EXP: {0}", arr);
                         Console.Error.WriteLine(" RCV: {0}", GetHex(result));
                         Environment.Exit(1);
                       }

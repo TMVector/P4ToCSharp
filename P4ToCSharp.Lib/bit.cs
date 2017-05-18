@@ -666,7 +666,7 @@ namespace P4ToCSharp.Library
     /// <summary>Truncates the value</summary>
     private static bit64 OfValue(UInt64 v)
     {
-      return new bit64((UInt64)(v & ~(~0uL << BitWidth)));
+      return new bit64(v);
     }
     public static explicit operator bit64(bitN v) { return OfValue(v.Value); }
     public static explicit operator bit64(bit1 v) { return OfValue(v.Value); }

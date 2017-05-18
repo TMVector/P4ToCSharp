@@ -16,5 +16,10 @@ namespace v1model
         throw new NotImplementedException();
       }
     }
+
+    public void Add(TKey key, TResult result)
+    {
+      throw new NotImplementedException();
+    }
   }
 }

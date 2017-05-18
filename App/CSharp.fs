@@ -225,7 +225,16 @@ let classNameFor (name:string) = name
 let argsClassNameFor (name:string) = sprintf "%s_Args" (classNameFor name)
 let variableNameFor (name : string) =
   match name with
-  | "base" | "class" -> sprintf "@%s" name
+  | "abstract" | "as" | "base" | "bool" | "break" | "byte" | "case" | "catch" | "char" | "checked"
+  | "class" | "const" | "continue" | "decimal" | "default" | "delegate" | "do" | "double" | "else"
+  | "enum" | "event" | "explicit" | "extern" | "false" | "finally" | "fixed" | "float" | "for"
+  | "foreach" | "goto" | "if" | "implicit" | "in" | "int" | "interface" | "internal" | "is" | "lock"
+  | "long" | "namespace" | "new" | "null" | "object" | "operator" | "out" | "override" | "params" 
+  | "private" | "protected" | "public" | "readonly" | "ref" | "return" | "sbyte" | "sealed" | "short"
+  | "sizeof" | "stackalloc" | "static" | "string" | "struct" | "switch" | "this" | "throw" | "true"
+  | "try" | "typeof" | "uint" | "ulong" | "unchecked" | "unsafe" | "ushort" | "using" | "using static"
+  | "void" | "volatile" | "while" 
+    -> sprintf "@%s" name
   | _ -> name
 let csFieldNameOf p4Name =
   variableNameFor p4Name // FIXME any changes needed? Illegal chars etc
@@ -675,6 +684,7 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
           cast ofType scopeInfo c.destType (ofExpr UnknownType op.expr)
       | :? JsonTypes.IntMod -> failwith "IntMod not supported" // This is only used in BMv2 so shouldn't appear here
       | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Unary: %s" (op.GetType().Name)
+      |> (fun rv -> match expectedType with | JsonType ty -> cast ofType scopeInfo ty rv | _ -> rv)
   | :? JsonTypes.Operation_Binary as op -> // FIXME what about when the operands are of different type?
       let lExpr = ofExpr UnknownType op.left
       let rExpr = ofExpr UnknownType op.right
@@ -708,6 +718,7 @@ let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expr
                                          .WithArgumentList(exprArgList [| lExpr; rExpr (* FIXME 2nd arg should be count for Enumerable.Range - use custom method? *) |])
         //| :? JsonTypes.Mask -> "&&&" // FIXME implement
         | _ -> failwithf "Unhandled subtype of JsonTypes.Operation_Binary: %s" (op.GetType().Name) )
+      |> (fun rv -> match expectedType with | JsonType ty -> cast ofType scopeInfo ty rv | _ -> rv)
   | :? JsonTypes.Operation_Ternary as op ->
       match op with
       | :? JsonTypes.Slice -> upcast SF.InvocationExpression(eMemberAccess (ofExpr UnknownType op.e0) [|"Slice"|])
@@ -857,7 +868,8 @@ and statementOfDeclaration (scopeInfo:ScopeInfo) (n : JsonTypes.Declaration) : S
   | :? JsonTypes.P4Action -> failwithf "Type %s is not valid in statementToDeclaration" (n.GetType().Name)
   | :? JsonTypes.Declaration_ID -> failwith "JsonTypes.Declaration_ID not handled yet" // FIXME
   | :? JsonTypes.Declaration_Variable as v ->
-      upcast SF.LocalDeclarationStatement(variableDeclaration v.name (ofType scopeInfo v.type_) (v.initializer |> Option.map (ofExpr scopeInfo (JsonType v.type_))))
+      let ty = ofType scopeInfo v.type_
+      upcast SF.LocalDeclarationStatement(variableDeclaration v.name ty (v.initializer |> Option.map (ofExpr scopeInfo (JsonType v.type_)) |> Option.tryIfNone (fun () -> constructorCall ty [] :> Expr |> Some)))
   | :? JsonTypes.Declaration_Constant as c ->
       // Local constants are just handled like variables
       upcast SF.LocalDeclarationStatement(variableDeclaration c.name (ofType scopeInfo c.type_) (Some (ofExpr scopeInfo (JsonType c.type_) c.initializer)))
@@ -1278,21 +1290,6 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
             match expr with
             | :? JsonTypes.MethodCallExpression as mce -> getName mce.method_
             | :? JsonTypes.PathExpression as path -> path.path.name
-          let entries =
-            pt.properties.GetPropertyValueByName<JsonTypes.EntriesList>("entries")
-            |> Option.filter (fun _ -> if key.Length = 1 then true else printf "WARNING: entries property not handled for composite keys"; false)
-            |> Option.map (fun entries ->
-                let keyType = key.[0] |> fst
-                entries.entries.vec
-                |> Array.map (fun entry ->
-                    let actionType = SF.ParseTypeName(getName entry.action)
-                    let actionCtorArgs =
-                      match entry.action with :? JsonTypes.MethodCallExpression as mce -> mce.arguments.vec | _ -> Array.empty
-                      |> Array.map (ofExpr scopeInfo UnknownType)
-                    SF.InvocationExpression(memberAccess "lookup.Add")
-                      .WithArgumentList([ofExpr scopeInfo UnknownType (entry.keys.components.vec |> Seq.single);
-                                         constructorCall actionType actionCtorArgs :> Expr] |> exprArgList)
-                    )) // TODO handle entries
           let tableField =
             Seq.tryFirst key |> Option.map (fun (lutTy, kExpr) ->
               field lutTy "lookup" (constructorCall lutTy []))
@@ -1500,13 +1497,44 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                   //return result;
                   yield upcast SF.ReturnStatement(SF.IdentifierName("result"))
                 })
+          let entries =
+            pt.properties.GetPropertyValueByName<JsonTypes.EntriesList>("entries")
+            |> Option.filter (fun _ -> if key.Length = 1 then true else printf "WARNING: entries property not handled for composite keys"; false)
+            |> Option.map (fun entries ->
+                let keyType = key.[0] |> fst
+                entries.entries.vec
+                |> Array.map (fun entry ->
+                    let actionName = getName entry.action
+                    let actionType = SF.ParseTypeName(sprintf "ActionBase.%s_Action" actionName)
+                    let actionDecl =
+                      let actionScope =
+                        scopeInfo.ResolveIdentifier(actionName) // FIXME what about if the action is global?
+                        |> Option.ifNone (fun () -> failwithf "Couldn't resolve action named %s" actionName)
+                      match actionScope.CurrentNode with :? JsonTypes.P4Action as act -> act | _ -> failwithf "Action name did not resolve to an action"
+                    let actionCtorArgs =
+                      actionDecl.parameters.parameters.vec
+                      |> Seq.filter (fun p -> p.direction = JsonTypes.Direction.NoDirection)
+                      |> Seq.zip (match entry.action with :? JsonTypes.MethodCallExpression as mce -> mce.arguments.vec | _ -> Array.empty)
+                      |> Seq.map (fun (a,p) -> ofExpr scopeInfo (JsonType p.type_) a)
+                    SF.InvocationExpression(memberAccess "lookup.Add")
+                      .WithArgumentList([ofExpr scopeInfo UnknownType (entry.keys.components.vec |> Seq.single);
+                                         constructorCall actionType actionCtorArgs :> Expr] |> exprArgList)
+                    |> SF.ExpressionStatement :> Syntax.StatementSyntax
+                    ))
+            |> Option.ifNoneValue Array.empty
           let tableClassName = sprintf "%s_t" pt.name
           let tableClassType = SF.IdentifierName(tableClassName)
+          let ctor =
+            SF.ConstructorDeclaration(tableClassName)
+              .WithModifiers(tokenList [SK.PublicKeyword])
+              .AddParameterListParameters()
+              .AddBodyStatements(entries)
           let tableClass =
             SF.ClassDeclaration(tableClassName)
               .WithModifiers(tokenList [SK.PrivateKeyword; SK.SealedKeyword])
               .WithBaseTypes([tableBaseName])
               .AddMembers(tableField |> Option.cast |> Option.toArray)
+              .AddMembers(ctor)
               .AddMembers(apply)
               .AddMembers(action_list)
               .AddMembers(apply_result)
