@@ -191,6 +191,11 @@ namespace P4ToCSharp.Library
     public static explicit operator bit1(bit32 v) { return OfValue(v.Value); }
     public static explicit operator bit1(bit48 v) { return OfValue(v.Value); }
     public static explicit operator bit1(bit64 v) { return OfValue(v.Value); }
+    public static explicit operator bit1(intN v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit1(int8 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit1(int16 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit1(int32 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit1(int64 v) { return OfValue((ulong)v.Value); }
   }
 
   public struct bit4 : IBitString
@@ -265,6 +270,11 @@ namespace P4ToCSharp.Library
     public static explicit operator bit4(bit32 v) { return OfValue(v.Value); }
     public static explicit operator bit4(bit48 v) { return OfValue(v.Value); }
     public static explicit operator bit4(bit64 v) { return OfValue(v.Value); }
+    public static explicit operator bit4(intN v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit4(int8 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit4(int16 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit4(int32 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit4(int64 v) { return OfValue((ulong)v.Value); }
   }
 
   public struct bit8 : IBitString
@@ -348,6 +358,11 @@ namespace P4ToCSharp.Library
     public static explicit operator bit8(bit32 v) { return OfValue(v.Value); }
     public static explicit operator bit8(bit48 v) { return OfValue(v.Value); }
     public static explicit operator bit8(bit64 v) { return OfValue(v.Value); }
+    public static explicit operator bit8(intN v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit8(int8 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit8(int16 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit8(int32 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit8(int64 v) { return OfValue((ulong)v.Value); }
   }
 
   public struct bit16 : IBitString
@@ -427,6 +442,11 @@ namespace P4ToCSharp.Library
     public static explicit operator bit16(bit32 v) { return OfValue(v.Value); }
     public static explicit operator bit16(bit48 v) { return OfValue(v.Value); }
     public static explicit operator bit16(bit64 v) { return OfValue(v.Value); }
+    public static explicit operator bit16(intN v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit16(int8 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit16(int16 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit16(int32 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit16(int64 v) { return OfValue((ulong)v.Value); }
   }
 
   public struct bit32 : IBitString
@@ -486,11 +506,11 @@ namespace P4ToCSharp.Library
     }
     public static bit32 operator >>(bit32 a, int i)
     {
-      return new bit32(a.Value >> i);
+      return new bit32(i >= 32 ? 0 : a.Value >> i);
     }
     public static bit32 operator <<(bit32 a, int i)
     {
-      return new bit32(a.Value << i);
+      return new bit32(i >= 32 ? 0 : a.Value << i);
     }
 
     public static implicit operator bit32(uint v)
@@ -514,6 +534,11 @@ namespace P4ToCSharp.Library
     public static explicit operator bit32(bit16 v) { return OfValue(v.Value); }
     public static explicit operator bit32(bit48 v) { return OfValue(v.Value); }
     public static explicit operator bit32(bit64 v) { return OfValue(v.Value); }
+    public static explicit operator bit32(intN v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit32(int8 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit32(int16 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit32(int32 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit32(int64 v) { return OfValue((ulong)v.Value); }
   }
 
   public struct bit48 : IBitString
@@ -588,6 +613,11 @@ namespace P4ToCSharp.Library
     public static explicit operator bit48(bit16 v) { return OfValue(v.Value); }
     public static explicit operator bit48(bit32 v) { return OfValue(v.Value); }
     public static explicit operator bit48(bit64 v) { return OfValue(v.Value); }
+    public static explicit operator bit48(intN v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit48(int8 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit48(int16 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit48(int32 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit48(int64 v) { return OfValue((ulong)v.Value); }
   }
 
   public struct bit64 : IBitString
@@ -647,11 +677,11 @@ namespace P4ToCSharp.Library
     }
     public static bit64 operator >>(bit64 a, int i)
     {
-      return new bit64(a.Value >> i);
+      return new bit64(i >= 64 ? 0 : a.Value >> i);
     }
     public static bit64 operator <<(bit64 a, int i)
     {
-      return new bit64(a.Value << i);
+      return new bit64(i >= 64 ? 0 : a.Value << i);
     }
 
     public static implicit operator bit64(ulong v)
@@ -675,5 +705,420 @@ namespace P4ToCSharp.Library
     public static explicit operator bit64(bit16 v) { return OfValue(v.Value); }
     public static explicit operator bit64(bit32 v) { return OfValue(v.Value); }
     public static explicit operator bit64(bit48 v) { return OfValue(v.Value); }
+    public static explicit operator bit64(intN v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit64(int8 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit64(int16 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit64(int32 v) { return OfValue((ulong)v.Value); }
+    public static explicit operator bit64(int64 v) { return OfValue((ulong)v.Value); }
+  }
+
+  /*****************************************************************************
+   * IntX and IntN
+   ****************************************************************************/
+
+  // Dynamic width signed bitstring (up to 64 wide)
+  public struct intN : IBitString
+  {
+    public int BitWidth { get; }
+    int IBitString.BitWidth { get { return BitWidth; } }
+
+    public Int64 Value { get; }
+
+    UInt64 IBitString.Value { get { return (UInt64)Value; } }
+
+    public intN(int width, Int64 val)
+    {
+      Debug.Assert(width > 0 && width <= 64);
+      BitWidth = width;
+      Debug.Assert(val < (1u << BitWidth));
+      Value = val; // FIXME mask? (Debug.Assert is not checked in Release)
+    }
+
+    public static bool operator ==(intN a, intN b)
+    {
+      return a.Value == b.Value;
+    }
+
+    public static bool operator ==(intN a, Int64 b)
+    {
+      return a.Value == b;
+    }
+    public static bool operator !=(intN a, intN b)
+    {
+      return !(a == b);
+    }
+    public static bool operator !=(intN a, Int64 b)
+    {
+      return !(a == b);
+    }
+    public override bool Equals(object obj)
+    {
+      if (obj is intN)
+        return this == (intN)obj;
+      else if (obj is Int64)
+        return this == (Int64)obj;
+      else
+        return false;
+    }
+    public override int GetHashCode()
+    {
+      return Value.GetHashCode();
+    }
+
+    // NOTE we don't support any arithmetic for this datatype
+    public static bool operator <(intN a, IBitString b) { return a.Value < (Int64)b.Value; }
+    public static bool operator >(intN a, IBitString b) { return a.Value > (Int64)b.Value; }
+
+    /// <summary>Truncates the value</summary>
+    public static intN OfValue(Int64 v, int width)
+    {
+      return new intN(width, (Int64)((UInt64)v & ~(~0uL << width)));
+    }
+
+    public intN SetSliceN(int from, int to, ulong val)
+    {
+      ulong v = ((IBitString)this).SetSlice(from, to, val);
+      return new intN(this.BitWidth, (Int64)v);
+    }
+  }
+
+  public struct int8 : IBitString
+  {
+    public const int BitWidth = 8;
+    int IBitString.BitWidth { get { return BitWidth; } }
+
+    public SByte Value { get; }
+
+    UInt64 IBitString.Value { get { return (UInt64)Value; } }
+
+    public int8(SByte val)
+    {
+      Value = val;
+    }
+
+    public static bool operator ==(int8 a, int8 b)
+    {
+      return a.Value == b.Value;
+    }
+    public static bool operator ==(int8 a, SByte b)
+    {
+      return a.Value == b;
+    }
+    public static bool operator !=(int8 a, int8 b)
+    {
+      return !(a == b);
+    }
+    public static bool operator !=(int8 a, SByte b)
+    {
+      return !(a == b);
+    }
+    public override bool Equals(object obj)
+    {
+      if (obj is int8)
+        return this == (int8)obj;
+      else if (obj is SByte)
+        return this == (SByte)obj;
+      else
+        return false;
+    }
+    public override int GetHashCode()
+    {
+      return Value;
+    }
+
+    public static bool operator <(int8 a, IBitString b) { return a.Value < (Int64)b.Value; }
+    public static bool operator >(int8 a, IBitString b) { return a.Value > (Int64)b.Value; }
+
+    public static int8 operator +(int8 a, int i)
+    {
+      return new int8((SByte)(a.Value + i)); // FIXME what about overflow, etc.? What is the P4 behaviour?
+    }
+    public static int8 operator -(int8 a, int i)
+    {
+      return new int8((SByte)(a.Value - i)); // FIXME overflow
+    }
+
+    public static implicit operator int8(int v)
+    {
+      return OfValue(v);
+    }
+    public static implicit operator int(int8 v)
+    {
+      return v.Value;
+    }
+
+    /// <summary>Truncates the value</summary>
+    private static int8 OfValue(Int64 v)
+    {
+      return new int8((SByte)((UInt64)v & ~(~0uL << BitWidth)));
+    }
+    public static explicit operator int8(intN v) { return OfValue(v.Value); }
+    public static explicit operator int8(int16 v) { return OfValue(v.Value); }
+    public static explicit operator int8(int32 v) { return OfValue(v.Value); }
+    public static explicit operator int8(int64 v) { return OfValue(v.Value); }
+    public static explicit operator int8(bitN v) { return OfValue((long)v.Value); }
+    public static explicit operator int8(bit8 v) { return OfValue(v.Value); }
+    public static explicit operator int8(bit16 v) { return OfValue(v.Value); }
+    public static explicit operator int8(bit32 v) { return OfValue(v.Value); }
+    public static explicit operator int8(bit64 v) { return OfValue((long)v.Value); }
+  }
+
+  public struct int16 : IBitString
+  {
+    public const int BitWidth = 16;
+    int IBitString.BitWidth { get { return BitWidth; } }
+
+    public Int16 Value { get; }
+
+    UInt64 IBitString.Value { get { return (UInt64)Value; } }
+
+    public int16(Int16 val)
+    {
+      Value = val;
+    }
+
+    public static bool operator ==(int16 a, int16 b)
+    {
+      return a.Value == b.Value;
+    }
+    public static bool operator ==(int16 a, Int16 b)
+    {
+      return a.Value == b;
+    }
+    public static bool operator !=(int16 a, int16 b)
+    {
+      return !(a == b);
+    }
+    public static bool operator !=(int16 a, Int16 b)
+    {
+      return !(a == b);
+    }
+    public override bool Equals(object obj)
+    {
+      if (obj is int16)
+        return this == (int16)obj;
+      else if (obj is Int16)
+        return this == (Int16)obj;
+      else
+        return false;
+    }
+    public override int GetHashCode()
+    {
+      return Value;
+    }
+
+    public static bool operator <(int16 a, IBitString b) { return a.Value < (Int64)b.Value; }
+    public static bool operator >(int16 a, IBitString b) { return a.Value > (Int64)b.Value; }
+
+    public static int16 operator +(int16 a, int i)
+    {
+      return new int16((Int16)(a.Value + i)); // FIXME what about overflow, etc.? What is the P4 behaviour?
+    }
+    public static int16 operator -(int16 a, int i)
+    {
+      return new int16((Int16)(a.Value - i)); // FIXME overflow
+    }
+
+    public static implicit operator int16(int v)
+    {
+      return OfValue(v);
+    }
+    public static implicit operator int(int16 v)
+    {
+      return (int)v.Value;
+    }
+
+    /// <summary>Truncates the value</summary>
+    private static int16 OfValue(Int64 v)
+    {
+      return new int16((Int16)((UInt64)v & ~(~0uL << BitWidth)));
+    }
+    public static explicit operator int16(intN v) { return OfValue(v.Value); }
+    public static explicit operator int16(int8 v) { return OfValue(v.Value); }
+    public static explicit operator int16(int32 v) { return OfValue(v.Value); }
+    public static explicit operator int16(int64 v) { return OfValue(v.Value); }
+    public static explicit operator int16(bitN v) { return OfValue((long)v.Value); }
+    public static explicit operator int16(bit8 v) { return OfValue(v.Value); }
+    public static explicit operator int16(bit16 v) { return OfValue(v.Value); }
+    public static explicit operator int16(bit32 v) { return OfValue(v.Value); }
+    public static explicit operator int16(bit64 v) { return OfValue((long)v.Value); }
+  }
+
+  public struct int32 : IBitString
+  {
+    public const int BitWidth = 32;
+    int IBitString.BitWidth { get { return BitWidth; } }
+
+    public Int32 Value { get; }
+
+    UInt64 IBitString.Value { get { return (UInt64)Value; } }
+
+    public int32(Int32 val)
+    {
+      Value = val;
+    }
+
+    public static bool operator ==(int32 a, int32 b)
+    {
+      return a.Value == b.Value;
+    }
+    public static bool operator ==(int32 a, Int32 b)
+    {
+      return a.Value == b;
+    }
+    public static bool operator !=(int32 a, int32 b)
+    {
+      return !(a == b);
+    }
+    public static bool operator !=(int32 a, Int32 b)
+    {
+      return !(a == b);
+    }
+    public override bool Equals(object obj)
+    {
+      if (obj is int32)
+        return this == (int32)obj;
+      else if (obj is Int32)
+        return this == (Int32)obj;
+      else
+        return false;
+    }
+    public override int GetHashCode()
+    {
+      return (int)Value;
+    }
+
+    public static bool operator <(int32 a, IBitString b) { return a.Value < (Int64)b.Value; }
+    public static bool operator >(int32 a, IBitString b) { return a.Value > (Int64)b.Value; }
+
+    public static int32 operator +(int32 a, int i)
+    {
+      return new int32(a.Value + i);
+    }
+    public static int32 operator -(int32 a, int i)
+    {
+      return new int32(a.Value - i);
+    }
+    public static int32 operator >>(int32 a, int i)
+    {
+      return new int32(i >= 32 ? (a.Value < 0 ? -1 : 0) : a.Value >> i);
+    }
+    public static int32 operator <<(int32 a, int i)
+    {
+      return new int32(i >= 32 ? 0 : a.Value << i);
+    }
+
+    public static implicit operator int32(int v)
+    {
+      return OfValue(v);
+    }
+    public static implicit operator int(int32 v)
+    {
+      return v.Value;
+    }
+
+    /// <summary>Truncates the value</summary>
+    private static int32 OfValue(Int64 v)
+    {
+      return new int32((Int32)((UInt64)v & ~(~0uL << BitWidth)));
+    }
+    public static explicit operator int32(intN v) { return OfValue(v.Value); }
+    public static explicit operator int32(int8 v) { return OfValue(v.Value); }
+    public static explicit operator int32(int16 v) { return OfValue(v.Value); }
+    public static explicit operator int32(int64 v) { return OfValue(v.Value); }
+    public static explicit operator int32(bitN v) { return OfValue((long)v.Value); }
+    public static explicit operator int32(bit8 v) { return OfValue(v.Value); }
+    public static explicit operator int32(bit16 v) { return OfValue(v.Value); }
+    public static explicit operator int32(bit32 v) { return OfValue(v.Value); }
+    public static explicit operator int32(bit64 v) { return OfValue((long)v.Value); }
+  }
+
+  public struct int64 : IBitString
+  {
+    public const int BitWidth = 64;
+    int IBitString.BitWidth { get { return BitWidth; } }
+
+    public Int64 Value { get; }
+
+    UInt64 IBitString.Value { get { return (UInt64)Value; } }
+
+    public int64(Int64 val)
+    {
+      Value = val;
+    }
+
+    public static bool operator ==(int64 a, int64 b)
+    {
+      return a.Value == b.Value;
+    }
+    public static bool operator ==(int64 a, Int64 b)
+    {
+      return a.Value == b;
+    }
+    public static bool operator !=(int64 a, int64 b)
+    {
+      return !(a == b);
+    }
+    public static bool operator !=(int64 a, Int64 b)
+    {
+      return !(a == b);
+    }
+    public override bool Equals(object obj)
+    {
+      if (obj is int64)
+        return this == (int64)obj;
+      else if (obj is Int64)
+        return this == (Int64)obj;
+      else
+        return false;
+    }
+    public override int GetHashCode()
+    {
+      return (int)Value;
+    }
+
+    public static bool operator <(int64 a, IBitString b) { return a.Value < 0 || (UInt64)a.Value < b.Value; }
+    public static bool operator >(int64 a, IBitString b) { return a.Value >= 0 && (UInt64)a.Value > b.Value; }
+
+    public static int64 operator +(int64 a, long i)
+    {
+      return new int64(a.Value + i);
+    }
+    public static int64 operator -(int64 a, long i)
+    {
+      return new int64(a.Value - i);
+    }
+    public static int64 operator >>(int64 a, int i)
+    {
+      return new int64(i >= 64 ? (a.Value < 0 ? -1 : 0) : a.Value >> i);
+    }
+    public static int64 operator <<(int64 a, int i)
+    {
+      return new int64(i >= 64 ? 0 : a.Value << i);
+    }
+
+    public static implicit operator int64(long v)
+    {
+      return OfValue(v);
+    }
+    public static implicit operator long(int64 v)
+    {
+      return v.Value;
+    }
+
+    /// <summary>Truncates the value</summary>
+    private static int64 OfValue(Int64 v)
+    {
+      return new int64(v);
+    }
+    public static explicit operator int64(intN v) { return OfValue(v.Value); }
+    public static explicit operator int64(int8 v) { return OfValue(v.Value); }
+    public static explicit operator int64(int16 v) { return OfValue(v.Value); }
+    public static explicit operator int64(int32 v) { return OfValue(v.Value); }
+    public static explicit operator int64(bitN v) { return OfValue((long)v.Value); }
+    public static explicit operator int64(bit8 v) { return OfValue(v.Value); }
+    public static explicit operator int64(bit16 v) { return OfValue(v.Value); }
+    public static explicit operator int64(bit32 v) { return OfValue(v.Value); }
+    public static explicit operator int64(bit64 v) { return OfValue((long)v.Value); }
   }
 }

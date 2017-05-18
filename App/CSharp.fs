@@ -376,6 +376,10 @@ let isFixedBitSize (size) =
   match size with
   | 1 | 4 | 8 | 16 | 32 | 48 | 64 -> true
   | _ -> false
+let isFixedIntSize (size) =
+  match size with
+  | 8 | 16 | 32 | 64 -> true
+  | _ -> false
 
 let assignment lExpr rExpr =
   SF.ExpressionStatement(SF.AssignmentExpression(SK.SimpleAssignmentExpression, lExpr, rExpr))
@@ -426,14 +430,15 @@ let createExtractExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) =
                                     SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset))) // FIXME types in headers: bit fixed/var + int
       if fixedSize then invoc else invoc.AddArgumentListArguments(SF.Argument(literalInt bits.size))
   | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name)
-let createWriteExpr arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) fieldExpr =
+let createWriteExpr (cast : JsonTypes.Type -> Expr -> Expr) arrExpr offsetExpr (ty:JsonTypes.Type) (bitOffset:int) fieldExpr =
   match ty with
   | :? JsonTypes.Type_Bits as bits ->
       let N = if isFixedBitSize bits.size then string bits.size else "N"
+      let cast (ty:JsonTypes.Type_Bits) = if ty.isSigned then cast (JsonTypes.Type_Bits(ty.size, false)) else cast ty
       SF.InvocationExpression(memberAccess (sprintf "BitHelper.Write%s" N))
         .AddArgumentListArguments(SF.Argument(arrExpr),
                                   SF.Argument(SF.BinaryExpression(SK.AddExpression, offsetExpr, literalInt bitOffset)),
-                                  SF.Argument(fieldExpr))
+                                  SF.Argument(cast bits fieldExpr))
   | _ -> failwithf "Cannot create extract expression for unhandled type: %s" (ty.GetType().Name) // FIXME types in headers: bit fixed/var + int
 
 type Syntax.PropertyDeclarationSyntax with
@@ -503,7 +508,7 @@ type Syntax.ClassDeclarationSyntax with
       |> Seq.cast<Syntax.MemberDeclarationSyntax>
       |> Seq.toArray
     this.AddMembers(properties)
-  member this.ImplementHeaderBase(header : JsonTypes.Type_Header, scopeInfo : ScopeInfo) =
+  member this.ImplementHeaderBase(cast : JsonTypes.Type -> Expr -> Expr, header : JsonTypes.Type_Header, scopeInfo : ScopeInfo) =
     let arrName, offsetName = "data", "offset"
     let size (field:JsonTypes.StructField) =
       match resolveType scopeInfo ResolveTypeDef field.type_ with
@@ -521,7 +526,7 @@ type Syntax.ClassDeclarationSyntax with
               SF.Parameter(SF.Identifier(offsetName)).WithType(uint32Type); |])
         .WithBlockBody(
           let changeBytesToBits = SF.ExpressionStatement(SF.AssignmentExpression(SK.MultiplyAssignmentExpression, SF.IdentifierName(offsetName), literalInt 8))
-          let extractExprFor = createExtractExpr <| SF.IdentifierName(arrName) <| SF.IdentifierName(offsetName)
+          let extractExprFor ty bitOffset = cast ty (createExtractExpr (SF.IdentifierName(arrName)) (SF.IdentifierName(offsetName)) ty bitOffset)
           let extractStatements =
             fields
             |> Seq.mapFold (fun bitOffset (field, ty, size) -> assignment field (extractExprFor ty bitOffset), bitOffset + size) 0 |> fst
@@ -541,7 +546,7 @@ type Syntax.ClassDeclarationSyntax with
               SF.Parameter(SF.Identifier(offsetName)).WithType(uint32Type); |])
         .WithBlockBody(
           let changeBytesToBits = SF.ExpressionStatement(SF.AssignmentExpression(SK.MultiplyAssignmentExpression, SF.IdentifierName(offsetName), literalInt 8))
-          let writeExprFor = createWriteExpr <| SF.IdentifierName(arrName) <| SF.IdentifierName(offsetName)
+          let writeExprFor = createWriteExpr cast (SF.IdentifierName(arrName)) (SF.IdentifierName(offsetName))
           let writeStatements =
             fields
             |> Seq.mapFold (fun bitOffset (field, ty, size) -> SF.ExpressionStatement(writeExprFor ty bitOffset field), bitOffset + size) 0 |> fst
@@ -619,6 +624,25 @@ let inferTypeOf (scope:ScopeInfo) (typedefBehaviour:TypeDefBehaviour) (expr:Json
 //      | _ -> failwith "Tried to follow a name expression that wasn't a valid name expression"
 //    getTypeOf expr
 
+
+let paren expr : Syntax.ExpressionSyntax = upcast SF.ParenthesizedExpression expr
+let isBitN (width) =
+  match width with
+  | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
+  | s when s <= 64 -> isFixedBitSize s
+  | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
+let isIntN (width) =
+  match width with
+  | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
+  | s when s <= 64 -> isFixedIntSize s
+  | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
+let cast (ofType : ScopeInfo -> JsonTypes.Type -> Syntax.TypeSyntax) (scopeInfo : ScopeInfo) (ty:JsonTypes.Type) (expr : Syntax.ExpressionSyntax) : Syntax.ExpressionSyntax =
+  match ty with
+  | :? JsonTypes.Type_Bits as bits when not (isBitN bits.size) ->
+      // Handle cast to bitN as a special case
+      upcast SF.InvocationExpression(SF.ParseName("bitN.OfValue"))
+               .AddArgumentListArguments(SF.Argument expr, SF.Argument(literalInt bits.size).WithNameColon(SF.NameColon("width")))
+  | _ -> paren (SF.CastExpression(ofType scopeInfo ty, expr))
 let declarationOfStructLike (ofType : ScopeInfo -> JsonTypes.Type -> Syntax.TypeSyntax) (scopeInfo : ScopeInfo) (structLike : JsonTypes.Type_StructLike) =
   match structLike with
   | :? JsonTypes.Type_Struct as str ->
@@ -635,7 +659,7 @@ let declarationOfStructLike (ofType : ScopeInfo -> JsonTypes.Type -> Syntax.Type
         .WithModifiers(tokenList([| SK.PublicKeyword; SK.SealedKeyword |]))
         .WithBaseList(SF.BaseList(SF.SeparatedList([| headerBaseBaseType |])))
         .AddStructLikeFields(header, ofType scopeInfo)
-        .ImplementHeaderBase(header, scopeInfo) // TODO: Headers need a validity bit (can it be represented by null? What about checking the validity bit?) (could use extension method?)
+        .ImplementHeaderBase(cast ofType scopeInfo, header, scopeInfo) // TODO: Headers need a validity bit (can it be represented by null? What about checking the validity bit?) (could use extension method?)
   | _ -> failwithf "Unhandled subtype of JsonTypes.Type_StructLike: %s" (structLike.GetType().Name)
 let declarationOfError (baseType : Syntax.NameSyntax) (newErrorMembers : JsonTypes.Declaration_ID seq) =
   SF.ClassDeclaration(errorName.Identifier)
@@ -653,20 +677,6 @@ let declarationOfError (baseType : Syntax.NameSyntax) (newErrorMembers : JsonTyp
 let declarationOfEnum (error : JsonTypes.Type_Enum) =
   (createEnum error.name (error.members.vec |> Seq.map (fun memb -> memb.name)))
     .WithModifiers(tokenList [SK.PublicKeyword])
-
-let paren expr : Syntax.ExpressionSyntax = upcast SF.ParenthesizedExpression expr
-let isBitN (width) =
-  match width with
-  | s when s <= 0 -> failwithf "Type_bits.size (=%d) must be greater than 0" s
-  | s when s <= 64 -> isFixedBitSize s
-  | s -> failwithf "Type_bits.size (=%d) must be less than or equal to 64" s
-let cast (ofType : ScopeInfo -> JsonTypes.Type -> Syntax.TypeSyntax) (scopeInfo : ScopeInfo) (ty:JsonTypes.Type) (expr : Syntax.ExpressionSyntax) : Syntax.ExpressionSyntax =
-  match ty with
-  | :? JsonTypes.Type_Bits as bits when not (isBitN bits.size) ->
-      // Handle cast to bitN as a special case
-      upcast SF.InvocationExpression(SF.ParseName("bitN.OfValue"))
-               .AddArgumentListArguments(SF.Argument expr, SF.Argument(literalInt bits.size).WithNameColon(SF.NameColon("width")))
-  | _ -> paren (SF.CastExpression(ofType scopeInfo ty, expr))
 
 let rec ofExpr (scopeInfo:ScopeInfo) (expectedType : CJType) (e : JsonTypes.Expression) : Syntax.ExpressionSyntax =
   let scopeInfo = scopeInfo.EnterChildScope(e)
@@ -835,10 +845,16 @@ and nameOfType (scopeInfo : ScopeInfo) (fqType:TypeQualification) (t : JsonTypes
   match t with
   | :? JsonTypes.Type_Bits as bits ->
       let bitsName =
-        if isBitN bits.size then // NOTE isBitN errors if size is invalid
-          SF.IdentifierName(sprintf "bit%d" bits.size)
+        if bits.isSigned then
+          if isIntN bits.size then // NOTE isIntN errors if size is invalid
+            SF.IdentifierName(sprintf "int%d" bits.size)
+          else
+            SF.IdentifierName("intN")
         else
-          SF.IdentifierName("bitN")
+          if isBitN bits.size then // NOTE isBitN errors if size is invalid
+            SF.IdentifierName(sprintf "bit%d" bits.size)
+          else
+            SF.IdentifierName("bitN")
       match fqType with
       | UnqualifiedType -> upcast bitsName
       | FullyQualifiedType -> upcast SF.QualifiedName(libraryName, bitsName)

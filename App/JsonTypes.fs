@@ -187,8 +187,9 @@ module JsonTypes =
     inherit Type_Base(node_id, node_type)
 
   [<AllowNullLiteral>][<Sealed>]
-  type Type_Bits(node_id, node_type, size, isSigned) =
+  type Type_Bits [<JsonConstructor>](node_id, node_type, size, isSigned) =
     inherit Type_Base(node_id, node_type)
+    new(size, isSigned) = Type_Bits(-1, "Type_Bits", size, isSigned)
     member this.size : int = size
     member this.isSigned : bool = isSigned
 
