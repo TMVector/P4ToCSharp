@@ -234,7 +234,7 @@ public class Program
 
         private sealed class ipv4_match_table_t : ITable
         {
-            P4ToCSharp.Library.ExactTable<bit32, ActionBase> lookup = new P4ToCSharp.Library.ExactTable<bit32, ActionBase>();
+            P4ToCSharp.Library.ExactTable<bit32, P4ToCSharp.Library.ExactTable<bit32, ActionBase>> lookup = new P4ToCSharp.Library.ExactTable<bit32, P4ToCSharp.Library.ExactTable<bit32, ActionBase>>();
 
             public ipv4_match_table_t()
             {
@@ -243,7 +243,7 @@ public class Program
             public apply_result apply(TopPipe_Args TopPipe_Args)
             {
                 apply_result result;
-                ActionBase RA = lookup?[TopPipe_Args.headers.ip.dstAddr];
+                ActionBase RA = lookup?[TopPipe_Args.headers.ip.srcAddr];
                 if (RA == null)
                 {
                     result = new apply_result(false, default_action.Action);
