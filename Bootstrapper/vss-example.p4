@@ -213,7 +213,7 @@ control TopDeparser(inout Parsed_Packet_struct p, packet_out b) {
         if (p.ip.isValid()) {
             ck.clear();                // prepare checksum unit
             p.ip.hdrChecksum = 16w0;   // clear checksum
-            ck.update(p.ip);           // compute new checksum.
+            ck.update(p.ethernet);           // compute new checksum.
             p.ip.hdrChecksum = ck.get();
         }
         b.emit(p.ip);

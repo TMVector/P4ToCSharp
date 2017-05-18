@@ -594,7 +594,7 @@ public class Program
             {
                 TopDeparser_Args.Instance.ck.clear();
                 TopDeparser_Args.p.ip.hdrChecksum = ((bit16)0);
-                TopDeparser_Args.Instance.ck.update<IPV4_h>(TopDeparser_Args.p.ip);
+                TopDeparser_Args.Instance.ck.update<Ethernet_h>(TopDeparser_Args.p.ethernet);
                 TopDeparser_Args.p.ip.hdrChecksum = TopDeparser_Args.Instance.ck.get();
             }
 
