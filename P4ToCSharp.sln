@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
+		p4c-json.log.txt = p4c-json.log.txt
 		paket.dependencies = paket.dependencies
 		README.md = README.md
 	EndProjectSection
@@ -17,7 +18,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HandConverted", "HandConver
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "P4ToCSharp.Lib", "P4ToCSharp.Lib\P4ToCSharp.Lib.csproj", "{4AC851B0-BB98-40E4-B338-746733ED44D1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bootstrapper", "Bootstrapper\Bootstrapper.csproj", "{D456F4B7-D198-4825-A23B-6E2D3D8BFA91}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HandConvertedProgram", "HandConvertedProgram\HandConvertedProgram.csproj", "{53E1C39E-DF0A-457D-A7A5-4B87888F37C0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "v1model", "v1model\v1model.csproj", "{5260D798-D94A-4A60-810A-563A1FC2B0D0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "vss-model", "vss-model\vss-model.csproj", "{D7FB9DFD-C90B-41FF-82A6-75921E53BE18}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bootstrapper", "Bootstrapper\Bootstrapper.csproj", "{F28A0C84-9ABB-465C-9A55-48191D962C00}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,17 +37,27 @@ Global
 		{2F52AFED-A977-483A-89E5-5FC0219C7EB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F52AFED-A977-483A-89E5-5FC0219C7EB7}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7795E8A3-6123-40C7-A636-3889123CF828}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7795E8A3-6123-40C7-A636-3889123CF828}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7795E8A3-6123-40C7-A636-3889123CF828}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7795E8A3-6123-40C7-A636-3889123CF828}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4AC851B0-BB98-40E4-B338-746733ED44D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4AC851B0-BB98-40E4-B338-746733ED44D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4AC851B0-BB98-40E4-B338-746733ED44D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4AC851B0-BB98-40E4-B338-746733ED44D1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D456F4B7-D198-4825-A23B-6E2D3D8BFA91}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D456F4B7-D198-4825-A23B-6E2D3D8BFA91}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D456F4B7-D198-4825-A23B-6E2D3D8BFA91}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D456F4B7-D198-4825-A23B-6E2D3D8BFA91}.Release|Any CPU.Build.0 = Release|Any CPU
+		{53E1C39E-DF0A-457D-A7A5-4B87888F37C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53E1C39E-DF0A-457D-A7A5-4B87888F37C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53E1C39E-DF0A-457D-A7A5-4B87888F37C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53E1C39E-DF0A-457D-A7A5-4B87888F37C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5260D798-D94A-4A60-810A-563A1FC2B0D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5260D798-D94A-4A60-810A-563A1FC2B0D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5260D798-D94A-4A60-810A-563A1FC2B0D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5260D798-D94A-4A60-810A-563A1FC2B0D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7FB9DFD-C90B-41FF-82A6-75921E53BE18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7FB9DFD-C90B-41FF-82A6-75921E53BE18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7FB9DFD-C90B-41FF-82A6-75921E53BE18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7FB9DFD-C90B-41FF-82A6-75921E53BE18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F28A0C84-9ABB-465C-9A55-48191D962C00}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F28A0C84-9ABB-465C-9A55-48191D962C00}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F28A0C84-9ABB-465C-9A55-48191D962C00}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F28A0C84-9ABB-465C-9A55-48191D962C00}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -48,12 +65,10 @@ Global
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
 		$0.TextStylePolicy = $1
-		$1.FileWidth = 120
 		$1.TabWidth = 2
 		$1.IndentWidth = 2
-		$1.inheritsSet = VisualStudio
-		$1.inheritsScope = text/plain
 		$1.scope = text/x-csharp
+		$1.TabsToSpaces = True
 		$0.FSharpFormattingPolicy = $2
 		$2.DefaultFormat = $3
 		$3.IndentOnTryWith = False
@@ -63,27 +78,9 @@ Global
 		$3.SpaceAroundDelimiter = True
 		$3.SpaceBeforeArgument = True
 		$3.SpaceBeforeColon = True
+		$3.__added = 0
 		$2.scope = text/x-fsharp
 		$0.CSharpFormattingPolicy = $4
-		$4.IndentSwitchSection = True
-		$4.NewLinesForBracesInProperties = True
-		$4.NewLinesForBracesInAccessors = True
-		$4.NewLinesForBracesInAnonymousMethods = True
-		$4.NewLinesForBracesInControlBlocks = True
-		$4.NewLinesForBracesInAnonymousTypes = True
-		$4.NewLinesForBracesInObjectCollectionArrayInitializers = True
-		$4.NewLinesForBracesInLambdaExpressionBody = True
-		$4.NewLineForElse = True
-		$4.NewLineForCatch = True
-		$4.NewLineForFinally = True
-		$4.NewLineForMembersInObjectInit = True
-		$4.NewLineForMembersInAnonymousTypes = True
-		$4.NewLineForClausesInQuery = True
-		$4.SpacingAfterMethodDeclarationName = False
-		$4.SpaceAfterMethodCallName = False
-		$4.SpaceBeforeOpenSquareBracket = False
-		$4.inheritsSet = Mono
-		$4.inheritsScope = text/x-csharp
 		$4.scope = text/x-csharp
 	EndGlobalSection
 EndGlobal

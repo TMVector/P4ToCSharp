@@ -1,32 +1,54 @@
 {
   "pathToDeclaration" : [
     {
-      "key" : 72,
+      "key" : 77,
       "value" : {
-        "Node_ID" : 29, 
-        "Node_Type" : "Type_Struct",
-        "name" : "S1",
-        "declid" : 2,
+        "Node_ID" : 46, 
+        "Node_Type" : "Declaration_Variable",
+        "name" : "y",
+        "declid" : 6,
         "annotations" : {
-          "Node_ID" : 3, 
+          "Node_ID" : 2, 
           "Node_Type" : "Annotations",
           "annotations" : {
-            "Node_ID" : 4, 
+            "Node_ID" : 3, 
             "Node_Type" : "Vector<Annotation>",
             "vec" : []
           }
         },
+        "type" : {
+          "Node_ID" : 45, 
+          "Node_Type" : "Type_Name",
+          "path" : {
+            "Node_ID" : 44, 
+            "Node_Type" : "Path",
+            "name" : "S1",
+            "absolute" : false
+          }
+        }
+      }
+    },
+    {
+      "key" : 73,
+      "value" : {
+        "Node_ID" : 37, 
+        "Node_Type" : "Type_Struct",
+        "name" : "S1",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 2
+        },
         "fields" : {
-          "Node_ID" : 22, 
+          "Node_ID" : 38, 
           "Node_Type" : "IndexedVector<StructField>",
           "vec" : [
             {
-              "Node_ID" : 25, 
+              "Node_ID" : 31, 
               "Node_Type" : "StructField",
               "name" : "f",
               "declid" : 3,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
                 "Node_ID" : 0, 
@@ -36,12 +58,12 @@
               }
             },
             {
-              "Node_ID" : 28, 
+              "Node_ID" : 34, 
               "Node_Type" : "StructField",
               "name" : "g",
               "declid" : 4,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
                 "Node_ID" : 0
@@ -50,24 +72,24 @@
           ],
           "declarations" : {
             "f" : {
-              "Node_ID" : 25, 
+              "Node_ID" : 31, 
               "Node_Type" : "StructField",
               "name" : "f",
               "declid" : 3,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
                 "Node_ID" : 0
               }
             },
             "g" : {
-              "Node_ID" : 28, 
+              "Node_ID" : 34, 
               "Node_Type" : "StructField",
               "name" : "g",
               "declid" : 4,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
                 "Node_ID" : 0
@@ -78,24 +100,24 @@
       }
     },
     {
-      "key" : 70,
+      "key" : 71,
       "value" : {
-        "Node_ID" : 16, 
+        "Node_ID" : 19, 
         "Node_Type" : "Method",
         "name" : "f",
         "declid" : 1,
         "type" : {
-          "Node_ID" : 15, 
+          "Node_ID" : 18, 
           "Node_Type" : "Type_Method",
           "typeParameters" : {
             "Node_ID" : 9, 
             "Node_Type" : "TypeParameters",
             "parameters" : {
-              "Node_ID" : 7, 
+              "Node_ID" : 10, 
               "Node_Type" : "IndexedVector<Type_Var>",
               "vec" : [
                 {
-                  "Node_ID" : 8, 
+                  "Node_ID" : 7, 
                   "Node_Type" : "Type_Var",
                   "name" : "T",
                   "declid" : 0
@@ -103,7 +125,7 @@
               ],
               "declarations" : {
                 "T" : {
-                  "Node_ID" : 8, 
+                  "Node_ID" : 7, 
                   "Node_Type" : "Type_Var",
                   "name" : "T",
                   "declid" : 0
@@ -112,30 +134,30 @@
             }
           },
           "returnType" : {
-            "Node_ID" : 6, 
+            "Node_ID" : 5, 
             "Node_Type" : "Type_Void"
           },
           "parameters" : {
-            "Node_ID" : 14, 
+            "Node_ID" : 16, 
             "Node_Type" : "ParameterList",
             "parameters" : {
-              "Node_ID" : 13, 
+              "Node_ID" : 17, 
               "Node_Type" : "IndexedVector<Parameter>",
               "vec" : [
                 {
-                  "Node_ID" : 12, 
+                  "Node_ID" : 13, 
                   "Node_Type" : "Parameter",
                   "name" : "data",
                   "declid" : 0,
                   "annotations" : {
-                    "Node_ID" : 3
+                    "Node_ID" : 2
                   },
                   "direction" : "in",
                   "type" : {
-                    "Node_ID" : 11, 
+                    "Node_ID" : 12, 
                     "Node_Type" : "Type_Name",
                     "path" : {
-                      "Node_ID" : 10, 
+                      "Node_ID" : 11, 
                       "Node_Type" : "Path",
                       "name" : "T",
                       "absolute" : false
@@ -145,16 +167,16 @@
               ],
               "declarations" : {
                 "data" : {
-                  "Node_ID" : 12, 
+                  "Node_ID" : 13, 
                   "Node_Type" : "Parameter",
                   "name" : "data",
                   "declid" : 0,
                   "annotations" : {
-                    "Node_ID" : 3
+                    "Node_ID" : 2
                   },
                   "direction" : "in",
                   "type" : {
-                    "Node_ID" : 11
+                    "Node_ID" : 12
                   }
                 }
               }
@@ -163,78 +185,25 @@
         },
         "isAbstract" : false,
         "annotations" : {
-          "Node_ID" : 3
+          "Node_ID" : 2
         }
       }
     },
     {
-      "key" : 66,
+      "key" : 67,
       "value" : {
-        "Node_ID" : 37, 
-        "Node_Type" : "Declaration_Variable",
-        "name" : "y",
-        "declid" : 6,
-        "annotations" : {
-          "Node_ID" : 3
-        },
-        "type" : {
-          "Node_ID" : 36, 
-          "Node_Type" : "Type_Name",
-          "path" : {
-            "Node_ID" : 35, 
-            "Node_Type" : "Path",
-            "name" : "S1",
-            "absolute" : false
-          }
-        }
-      }
-    },
-    {
-      "key" : 62,
-      "value" : {
-        "Node_ID" : 29, 
-        "Node_Type" : "Type_Struct",
-        "name" : "S1",
-        "declid" : 2,
-        "annotations" : {
-          "Node_ID" : 3
-        },
-        "fields" : {
-          "Node_ID" : 22
-        }
-      }
-    },
-    {
-      "key" : 60,
-      "value" : {
-        "Node_ID" : 16, 
-        "Node_Type" : "Method",
-        "name" : "f",
-        "declid" : 1,
-        "type" : {
-          "Node_ID" : 15
-        },
-        "isAbstract" : false,
-        "annotations" : {
-          "Node_ID" : 3
-        }
-      }
-    },
-    {
-      "key" : 56,
-      "value" : {
-        "Node_ID" : 34, 
+        "Node_ID" : 43, 
         "Node_Type" : "Declaration_Variable",
         "name" : "x",
         "declid" : 5,
         "annotations" : {
-          "Node_ID" : 3
+          "Node_ID" : 2
         },
         "type" : {
-          "Node_ID" : 33, 
+          "Node_ID" : 42, 
           "Node_Type" : "Type_Name",
           "path" : {
-            "Node_ID" : 32, 
+            "Node_ID" : 41, 
             "Node_Type" : "Path",
             "name" : "S",
             "absolute" : false
@@ -243,26 +212,26 @@
       }
     },
     {
-      "key" : 52,
+      "key" : 63,
       "value" : {
-        "Node_ID" : 21, 
+        "Node_ID" : 26, 
         "Node_Type" : "Type_Struct",
         "name" : "S",
         "declid" : 1,
         "annotations" : {
-          "Node_ID" : 3
+          "Node_ID" : 2
         },
         "fields" : {
-          "Node_ID" : 17, 
+          "Node_ID" : 27, 
           "Node_Type" : "IndexedVector<StructField>",
           "vec" : [
             {
-              "Node_ID" : 20, 
+              "Node_ID" : 23, 
               "Node_Type" : "StructField",
               "name" : "f",
               "declid" : 2,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
                 "Node_ID" : 0
@@ -271,12 +240,12 @@
           ],
           "declarations" : {
             "f" : {
-              "Node_ID" : 20, 
+              "Node_ID" : 23, 
               "Node_Type" : "StructField",
               "name" : "f",
               "declid" : 2,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
                 "Node_ID" : 0
@@ -287,89 +256,120 @@
       }
     },
     {
-      "key" : 50,
+      "key" : 61,
       "value" : {
-        "Node_ID" : 16, 
+        "Node_ID" : 19, 
         "Node_Type" : "Method",
         "name" : "f",
         "declid" : 1,
         "type" : {
-          "Node_ID" : 15
+          "Node_ID" : 18
         },
         "isAbstract" : false,
         "annotations" : {
-          "Node_ID" : 3
+          "Node_ID" : 2
+        }
+      }
+    },
+    {
+      "key" : 50,
+      "value" : {
+        "Node_ID" : 26, 
+        "Node_Type" : "Type_Struct",
+        "name" : "S",
+        "declid" : 1,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "fields" : {
+          "Node_ID" : 27
+        }
+      }
+    },
+    {
+      "key" : 47,
+      "value" : {
+        "Node_ID" : 19, 
+        "Node_Type" : "Method",
+        "name" : "f",
+        "declid" : 1,
+        "type" : {
+          "Node_ID" : 18
+        },
+        "isAbstract" : false,
+        "annotations" : {
+          "Node_ID" : 2
+        }
+      }
+    },
+    {
+      "key" : 44,
+      "value" : {
+        "Node_ID" : 37, 
+        "Node_Type" : "Type_Struct",
+        "name" : "S1",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "fields" : {
+          "Node_ID" : 38
         }
       }
     },
     {
       "key" : 41,
       "value" : {
-        "Node_ID" : 21, 
+        "Node_ID" : 26, 
         "Node_Type" : "Type_Struct",
         "name" : "S",
         "declid" : 1,
         "annotations" : {
-          "Node_ID" : 3
+          "Node_ID" : 2
         },
         "fields" : {
-          "Node_ID" : 17
+          "Node_ID" : 27
         }
       }
     },
     {
-      "key" : 38,
+      "key" : 11,
       "value" : {
-        "Node_ID" : 16, 
+        "Node_ID" : 7, 
+        "Node_Type" : "Type_Var",
+        "name" : "T",
+        "declid" : 0
+      }
+    },
+    {
+      "key" : 81,
+      "value" : {
+        "Node_ID" : 19, 
         "Node_Type" : "Method",
         "name" : "f",
         "declid" : 1,
         "type" : {
-          "Node_ID" : 15
+          "Node_ID" : 18
         },
         "isAbstract" : false,
         "annotations" : {
-          "Node_ID" : 3
+          "Node_ID" : 2
         }
       }
     },
     {
-      "key" : 35,
+      "key" : 83,
       "value" : {
-        "Node_ID" : 29, 
+        "Node_ID" : 37, 
         "Node_Type" : "Type_Struct",
         "name" : "S1",
         "declid" : 2,
         "annotations" : {
-          "Node_ID" : 3
+          "Node_ID" : 2
         },
         "fields" : {
-          "Node_ID" : 22
+          "Node_ID" : 38
         }
-      }
-    },
-    {
-      "key" : 32,
-      "value" : {
-        "Node_ID" : 21, 
-        "Node_Type" : "Type_Struct",
-        "name" : "S",
-        "declid" : 1,
-        "annotations" : {
-          "Node_ID" : 3
-        },
-        "fields" : {
-          "Node_ID" : 17
-        }
-      }
-    },
-    {
-      "key" : 10,
-      "value" : {
-        "Node_ID" : 8, 
-        "Node_Type" : "Type_Var",
-        "name" : "T",
-        "declid" : 0
       }
     }
   ],  "thisToDeclaration" : []

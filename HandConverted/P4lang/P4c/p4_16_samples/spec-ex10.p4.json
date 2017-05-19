@@ -1,56 +1,26 @@
 {
-  "Node_ID" : 33, 
+  "Node_ID" : 51, 
   "Node_Type" : "P4Program",
   "declarations" : {
-    "Node_ID" : 5, 
+    "Node_ID" : 52, 
     "Node_Type" : "IndexedVector<Node>",
     "vec" : [
       {
-        "Node_ID" : 7, 
+        "Node_ID" : 8, 
         "Node_Type" : "Type_Struct",
         "name" : "Ethernet_h",
         "declid" : 0,
         "annotations" : {
-          "Node_ID" : 3, 
+          "Node_ID" : 2, 
           "Node_Type" : "Annotations",
           "annotations" : {
-            "Node_ID" : 4, 
+            "Node_ID" : 3, 
             "Node_Type" : "Vector<Annotation>",
             "vec" : []
           }
         },
         "fields" : {
-          "Node_ID" : 6, 
-          "Node_Type" : "IndexedVector<StructField>",
-          "vec" : [],
-          "declarations" : {}
-        }
-      },
-      {
-        "Node_ID" : 9, 
-        "Node_Type" : "Type_Struct",
-        "name" : "Ip_h",
-        "declid" : 1,
-        "annotations" : {
-          "Node_ID" : 3
-        },
-        "fields" : {
-          "Node_ID" : 8, 
-          "Node_Type" : "IndexedVector<StructField>",
-          "vec" : [],
-          "declarations" : {}
-        }
-      },
-      {
-        "Node_ID" : 11, 
-        "Node_Type" : "Type_Header",
-        "name" : "Tcp_h",
-        "declid" : 2,
-        "annotations" : {
-          "Node_ID" : 3
-        },
-        "fields" : {
-          "Node_ID" : 10, 
+          "Node_ID" : 9, 
           "Node_Type" : "IndexedVector<StructField>",
           "vec" : [],
           "declarations" : {}
@@ -58,44 +28,74 @@
       },
       {
         "Node_ID" : 13, 
-        "Node_Type" : "Type_Header",
-        "name" : "Udp_h",
-        "declid" : 3,
+        "Node_Type" : "Type_Struct",
+        "name" : "Ip_h",
+        "declid" : 1,
         "annotations" : {
-          "Node_ID" : 3
+          "Node_ID" : 2
         },
         "fields" : {
-          "Node_ID" : 12, 
+          "Node_ID" : 14, 
           "Node_Type" : "IndexedVector<StructField>",
           "vec" : [],
           "declarations" : {}
         }
       },
       {
-        "Node_ID" : 21, 
-        "Node_Type" : "Type_Union",
+        "Node_ID" : 18, 
+        "Node_Type" : "Type_Header",
+        "name" : "Tcp_h",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "fields" : {
+          "Node_ID" : 19, 
+          "Node_Type" : "IndexedVector<StructField>",
+          "vec" : [],
+          "declarations" : {}
+        }
+      },
+      {
+        "Node_ID" : 23, 
+        "Node_Type" : "Type_Header",
+        "name" : "Udp_h",
+        "declid" : 3,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "fields" : {
+          "Node_ID" : 24, 
+          "Node_Type" : "IndexedVector<StructField>",
+          "vec" : [],
+          "declarations" : {}
+        }
+      },
+      {
+        "Node_ID" : 34, 
+        "Node_Type" : "Type_HeaderUnion",
         "name" : "L4_h",
         "declid" : 4,
         "annotations" : {
-          "Node_ID" : 3
+          "Node_ID" : 2
         },
         "fields" : {
-          "Node_ID" : 14, 
+          "Node_ID" : 35, 
           "Node_Type" : "IndexedVector<StructField>",
           "vec" : [
             {
-              "Node_ID" : 17, 
+              "Node_ID" : 28, 
               "Node_Type" : "StructField",
               "name" : "tcp",
               "declid" : 0,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
-                "Node_ID" : 16, 
+                "Node_ID" : 27, 
                 "Node_Type" : "Type_Name",
                 "path" : {
-                  "Node_ID" : 15, 
+                  "Node_ID" : 26, 
                   "Node_Type" : "Path",
                   "name" : "Tcp_h",
                   "absolute" : false
@@ -103,18 +103,18 @@
               }
             },
             {
-              "Node_ID" : 20, 
+              "Node_ID" : 31, 
               "Node_Type" : "StructField",
               "name" : "udp",
               "declid" : 1,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
-                "Node_ID" : 19, 
+                "Node_ID" : 30, 
                 "Node_Type" : "Type_Name",
                 "path" : {
-                  "Node_ID" : 18, 
+                  "Node_ID" : 29, 
                   "Node_Type" : "Path",
                   "name" : "Udp_h",
                   "absolute" : false
@@ -124,57 +124,57 @@
           ],
           "declarations" : {
             "tcp" : {
-              "Node_ID" : 17, 
+              "Node_ID" : 28, 
               "Node_Type" : "StructField",
               "name" : "tcp",
               "declid" : 0,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
-                "Node_ID" : 16
+                "Node_ID" : 27
               }
             },
             "udp" : {
-              "Node_ID" : 20, 
+              "Node_ID" : 31, 
               "Node_Type" : "StructField",
               "name" : "udp",
               "declid" : 1,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
-                "Node_ID" : 19
+                "Node_ID" : 30
               }
             }
           }
         }
       },
       {
-        "Node_ID" : 32, 
+        "Node_ID" : 48, 
         "Node_Type" : "Type_Struct",
         "name" : "Parsed_headers",
         "declid" : 5,
         "annotations" : {
-          "Node_ID" : 3
+          "Node_ID" : 2
         },
         "fields" : {
-          "Node_ID" : 22, 
+          "Node_ID" : 49, 
           "Node_Type" : "IndexedVector<StructField>",
           "vec" : [
             {
-              "Node_ID" : 25, 
+              "Node_ID" : 39, 
               "Node_Type" : "StructField",
               "name" : "ethernet",
               "declid" : 2,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
-                "Node_ID" : 24, 
+                "Node_ID" : 38, 
                 "Node_Type" : "Type_Name",
                 "path" : {
-                  "Node_ID" : 23, 
+                  "Node_ID" : 37, 
                   "Node_Type" : "Path",
                   "name" : "Ethernet_h",
                   "absolute" : false
@@ -182,18 +182,18 @@
               }
             },
             {
-              "Node_ID" : 28, 
+              "Node_ID" : 42, 
               "Node_Type" : "StructField",
               "name" : "ip",
               "declid" : 3,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
-                "Node_ID" : 27, 
+                "Node_ID" : 41, 
                 "Node_Type" : "Type_Name",
                 "path" : {
-                  "Node_ID" : 26, 
+                  "Node_ID" : 40, 
                   "Node_Type" : "Path",
                   "name" : "Ip_h",
                   "absolute" : false
@@ -201,18 +201,18 @@
               }
             },
             {
-              "Node_ID" : 31, 
+              "Node_ID" : 45, 
               "Node_Type" : "StructField",
               "name" : "tcpudp",
               "declid" : 4,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
-                "Node_ID" : 30, 
+                "Node_ID" : 44, 
                 "Node_Type" : "Type_Name",
                 "path" : {
-                  "Node_ID" : 29, 
+                  "Node_ID" : 43, 
                   "Node_Type" : "Path",
                   "name" : "L4_h",
                   "absolute" : false
@@ -222,39 +222,39 @@
           ],
           "declarations" : {
             "ethernet" : {
-              "Node_ID" : 25, 
+              "Node_ID" : 39, 
               "Node_Type" : "StructField",
               "name" : "ethernet",
               "declid" : 2,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
-                "Node_ID" : 24
+                "Node_ID" : 38
               }
             },
             "ip" : {
-              "Node_ID" : 28, 
+              "Node_ID" : 42, 
               "Node_Type" : "StructField",
               "name" : "ip",
               "declid" : 3,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
-                "Node_ID" : 27
+                "Node_ID" : 41
               }
             },
             "tcpudp" : {
-              "Node_ID" : 31, 
+              "Node_ID" : 45, 
               "Node_Type" : "StructField",
               "name" : "tcpudp",
               "declid" : 4,
               "annotations" : {
-                "Node_ID" : 3
+                "Node_ID" : 2
               },
               "type" : {
-                "Node_ID" : 30
+                "Node_ID" : 44
               }
             }
           }
@@ -263,75 +263,75 @@
     ],
     "declarations" : {
       "Ethernet_h" : {
-        "Node_ID" : 7, 
+        "Node_ID" : 8, 
         "Node_Type" : "Type_Struct",
         "name" : "Ethernet_h",
         "declid" : 0,
         "annotations" : {
-          "Node_ID" : 3
+          "Node_ID" : 2
         },
         "fields" : {
-          "Node_ID" : 6
+          "Node_ID" : 9
         }
       },
       "Ip_h" : {
-        "Node_ID" : 9, 
+        "Node_ID" : 13, 
         "Node_Type" : "Type_Struct",
         "name" : "Ip_h",
         "declid" : 1,
         "annotations" : {
-          "Node_ID" : 3
-        },
-        "fields" : {
-          "Node_ID" : 8
-        }
-      },
-      "Tcp_h" : {
-        "Node_ID" : 11, 
-        "Node_Type" : "Type_Header",
-        "name" : "Tcp_h",
-        "declid" : 2,
-        "annotations" : {
-          "Node_ID" : 3
-        },
-        "fields" : {
-          "Node_ID" : 10
-        }
-      },
-      "Udp_h" : {
-        "Node_ID" : 13, 
-        "Node_Type" : "Type_Header",
-        "name" : "Udp_h",
-        "declid" : 3,
-        "annotations" : {
-          "Node_ID" : 3
-        },
-        "fields" : {
-          "Node_ID" : 12
-        }
-      },
-      "L4_h" : {
-        "Node_ID" : 21, 
-        "Node_Type" : "Type_Union",
-        "name" : "L4_h",
-        "declid" : 4,
-        "annotations" : {
-          "Node_ID" : 3
+          "Node_ID" : 2
         },
         "fields" : {
           "Node_ID" : 14
         }
       },
+      "Tcp_h" : {
+        "Node_ID" : 18, 
+        "Node_Type" : "Type_Header",
+        "name" : "Tcp_h",
+        "declid" : 2,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "fields" : {
+          "Node_ID" : 19
+        }
+      },
+      "Udp_h" : {
+        "Node_ID" : 23, 
+        "Node_Type" : "Type_Header",
+        "name" : "Udp_h",
+        "declid" : 3,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "fields" : {
+          "Node_ID" : 24
+        }
+      },
+      "L4_h" : {
+        "Node_ID" : 34, 
+        "Node_Type" : "Type_HeaderUnion",
+        "name" : "L4_h",
+        "declid" : 4,
+        "annotations" : {
+          "Node_ID" : 2
+        },
+        "fields" : {
+          "Node_ID" : 35
+        }
+      },
       "Parsed_headers" : {
-        "Node_ID" : 32, 
+        "Node_ID" : 48, 
         "Node_Type" : "Type_Struct",
         "name" : "Parsed_headers",
         "declid" : 5,
         "annotations" : {
-          "Node_ID" : 3
+          "Node_ID" : 2
         },
         "fields" : {
-          "Node_ID" : 22
+          "Node_ID" : 49
         }
       }
     }
