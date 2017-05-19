@@ -90,6 +90,11 @@ namespace P4ToCSharp.Library
       return Value.GetHashCode();
     }
 
+    public static implicit operator ulong(bitN v)
+    {
+      return v.Value;
+    }
+
     // NOTE we don't support any arithmetic for this datatype
     public static bool operator <(bitN a, IBitString b) { return a.Value < b.Value; }
     public static bool operator >(bitN a, IBitString b) { return a.Value > b.Value; }
@@ -763,6 +768,11 @@ namespace P4ToCSharp.Library
     public override int GetHashCode()
     {
       return Value.GetHashCode();
+    }
+
+    public static implicit operator long(intN v)
+    {
+      return v.Value;
     }
 
     // NOTE we don't support any arithmetic for this datatype
