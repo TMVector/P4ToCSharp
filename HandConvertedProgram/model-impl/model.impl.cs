@@ -101,9 +101,9 @@ namespace HandConvertedProgram
         // TODO init data array
       }
 
-      public void emit<T>(T hdr) where T : HeaderBase
+      public void emit<T>(T hdr)
       {
-         this.emit(hdr.valid$, hdr); // If hdr.valid$ ≝ (hdr != null), then emit'2 will need a null check also
+         this.emit(true /*hdr.valid*/, hdr); // If hdr.valid$ ≝ (hdr != null), then emit'2 will need a null check also
       }
 
       public void emit<T>(bool condition, T data)
@@ -142,8 +142,8 @@ namespace HandConvertedProgram
           var @struct = (IStruct)(object)data;
           // Need to emit each field in T in order... Reflection? D: Add a method to the struct? Like we do with Extract/Write on headers
         }
-        this.data.append(data);
-        this.lengthInBits += data.lengthInBits;
+        //this.data.append(data);
+        //this.lengthInBits += data.lengthInBits;
       }
     }
     //packet_out {

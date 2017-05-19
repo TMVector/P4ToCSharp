@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>HandConverted</RootNamespace>
     <AssemblyName>HandConverted</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFrameworkProfile />
@@ -36,8 +36,20 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\lib\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="PacketDotNet">
+      <HintPath>..\lib\PacketDotNet.dll</HintPath>
+    </Reference>
     <Reference Include="Pax">
-      <HintPath>..\..\..\pax\Bin\Pax.exe</HintPath>
+      <HintPath>..\lib\Pax.exe</HintPath>
+    </Reference>
+    <Reference Include="Pax_Lite">
+      <HintPath>..\lib\Pax_Lite.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpPcap">
+      <HintPath>..\lib\SharpPcap.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

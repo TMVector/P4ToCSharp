@@ -34,7 +34,7 @@ namespace HandConvertedProgram.program
     public static void Main(string[] args)
     {
       // VSS package
-      new VSS_impl().use(...); // This runs the packet processor
+      //new VSS_impl().use(...); // This runs the packet processor
     }
 }
 
