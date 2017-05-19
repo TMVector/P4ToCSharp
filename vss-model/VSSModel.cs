@@ -29,6 +29,20 @@ namespace vss_model
 
     public class VSS_impl<H> : Pax.ByteBased_PacketProcessor, VSS<H>
     {
+      public const byte REAL_PORT_COUNT       = 8;
+      public const byte RECIRCULATE_IN_PORT   = 0xD;
+      public const byte CPU_IN_PORT           = 0xE;
+      public const byte DROP_PORT             = 0xF;
+      public const byte CPU_OUT_PORT          = 0xE;
+      public const byte RECIRCULATE_OUT_PORT  = 0xD;
+      public const byte MAX_PORT = 0xC;
+
+      public static readonly byte[] PortMapping =
+      {
+        0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC
+      };
+
+
       public static byte[] GetBytes(string bitString)
       {
         byte[] arr = new byte[bitString.Length / 2];
@@ -52,7 +66,9 @@ namespace vss_model
         }
         return true;
       }
-      public packet_out ProcessPacket(byte[] packet, Parser<H> p, Pipe<H> map, Deparser<H> d)
+
+      private struct ProcessResult { public packet_out po; public OutControl outCtrl; }
+      private ProcessResult ProcessPacket(int in_port, byte[] packet)
       {
         H hdr = default(H);
         P4ToCSharp.Library.error parserError = Architecture.error.NoError; // FIXME move lib.error to Core.error?
@@ -65,19 +81,54 @@ namespace vss_model
           parserError = ex.Error;
           Console.Error.WriteLine("P4 exception. " + ex.Error);
         }
-        var inCtrl = new InControl();
+        var inCtrl = new InControl() { inputPort = new bit4((byte)in_port) };
         OutControl outCtrl;
         map.apply(hdr, ref hdr, parserError, inCtrl, out outCtrl);
         packet_out po = new packet_out();
         d.apply(hdr, ref hdr, po);
         // TODO do something with the result
-        return po;
+        return new ProcessResult() { po = po, outCtrl = outCtrl };
       }
 
       public override void process_packet(int in_port, byte[] packet)
       {
-        throw new NotImplementedException();
+        Console.WriteLine("Packet received.");
+        Console.WriteLine("{0} {1}", in_port, GetHex(packet));
 
+        var result = ProcessPacket(in_port, packet);
+        var po = result.po;
+        var outCtrl = result.outCtrl;
+        switch (outCtrl.outputPort)
+        {
+          case DROP_PORT:
+            // Drop => don't send => do nothing
+            Console.WriteLine("Dropping.");
+            break;
+          case CPU_OUT_PORT:
+            {
+              Console.WriteLine("Sending to CPU.");
+              // TODO handle CPU packets
+              throw new NotImplementedException("Sending packets to CPU is not supported yet.");
+            }
+          case RECIRCULATE_OUT_PORT:
+            {
+              Console.WriteLine("Recirculating.");
+              // TODO handle recirculation
+              throw new NotImplementedException("Recirculating packets is not supported yet.");
+            }
+          default:
+            {
+              int outIntf = PortMapping[outCtrl.outputPort.Value];
+              if (outIntf < 0 || outIntf > MAX_PORT)
+              {
+                Console.WriteLine("Invalid port {0}. Dropping.", outIntf);
+                break;
+              }
+              Console.WriteLine("Sending packet.");
+              send_packet(outIntf, po.Data, (int)(po.LengthInBits / 8));
+              break;
+            }
+        }
 
       }
 
@@ -113,7 +164,7 @@ namespace vss_model
           System.IO.FileInfo stfFile = new System.IO.FileInfo(stfPath);
           using (var reader = stfFile.OpenText())
           {
-            packet_out lastPacketOut = null;
+            ProcessResult? lastResult = null;
             while (!reader.EndOfStream)
             {
               string line = reader.ReadLine().Split('#')[0];
@@ -125,23 +176,27 @@ namespace vss_model
                   {
                     var intf = Convert.ToInt32(lineParts[1]);
                     var arr = GetBytes(String.Join("", lineParts.Skip(2)));
-                    var po = ProcessPacket(arr, p, map, d);
-                    lastPacketOut = po;
+                    lastResult = ProcessPacket(intf, arr);
                     break;
                   }
                 case "expect":
                   {
                     var intf = Convert.ToInt32(lineParts[1]);
                     var arr = GetBytes(String.Join("", lineParts.Skip(2)));
-                    if (lastPacketOut != null)
+                    if (lastResult != null)
                     {
-                      if (lastPacketOut.LengthInBits % 8 != 0)
+                      if (lastResult.Value.outCtrl.outputPort.Value != intf)
                       {
-                        Console.Error.WriteLine("Packet length was not an integral number of bytes ({0})", lastPacketOut.LengthInBits);
+                        Console.Error.WriteLine("Output interface did not match expected ({0} <> {1})", lastResult.Value.outCtrl.outputPort.Value, intf);
                         Environment.Exit(1);
                       }
-                      var result = new byte[lastPacketOut.LengthInBits / 8];
-                      Array.Copy(lastPacketOut.Data, result, result.Length);
+                      if (lastResult.Value.po.LengthInBits % 8 != 0)
+                      {
+                        Console.Error.WriteLine("Packet length was not an integral number of bytes ({0})", lastResult.Value.po.LengthInBits);
+                        Environment.Exit(1);
+                      }
+                      var result = new byte[lastResult.Value.po.LengthInBits / 8];
+                      Array.Copy(lastResult.Value.po.Data, result, result.Length);
                       if (ArrEquals(arr, result))
                       { }
                       else
