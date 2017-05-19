@@ -18,7 +18,7 @@ module Util =
       seq {
         let mutable pos = 0
         for x in xs do
-          if pos > skipCount then
+          if pos >= skipCount then
             yield x
           else
             pos <- pos + 1

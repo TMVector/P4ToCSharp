@@ -1495,10 +1495,10 @@ and declarationOfNode (scopeInfo:ScopeInfo) (n : JsonTypes.Node) : Transformed.D
                   else
                     yield upcast SF.LocalDeclarationStatement(variableDeclaration result.Identifier.Text apply_resultType None)
                     let indexAccessExpr key = SF.ElementBindingExpression().WithArgumentList(SF.BracketedArgumentList(SF.SingletonSeparatedList(SF.Argument(key)))) :> Expr
-                    let lookupKey lut key = SF.ConditionalAccessExpression(lut, indexAccessExpr key) :> Expr
+                    let lookupKey lut key = SF.ConditionalAccessExpression(lut, key) :> Expr
                     let lookupChain = Seq.fold (fun expr (_,keyExpr) -> lookupKey (indexAccessExpr (keyExpr |> ofExpr scopeInfo UnknownType)) expr)
                                                (Seq.last key |> snd |> ofExpr scopeInfo UnknownType |> indexAccessExpr)
-                                               (key |> Seq.trySkip 1)
+                                               (key |> Seq.rev |> Seq.trySkip 1)
                     let lookupExpr = SF.ConditionalAccessExpression(SF.IdentifierName("lookup"), lookupChain) :> Expr
                     yield upcast SF.LocalDeclarationStatement(variableDeclaration "RA" actionBaseType (Some lookupExpr))
                     let condition = SF.BinaryExpression(SK.EqualsExpression, SF.IdentifierName("RA"), nullLiteral)
