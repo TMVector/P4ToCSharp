@@ -72,9 +72,10 @@ namespace vss_model
       {
         H hdr = default(H);
         P4ToCSharp.Library.error parserError = Architecture.error.NoError; // FIXME move lib.error to Core.error?
+        packet_in pi = new packet_in(packet);
         try
         {
-          p.apply(new packet_in(packet), out hdr);
+          p.apply(pi, out hdr);
         }
         catch (P4Exception ex)
         {
@@ -86,6 +87,8 @@ namespace vss_model
         map.apply(hdr, ref hdr, parserError, inCtrl, out outCtrl);
         packet_out po = new packet_out();
         d.apply(hdr, ref hdr, po);
+        // Copy the payload into the output
+        po.CopyPayload(pi);
         // TODO do something with the result
         return new ProcessResult() { po = po, outCtrl = outCtrl };
       }

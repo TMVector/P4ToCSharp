@@ -11,7 +11,9 @@ namespace P4ToCSharp.Library
     public abstract class packet_in
     {
       private byte[] data;
+      public byte[] Data { get { return data; } }
       private uint bitOffset = 0;
+      public uint BitOffset { get { return bitOffset; } }
 
       public packet_in(byte[] data)
       {
@@ -111,10 +113,35 @@ namespace P4ToCSharp.Library
       UInt32 lengthInBits = 0;
       public byte[] Data { get { return data; } }
       public UInt32 LengthInBits { get { return lengthInBits; } }
+      public int PayloadIndex
+      {
+        get
+        {
+          if (LengthInBits % 8 != 0)
+            throw new InvalidOperationException("Length in bytes is non-integral");
+          return (int)(LengthInBits / 8);
+        }
+      }
 
       public packet_out()
       {
         data = new byte[1522]; // FIXME do we need to make this so big?
+      }
+
+      public void CopyPayload(packet_in pi)
+      {
+        if (pi.BitOffset % 8 != 0)
+          throw new InvalidOperationException("Remainder is at a non-integral offset.");
+
+        int length = pi.Data.Length - ((int)pi.BitOffset / 8);
+
+        if (length == 0)
+          return;
+
+        if (length > data.Length - PayloadIndex)
+          throw new InvalidOperationException("Destination array is not large enough.");
+
+        Array.Copy(pi.Data, pi.BitOffset / 8, data, PayloadIndex, length);
       }
 
       public void emit<T>(T hdr)
