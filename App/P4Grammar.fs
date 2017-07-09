@@ -1,8 +1,6 @@
 ﻿namespace P4ToCSharp.App
 
 module P4Grammar =
-  ()
-  
   
   type P4Program = Declaration list
 

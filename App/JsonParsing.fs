@@ -4,7 +4,7 @@
   This file contains the JSON parsing code.
 *)
 
-namespace P4ToCSharp.App.IR
+namespace P4ToCSharp.App
 
 open System
 open Microsoft.FSharp.Reflection

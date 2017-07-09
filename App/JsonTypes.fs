@@ -4,7 +4,7 @@
   This file contains the IR structures for code parsed by p4c and dumped as JSON.
 *)
 
-namespace P4ToCSharp.App.IR
+namespace P4ToCSharp.App
 
 open Newtonsoft.Json // For attributes
 
